@@ -11,6 +11,7 @@ import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicat
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { computeDietScoreTrends, computeExerciseTrends } from '../lib/journey';
+import DailyExerciseTrend from './DailyExerciseTrend.vue';
 import { calculateDietScore, calculateExerciseScore, calculateManualScore } from '../lib/scoring';
 import type { DietRecord, WeightRecord, ExerciseRecord, ManualScoreRecord } from '../types';
 
@@ -750,56 +751,26 @@ function handleDeleteManualScore(id: string) {
 
       <!-- Exercise tab -->
       <template v-if="activeTab === 'exercise'">
-        <!-- 运动周趋势图 - 首期上线版暂移除，后续版本上线 -->
-        <!-- <Card v-if="exerciseTrends.length > 0" class="space-y-3">
+        <!-- 每日运动趋势图（与学员端一致） -->
+        <Card v-if="studentExercises.length > 0" class="space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-gray-900 flex items-center gap-1.5 text-sm">
               <TrendingUp class="h-4 w-4 text-[#07C160]" />
-              每周运动趋势
+              每日运动趋势
             </h3>
             <div class="flex items-center gap-2">
               <ChartRulePopup title="运动趋势计算规则" button-text="计算规则">
-                <p><span class="font-bold text-gray-900">总时长 =</span> 该周所有运动记录的时长之和(分钟)</p>
+                <p><span class="font-bold text-gray-900">总时长 =</span> 该日所有运动记录的时长之和(分钟)，同一日多次运动分别相加</p>
                 <p><span class="font-bold text-gray-900">有效运动：</span>单次运动时长≥40分钟计为有效，与积分规则一致</p>
-                <p><span class="font-bold text-gray-900">运动次数：</span>该周运动记录条数，同一天多次运动分别计数</p>
-                <p><span class="font-bold text-gray-900">平均强度：</span>该周记录RPE强度的算术平均值(1-5级)，无记录显示"--"</p>
-                <p><span class="font-bold text-gray-900">周划分：</span>自然周(周一至周日)，从首条打卡所在周开始，首周可能不足7天</p>
+                <p><span class="font-bold text-gray-900">运动次数：</span>该日运动记录条数，同一天多次运动分别计数</p>
+                <p><span class="font-bold text-gray-900">平均强度：</span>该日记录RPE强度的算术平均值(1-5级)，无记录显示"--"</p>
+                <p><span class="font-bold text-gray-900">交互：</span>点击某根柱形查看当天记录，左右滑动切换前一天/后一天</p>
               </ChartRulePopup>
               <span class="text-[10px] text-gray-400">单位：分钟</span>
             </div>
           </div>
-          <p class="text-[10px] text-gray-400">每周运动总时长，单次≥40分钟计为有效运动</p>
-          <div class="flex items-end justify-between gap-1.5 h-24">
-            <div v-for="t in exerciseTrends" :key="t.weekLabel" class="flex-1 flex flex-col items-center justify-end h-full">
-              <div class="text-[10px] font-bold text-[#07C160] mb-0.5">{{ t.totalDuration }}</div>
-              <div class="w-full rounded-t transition-all min-h-[3px] bg-[#07C160]" :style="{ height: `${Math.max((t.totalDuration / exerciseTrendMax) * 100, 3)}%` }"></div>
-              <div class="text-[9px] text-gray-400 mt-1">{{ t.weekLabel }}</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 text-[9px] text-gray-400">
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#07C160]"></span>运动总时长(分钟)</span>
-            <span>有效=单次≥40min</span>
-          </div>
-          <div v-if="exerciseTrends.length > 0" class="pt-2 border-t border-gray-50 space-y-2">
-            <div class="text-[10px] text-gray-400">最近一周 {{ exerciseTrends[exerciseTrends.length - 1].weekLabel }} 分解：</div>
-            <div class="grid grid-cols-3 gap-2 text-center">
-              <div v-for="t in exerciseTrends.slice(-1)" :key="t.weekLabel" class="contents">
-                <div class="bg-gray-50 rounded-lg py-2">
-                  <div class="text-sm font-bold text-gray-900">{{ t.count }}</div>
-                  <div class="text-[9px] text-gray-500">本周次数</div>
-                </div>
-                <div class="bg-[#07C160]/5 rounded-lg py-2">
-                  <div class="text-sm font-bold text-[#07C160]">{{ t.qualifiedCount }}</div>
-                  <div class="text-[9px] text-gray-500">有效次数(≥40min)</div>
-                </div>
-                <div class="bg-[#FF976A]/5 rounded-lg py-2">
-                  <div class="text-sm font-bold text-[#FF976A]">{{ t.avgIntensity !== null ? t.avgIntensity.toFixed(1) : '--' }}</div>
-                  <div class="text-[9px] text-gray-500">平均强度(1-5)</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card> -->
+          <DailyExerciseTrend :records="studentExercises" />
+        </Card>
 
         <div v-if="studentExercises.length === 0" class="text-center py-10 bg-white rounded-2xl border border-gray-100">
           <div class="w-14 h-14 mx-auto mb-2 rounded-full bg-[#07C160]/10 flex items-center justify-center">

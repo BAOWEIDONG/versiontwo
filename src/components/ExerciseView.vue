@@ -10,6 +10,7 @@ import { NavBar, Card, Button, Input, ChartRulePopup } from './ui';
 import { Plus, X, Camera, Video, PlayCircle, Loader, MessageCircle, ChevronDown, Dumbbell, TrendingUp } from 'lucide-vue-next';
 import { showToast } from 'vant';
 import { computeExerciseTrends } from '../lib/journey';
+import DailyExerciseTrend from './DailyExerciseTrend.vue';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
 
@@ -375,7 +376,7 @@ const handleSubmit = () => {
     <div class="sticky top-14 z-20 px-4 pt-3 pb-1">
       <div class="seg-tabs">
         <button
-          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'records', label: '记录' }] as const)"
+          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'trend', label: '趋势' }, { id: 'records', label: '记录' }] as const)"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="['seg-tab seg-tab-green', activeTab === tab.id ? 'active' : '']"
@@ -672,34 +673,24 @@ const handleSubmit = () => {
         <div class="flex items-center justify-between">
           <h3 class="font-bold text-gray-900 flex items-center gap-1.5 text-sm">
             <TrendingUp class="h-4 w-4 text-[#07C160]" />
-            每周运动趋势
+            每日运动趋势
           </h3>
           <div class="flex items-center gap-2">
             <span class="text-[10px] text-gray-400">单位：分钟</span>
             <ChartRulePopup title="运动趋势计算规则">
-              <p><span class="font-bold text-gray-900">周划分：</span>按自然周（周一至周日）分组，从首条打卡记录所在周开始，首周可能不足7天。</p>
-              <p><span class="font-bold text-gray-900">运动总时长：</span>该周所有运动记录的 duration 之和（分钟）。</p>
-              <p><span class="font-bold text-gray-900">运动次数：</span>该周运动记录条数，同一天多次运动分别计数。</p>
-              <p><span class="font-bold text-gray-900">达标次数（≥40min）：</span>单次运动时长≥40分钟的记录数。与积分规则一致--每日完成单次40分钟以上运动即可计分，可理解为"有效运动次数"。</p>
-              <p><span class="font-bold text-gray-900">平均强度：</span>该周记录的 intensity 算术平均值（RPE 1-5），无记录时显示"--"。</p>
-              <p><span class="font-bold text-gray-900">柱状图高度：</span>该周总时长 ÷ 全部周次中的最大总时长 × 100%。</p>
+              <p><span class="font-bold text-gray-900">每日总时长：</span>该日所有运动记录的 duration 之和（分钟），同一日多次运动分别相加。</p>
+              <p><span class="font-bold text-gray-900">平均强度：</span>该日记录 intensity 的算术平均值（RPE 1-5），无记录显示"--"。</p>
+              <p><span class="font-bold text-gray-900">打卡次数：</span>该日运动记录条数，同一天多次运动分别计数。</p>
+              <p><span class="font-bold text-gray-900">达标（≥40min）：</span>单次运动时长≥40分钟的记录数。与积分规则一致--每日完成单次40分钟以上运动即可计分。</p>
+              <p><span class="font-bold text-gray-900">交互：</span>点击某根柱形查看当天记录；在图上左右滑动可切换前一天/后一天。</p>
             </ChartRulePopup>
           </div>
         </div>
-        <!-- 柱状图：每周总时长（分钟） -->
-        <div class="flex items-end justify-between gap-1.5 h-24">
-          <div v-for="t in exerciseTrends" :key="t.weekLabel" class="flex-1 flex flex-col items-center justify-end h-full">
-            <div class="text-[10px] font-bold text-[#07C160] mb-0.5">{{ t.totalDuration }}</div>
-            <div class="w-full rounded-t transition-all min-h-[3px] bg-[#07C160]" :style="{ height: `${Math.max((t.totalDuration / exerciseTrendMax) * 100, 3)}%` }"></div>
-            <div class="text-[9px] text-gray-400 mt-1">{{ t.weekLabel }}</div>
-          </div>
-        </div>
-        <!-- 图例 -->
-        <div class="flex items-center gap-3 text-[9px] text-gray-400">
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#07C160]"></span>运动总时长(分钟)</span>
-        </div>
+
+        <DailyExerciseTrend :records="userExercises" />
+
         <!-- 全部运动统计 -->
-        <div class="pt-2 border-t border-gray-50 space-y-2">
+        <div class="pt-3 border-t border-gray-50 space-y-2">
           <div class="text-[10px] text-gray-400">全部运动统计：</div>
           <div class="grid grid-cols-4 gap-2 text-center">
             <div class="bg-gray-50 rounded-lg py-2">
@@ -720,33 +711,13 @@ const handleSubmit = () => {
             </div>
           </div>
         </div>
-        <!-- 最近一周分解 -->
-        <div v-if="exerciseTrends.length > 0" class="pt-2 border-t border-gray-50 space-y-2">
-          <div class="text-[10px] text-gray-400">最近一周 {{ exerciseTrends[exerciseTrends.length - 1].weekLabel }} 分解：</div>
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div v-for="t in exerciseTrends.slice(-1)" :key="t.weekLabel" class="contents">
-              <div class="bg-gray-50 rounded-lg py-2">
-                <div class="text-sm font-bold text-gray-900">{{ t.count }}</div>
-                <div class="text-[9px] text-gray-500">本周次数</div>
-              </div>
-              <div class="bg-[#07C160]/5 rounded-lg py-2">
-                <div class="text-sm font-bold text-[#07C160]">{{ t.qualifiedCount }}</div>
-                <div class="text-[9px] text-gray-500">达标(≥40min)</div>
-              </div>
-              <div class="bg-[#FF976A]/5 rounded-lg py-2">
-                <div class="text-sm font-bold text-[#FF976A]">{{ t.avgIntensity !== null ? t.avgIntensity.toFixed(1) : '--' }}</div>
-                <div class="text-[9px] text-gray-500">平均强度(1-5)</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </Card>
       <div v-else class="text-center py-10 bg-white rounded-2xl border border-gray-100">
         <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-[#07C160]/10 flex items-center justify-center">
           <TrendingUp class="w-8 h-8 text-[#07C160]" />
         </div>
         <div class="text-sm font-bold text-gray-700 mb-1">还没有运动数据</div>
-        <div class="text-xs text-gray-400">完成打卡后生成每周运动趋势</div>
+        <div class="text-xs text-gray-400">完成打卡后生成每日运动趋势</div>
       </div>
     </div>
 

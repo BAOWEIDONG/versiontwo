@@ -644,6 +644,57 @@ export function computeExerciseTrends(
   return trends;
 }
 
+/** 单个运动日趋势项 */
+export interface ExerciseDayTrend {
+  /** 日期 yyyy-MM-dd */
+  date: string;
+  /** 当日运动总时长（分钟） */
+  totalDuration: number;
+  /** 当日运动次数（同一天多次分别计数） */
+  count: number;
+  /** 当日单次 ≥40 分钟的次数 */
+  qualifiedCount: number;
+  /** 当日平均强度（RPE 1-5），无记录为 null */
+  avgIntensity: number | null;
+}
+
+/**
+ * 计算每日运动趋势（用于学员/教练/营养师三端趋势图）。
+ * 按自然日聚合，从首条打卡记录所在日到今天，逐日生成（中间无运动的天也保留，
+ * 便于在趋势图上展示连续性）。
+ */
+export function computeDailyExerciseTrends(
+  records: ExerciseRecord[],
+  userId?: string,
+): ExerciseDayTrend[] {
+  const mine = records.filter((r) => !userId || !r.studentId || r.studentId === userId);
+  if (mine.length === 0) return [];
+
+  const dates = mine.map((r) => r.date.substring(0, 10)).sort();
+  const firstDate = dates[0];
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const trends: ExerciseDayTrend[] = [];
+  let cur = new Date(firstDate);
+  const lastDay = new Date(`${todayStr}T00:00:00`);
+  while (cur <= lastDay) {
+    const dStr = format(cur, 'yyyy-MM-dd');
+    const dayRecords = mine.filter((r) => r.date.substring(0, 10) === dStr);
+    trends.push({
+      date: dStr,
+      totalDuration: dayRecords.reduce((s, r) => s + r.duration, 0),
+      count: dayRecords.length,
+      qualifiedCount: dayRecords.filter((r) => r.duration >= 40).length,
+      avgIntensity: dayRecords.length > 0
+        ? Math.round((dayRecords.reduce((s, r) => s + r.intensity, 0) / dayRecords.length) * 10) / 10
+        : null,
+    });
+    cur = addDays(cur, 1);
+  }
+
+  return trends;
+}
+
 /**
  * 生成个人历程数据
  *
