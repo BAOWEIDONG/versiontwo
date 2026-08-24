@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
+import { rankStudents } from '../lib/scoring';
 import { Card } from './ui';
 import ActivityCard from './ActivityCard.vue';
 import { UserCircle, LogOut, Clock, FileText, Users, CheckCircle, XCircle, Search, X, ChevronDown, Dumbbell } from 'lucide-vue-next';
@@ -37,6 +38,12 @@ const campExerciseRecords = computed(() =>
   activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords
 );
 
+const campDietRecords = computed(() => activeCampId.value ? store.getCampDietRecords(activeCampId.value) : store.dietRecords);
+const campManualRecords = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
+const rankedStudents = computed(() =>
+  campStudents.value.length === 0 ? [] : rankStudents(campStudents.value, campDietRecords.value, campExerciseRecords.value, campManualRecords.value)
+);
+
 const _now = new Date();
 const todayStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
 
@@ -52,12 +59,16 @@ const studentsStatus = computed(() =>
       r => r.studentId === student.id && !r.coachComment && r.coachScore == null
     ).length;
 
+    const rankInfo = rankedStudents.value.find(r => r.studentId === student.id);
+
     return {
       ...student,
       hasExercise,
       unannotatedCount: unannotatedExercises,
+      totalScore: rankInfo?.totalScore || 0,
     };
   })
+    .sort((a, b) => b.totalScore - a.totalScore)
 );
 
 const completedStudents = computed(() => studentsStatus.value.filter(s => s.hasExercise));
@@ -238,7 +249,7 @@ const selectCamp = (campId: string | null) => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar tabbar-green tabbar-flat" :model-value="0">
+    <VanTabbar class="custom-tabbar tabbar-green" :model-value="0">
       <VanTabbarItem>
         <template #icon><Users class="h-6 w-6" /></template>
         首页

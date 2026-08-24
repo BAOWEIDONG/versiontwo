@@ -84,6 +84,14 @@ const viewMap: Record<string, Component> = {
 
 const currentComponent = computed<Component>(() => viewMap[store.currentView] || LoginView);
 
+// 同步营养师/教练角色到 <body>，用于全局复用首页浅渐变背景（学员端不挂该类）
+function syncRoleClass(role?: string | null) {
+  document.body.classList.remove('role-diet', 'role-coach');
+  if (role === 'dietitian') document.body.classList.add('role-diet');
+  else if (role === 'coach') document.body.classList.add('role-coach');
+}
+watch(() => store.user?.role, (r) => syncRoleClass(r));
+
 // 视图切换时滚动到顶部
 const scrollContainer = ref<HTMLElement | null>(null);
 watch(() => store.currentView, () => {
@@ -103,6 +111,7 @@ onMounted(() => {
   // 先尝试恢复登录态（保活），再加载数据
   store.restoreAuth();
   store.init();
+  syncRoleClass(store.user?.role);
 });
 </script>
 

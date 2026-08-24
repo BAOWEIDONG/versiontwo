@@ -7,11 +7,19 @@ export function fmtShortDate(dateStr: string): string {
   return `${d.getMonth() + 1}.${d.getDate()}`;
 }
 
-/** 营期日期区间展示，如 "10.8 — 11.4"，缺日期部分回退 "--" */
+/** 将 "YYYY-MM-DD" 格式化为 "YYYY-MM-DD"（保留完整年月日） */
+export function fmtFullDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 营期日期区间展示，如 "2026-08-24 — 2026-09-20"，缺日期部分回退 "--" */
 export function campDateRange(camp: Camp): string {
   if (!camp.startDate && !camp.endDate) return '--';
-  const s = camp.startDate ? fmtShortDate(camp.startDate) : '--';
-  const e = camp.endDate ? fmtShortDate(camp.endDate) : '--';
+  const s = camp.startDate ? fmtFullDate(camp.startDate) : '--';
+  const e = camp.endDate ? fmtFullDate(camp.endDate) : '--';
   return `${s} — ${e}`;
 }
 

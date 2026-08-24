@@ -81,7 +81,8 @@ const studentsStatus = computed(() =>
       totalScore: rankInfo?.totalScore || 0,
       rank: rankInfo?.rank || 0,
     };
-  }),
+  })
+    .sort((a, b) => b.totalScore - a.totalScore),
 );
 
 const completedStudents = computed(() => studentsStatus.value.filter((s) => s.isCompleted));
@@ -223,7 +224,7 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
     </div>
 
     <!-- Bottom Nav (Vant Tabbar) -->
-    <VanTabbar class="custom-tabbar tabbar-orange tabbar-flat" :model-value="0">
+    <VanTabbar class="custom-tabbar tabbar-orange" :model-value="0">
       <VanTabbarItem>
         <template #icon><Users class="h-6 w-6" /></template>
         首页

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, type Component } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
@@ -14,7 +14,7 @@ const store = useAppStore();
 
 // ─── 顶层模块Tab（平铺，无home页） ───
 type Module = 'audit' | 'shipping' | 'exchange';
-const activeModule = ref<Module>('audit');
+const activeModule = ref<Module>('shipping');
 
 // ─── 子Tab ───
 type AuditTab = 'pending' | 'confirmed';
@@ -28,6 +28,9 @@ const allRewardClaims = computed(() => store.rewardClaims);
 const allExchanges = computed(() =>
   [...store.pointExchanges].sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate))
 );
+
+/** 是否还有趣味活动奖品（阶梯/每周/全勤）——没有则发放中心隐藏「审核」模块 */
+const hasActivityTiers = computed(() => allRewardTiers.value.some(t => t.source === 'activity' && t.stock > 0));
 
 // ─── 跨营期计算待审核 ───
 const crossCampPendingAudit = computed(() => {
@@ -416,26 +419,32 @@ const EXCHANGE_STATUS: Record<string, { label: string; color: string; bg: string
 };
 
 // ─── 顶层Tab数据（带条数） ───
-const moduleTabs = computed(() => [
-  {
-    key: 'audit' as Module,
-    label: '审核',
-    icon: ClipboardCheck,
-    count: crossCampPendingAudit.value.length + confirmedClaims.value.length,
-  },
-  {
-    key: 'shipping' as Module,
-    label: '发货',
-    icon: Truck,
-    count: pendingShipItems.value.length,
-  },
-  {
-    key: 'exchange' as Module,
-    label: '兑换记录',
-    icon: Coins,
-    count: allExchanges.value.length,
-  },
-]);
+const moduleTabs = computed(() => {
+  const tabs: { key: Module; label: string; icon: Component; count: number }[] = [
+    {
+      key: 'shipping' as Module,
+      label: '发货',
+      icon: Truck,
+      count: pendingShipItems.value.length,
+    },
+    {
+      key: 'exchange' as Module,
+      label: '兑换记录',
+      icon: Coins,
+      count: allExchanges.value.length,
+    },
+  ];
+  // 「审核」仅依赖趣味活动奖品（阶梯/每周/全勤）；没有趣味活动时隐藏该模块
+  if (hasActivityTiers.value) {
+    tabs.unshift({
+      key: 'audit' as Module,
+      label: '审核',
+      icon: ClipboardCheck,
+      count: crossCampPendingAudit.value.length + confirmedClaims.value.length,
+    });
+  }
+  return tabs;
+});
 
 // 切换模块时重置子Tab
 function switchModule(m: Module) {

@@ -206,24 +206,20 @@ body.liquid-glass .custom-tabbar.van-tabbar {
 }
 .custom-tabbar.tabbar-orange .van-tabbar-item--active { color: #FF976A; }
 
-/* 全宽融入式 Tabbar（随页面渐变延伸到最底部，不显示独立色块） */
-body.liquid-glass .custom-tabbar.van-tabbar.tabbar-flat {
-  position: fixed;
-  left: 0;
-  transform: none;
-  bottom: 0;
-  width: 100%;
-  max-width: none;
-  height: auto;
-  min-height: 56px;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-radius: 0;
-  border: none;
-  box-shadow: none;
-  overflow: visible;
-  background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+/* 营养师端 / 教练端：全局复用首页浅渐变。
+   登录对应角色后 <body> 挂 role-diet / role-coach，子页面根容器 flat 灰底 (#F7F8FA) 转透明，
+   让 body 的浅渐变透出到整屏，视觉与首页渐变统一；学员端不挂该类，保持原有底色。 */
+body.role-diet {
+  background-color: #FFEFE3;
+  background-image: linear-gradient(180deg, #FFEFE3 0%, #FFFCF8 100%);
+}
+body.role-coach {
+  background-color: #E2F5EA;
+  background-image: linear-gradient(180deg, #E2F5EA 0%, #F7FBF8 100%);
+}
+body.role-diet .bg-\[\#F7F8FA\],
+body.role-coach .bg-\[\#F7F8FA\] {
+  background-color: transparent !important;
 }
 
 /* Tabs (van-tabs)：还原下划线 tab */
