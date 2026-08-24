@@ -473,9 +473,9 @@ const handleSubmit = () => {
             <div
               class="relative mx-3 py-3 cursor-pointer touch-pan-y"
               @click="handleSliderClick($event, activity.id)"
-              @touchstart="handleTouchStart"
+              @touchstart.stop="handleTouchStart"
               @touchmove="(e) => handleTouchMove(e, activity.id)"
-              @touchend="() => handleTouchEnd(activity.id)"
+              @touchend.stop="() => handleTouchEnd(activity.id)"
             >
               <!-- 渐变轨道 -->
               <div

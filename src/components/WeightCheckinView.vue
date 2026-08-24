@@ -522,7 +522,7 @@ function handleChartTouchMove(e: TouchEvent) {
           <svg :viewBox="`0 0 ${CW} ${CH}`" class="w-full touch-none select-none"
                preserveAspectRatio="xMidYMid meet"
                @click="handleChartClick"
-               @touchstart="handleChartTouchStart"
+               @touchstart.stop="handleChartTouchStart"
                @touchmove="handleChartTouchMove">
             <defs>
               <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">

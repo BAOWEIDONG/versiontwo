@@ -45,12 +45,17 @@ interface PrizePoolItem {
 
 const prizePool = computed<PrizePoolItem[]>(() => {
   const items: PrizePoolItem[] = [];
+  const cfg = activityConfig.value;
   const tiers = activeCampId.value ? store.getCampRewardTiers(activeCampId.value) : store.rewardTiers;
   for (const t of tiers) {
     if (t.stock <= 0) continue;
     if (t.source === 'activity' && t.activityType) {
       const isMilestone = t.activityType === 'milestone';
       const isWeekly = t.activityType === 'weekly';
+      // 按营养师活动开关过滤，避免活动关闭时奖品池仍展示引起误解
+      if (isMilestone && !cfg.weightMilestone) continue;
+      if (isWeekly && !cfg.weeklyChallenge) continue;
+      if (!isMilestone && !isWeekly && !cfg.luckyDraw) continue; // 全勤抽奖
       items.push({
         id: t.id, name: t.name, imageUrl: t.imageUrl,
         tag: isMilestone ? '阶梯达标' : isWeekly ? '每周挑战' : '全勤抽奖',
@@ -58,6 +63,8 @@ const prizePool = computed<PrizePoolItem[]>(() => {
         category: isMilestone ? 'milestone' : isWeekly ? 'weekly' : 'lucky',
       });
     } else {
+      // 连续打卡奖励：受 checkinStreak 开关控制
+      if (!cfg.checkinStreak) continue;
       items.push({
         id: t.id, name: t.name, imageUrl: t.imageUrl,
         tag: `坚持${t.requiredDays}天`,
@@ -65,13 +72,16 @@ const prizePool = computed<PrizePoolItem[]>(() => {
       });
     }
   }
-  for (const p of store.getPointProducts()) {
-    if (p.stock <= 0 || !p.active) continue;
-    items.push({
-      id: p.id, name: p.name, imageUrl: p.imageUrl,
-      tag: `${p.pointsRequired}积分`,
-      tagColor: '#FF6B35', category: 'mall',
-    });
+  // 积分商城商品：受 pointsMall 开关控制
+  if (cfg.pointsMall) {
+    for (const p of store.getPointProducts()) {
+      if (p.stock <= 0 || !p.active) continue;
+      items.push({
+        id: p.id, name: p.name, imageUrl: p.imageUrl,
+        tag: `${p.pointsRequired}积分`,
+        tagColor: '#FF6B35', category: 'mall',
+      });
+    }
   }
   return items;
 });

@@ -103,7 +103,7 @@ const hasRecords = computed(() => dayRecords.value.length > 0);
     </div>
 
     <div v-else class="relative select-none" style="touch-action: pan-y"
-         @touchstart.passive="onTouchStart" @touchmove.prevent="onTouchMove" @touchend="onTouchEnd">
+         @touchstart.passive.stop="onTouchStart" @touchmove.prevent="onTouchMove" @touchend.stop="onTouchEnd">
       <!-- 日期/手势提示 -->
       <div class="flex items-center justify-between mb-2">
         <span class="text-[10px] text-gray-400">每日累计时长（分钟）</span>

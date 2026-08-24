@@ -18,6 +18,9 @@ export function useTabSwipe<T extends string>(container: Ref<HTMLElement | null>
   function onTouchStart(e: TouchEvent) {
     const t = e.touches[0];
     if (!t) return;
+    // 忽略起始于顶部导航/底部标签栏的手势，避免干扰页面切换或底部导航
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('.van-nav-bar, .van-tabbar')) return;
     startX = t.clientX;
     startY = t.clientY;
     tracking = true;

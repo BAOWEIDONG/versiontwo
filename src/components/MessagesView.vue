@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import { NavBar } from './ui';
 import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, RefreshCw } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
+import { useTabSwipe } from '../lib/useTabSwipe';
 import { rankStudents } from '../lib/scoring';
 
 const store = useAppStore();
@@ -241,6 +242,8 @@ const filters = [
   { key: 'reward', label: '系统通知' },
 ];
 const activeFilter = ref<string>('all');
+const sheetRoot = ref<HTMLElement | null>(null);
+useTabSwipe(sheetRoot, activeFilter, ['all', 'dietitian', 'coach', 'reward']);
 const messages = computed<MessageItem[]>(() =>
   activeFilter.value === 'all'
     ? allMessages.value
@@ -287,7 +290,7 @@ const fmtDate = (d: string) => {
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-28">
+  <div ref="sheetRoot" class="flex min-h-full flex-col bg-[#F7F8FA] pb-28">
     <NavBar title="消息中心" :on-back="store.goBack">
       <template #right>
         <button

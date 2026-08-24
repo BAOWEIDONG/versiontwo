@@ -97,6 +97,8 @@ const handleSaveExerciseComment = (recordId: string) => {
     coachScore: exerciseScore.value,
     coachName: store.user?.name || '教练',
     coachCommentDate: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+    // 新批注/新评分需重置已读，学员端才会亮"新批注"并计入未读数（与营养师批注口径一致）
+    commentRead: false,
   });
   cancelExerciseComment();
 };
