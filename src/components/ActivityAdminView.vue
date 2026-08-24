@@ -6,8 +6,11 @@ import { showToast } from 'vant';
 import { Settings, Coins, Flame, Users, FileText } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, Switch as VanSwitch } from 'vant';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
+import { useDietitianCounts } from '../lib/dietitianCounts';
 
 const store = useAppStore();
+// 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径）
+const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
 /**
  * 活动配置（营养师端）
@@ -143,11 +146,11 @@ function onCampPick(id: string) {
         <template #icon><Users class="h-6 w-6" /></template>
         首页
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem>
+      <VanTabbarItem :badge="fulfillmentPendingCount > 0 ? fulfillmentPendingCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>

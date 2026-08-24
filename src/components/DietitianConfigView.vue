@@ -1,30 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { useDietitianCounts } from '../lib/dietitianCounts';
 import { Card } from './ui';
 import { Clock, Gift, Trophy, Activity, FileText, Users, ChevronRight, Settings, Package } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 
 const store = useAppStore();
 
-// ─── 待批注数量（与首页一致，显示在底部 Tabbar 徽标） ───
-const unannotatedCount = computed(() => {
-  const activeCampId = store.selectedCampId;
-  const dietRecords = activeCampId ? store.getCampDietRecords(activeCampId) : store.dietRecords;
-  const weightRecords = activeCampId ? store.getCampWeightRecords(activeCampId) : store.weightRecords;
-  const diet = dietRecords.filter((r) => !r.dietitianComment && r.dietitianScore == null).length;
-  const weight = weightRecords.filter((r) => !r.dietitianComment).length;
-  return diet + weight;
-});
-
-// ─── 发放中心待办数（发货待处理 + 积分兑换待处理，与发放中心「发货」模块口径一致） ───
-const pendingShipCount = computed(() => {
-  const claimCount = store.rewardClaims.filter(c => c.status === 'pending').length;
-  const exchangeCount = store.pointExchanges.filter(e => e.status === 'pending').length;
-  return claimCount + exchangeCount;
-});
-
-const fulfillmentPending = computed(() => pendingShipCount.value);
+// ─── 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径） ───
+const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
+const fulfillmentPending = fulfillmentPendingCount;
 
 interface ConfigItem {
   view: string;
@@ -96,7 +82,7 @@ const configItems = computed<ConfigItem[]>(() => [
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem>
+      <VanTabbarItem :badge="fulfillmentPendingCount > 0 ? fulfillmentPendingCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>

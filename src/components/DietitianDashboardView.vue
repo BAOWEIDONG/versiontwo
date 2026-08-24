@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange } from '../lib/camps';
 import { Card } from './ui';
 import { Users, UserCircle, LogOut, CheckCircle, XCircle, Search, X, FileText, Settings, ChevronDown } from 'lucide-vue-next';
@@ -40,12 +41,8 @@ const campWeightRecords = computed(() => activeCampId.value ? store.getCampWeigh
 const campExerciseRecords = computed(() => activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords);
 const campManualRecords = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 
-// 发放中心"待发货"订单数（状态为 pending 的奖励领取 + 积分兑换），与 FulfillmentCenterView 口径一致（跨营期）
-const fulfillmentPendingCount = computed(() => {
-  const claims = store.rewardClaims.filter((c) => c.status === 'pending').length;
-  const exchanges = store.pointExchanges.filter((e) => e.status === 'pending').length;
-  return claims + exchanges;
-});
+// 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径）
+const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
 const _now = new Date();
 const todayStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
@@ -230,7 +227,7 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
         <template #icon><Users class="h-6 w-6" /></template>
         首页
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>

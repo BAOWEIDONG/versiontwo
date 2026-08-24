@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
+import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
@@ -11,6 +12,8 @@ import { exportElementAsImage } from '../lib/exportImage';
 import type { DietitianCampSummary } from '../types';
 
 const store = useAppStore();
+// 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径）
+const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
 // ─── 营期切换（默认最新一期） ───
 const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
@@ -336,11 +339,11 @@ const fmtChange = (v: number | null, unit = ''): string => {
         <template #icon><Users class="h-6 w-6" /></template>
         首页
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem>
+      <VanTabbarItem :badge="fulfillmentPendingCount > 0 ? fulfillmentPendingCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>

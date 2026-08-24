@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
+import { useDietitianCounts } from '../lib/dietitianCounts';
 import { UserCircle, Coffee, Clock, Activity, Scale, Video, ChevronDown, FileText, Settings, Users } from 'lucide-vue-next';
 import { Popup as VanPopup, Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import type { DietRecord, WeightRecord } from '../types';
@@ -32,15 +33,8 @@ interface UnifiedItem {
 
 const store = useAppStore();
 
-// ─── 待批注数量（显示在底部 Tabbar 徽标） ───
-const unannotatedCount = computed(() => {
-  const activeCampId = store.selectedCampId;
-  const dietRecords = activeCampId ? store.getCampDietRecords(activeCampId) : store.dietRecords;
-  const weightRecords = activeCampId ? store.getCampWeightRecords(activeCampId) : store.weightRecords;
-  const diet = dietRecords.filter((r) => !r.dietitianComment && r.dietitianScore == null).length;
-  const weight = weightRecords.filter((r) => !r.dietitianComment).length;
-  return diet + weight;
-});
+// ─── 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径） ───
+const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
 // ─── 营期切换（与 store 同步，默认最新一期；不再支持「全部营期」） ───
 const selectedCampId = ref<string>(store.selectedCampId || latestOrFirstId(store.camps) || '');
@@ -338,7 +332,7 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-config')">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-config')" :badge="fulfillmentPendingCount > 0 ? fulfillmentPendingCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>
