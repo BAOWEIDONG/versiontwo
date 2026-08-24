@@ -18,7 +18,6 @@ import ActivityUploadView from './components/ActivityUploadView.vue';
 import DietitianDashboardView from './components/DietitianDashboardView.vue';
 import DietitianStudentDetailView from './components/DietitianStudentDetailView.vue';
 import DietitianUnannotatedListView from './components/DietitianUnannotatedListView.vue';
-import CampStatsView from './components/CampStatsView.vue';
 import RankingView from './components/RankingView.vue';
 import PointsDetailView from './components/PointsDetailView.vue';
 import RewardView from './components/RewardView.vue';
@@ -60,7 +59,6 @@ const viewMap: Record<string, Component> = {
   'dietitian-dashboard': DietitianDashboardView,
   'dietitian-student-detail': DietitianStudentDetailView,
   'dietitian-unannotated-list': DietitianUnannotatedListView,
-  'camp-stats': CampStatsView,
   ranking: RankingView,
   pointsDetail: PointsDetailView,
   reward: RewardView,

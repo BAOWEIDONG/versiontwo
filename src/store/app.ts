@@ -48,7 +48,6 @@ export type View =
   | 'dietitian-unannotated-list'
   | 'activities-list'
   | 'video-player'
-  | 'camp-stats'
   | 'camp-summary'
   | 'camp-report'
   | 'enterprise-report'

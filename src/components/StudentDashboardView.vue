@@ -588,7 +588,7 @@ onMounted(() => {
 <template>
   <div class="flex min-h-full flex-col bg-[#F4F6F8] pb-28 font-sans relative">
     <!-- Dynamic Background Header -->
-    <div class="relative pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-8 bg-gradient-to-br from-[#2BE6A1] via-[#16D180] to-[#06A85E] rounded-b-[32px] shadow-[0_10px_34px_-14px_rgba(16,209,128,0.55)] overflow-hidden">
+    <div class="relative pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-8 bg-gradient-to-br from-[#07C160] via-[#04a551] to-[#06a551] rounded-b-[32px] shadow-[0_10px_34px_-14px_rgba(7,193,96,0.5)] overflow-hidden">
       <div class="absolute -top-12 -right-12 w-64 h-64 bg-white/15 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-16 -left-10 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
 
