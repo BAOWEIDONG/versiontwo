@@ -40,10 +40,11 @@ const campWeightRecords = computed(() => activeCampId.value ? store.getCampWeigh
 const campExerciseRecords = computed(() => activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords);
 const campManualRecords = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 
-const unannotatedCount = computed(() => {
-  const diet = campDietRecords.value.filter((r) => !r.dietitianComment && r.dietitianScore == null).length;
-  const weight = campWeightRecords.value.filter((r) => !r.dietitianComment).length;
-  return diet + weight;
+// 发放中心"待发货"订单数（状态为 pending 的奖励领取 + 积分兑换），与 FulfillmentCenterView 口径一致（跨营期）
+const fulfillmentPendingCount = computed(() => {
+  const claims = store.rewardClaims.filter((c) => c.status === 'pending').length;
+  const exchanges = store.pointExchanges.filter((e) => e.status === 'pending').length;
+  return claims + exchanges;
 });
 
 const _now = new Date();
@@ -233,7 +234,7 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-config')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-config')" :badge="fulfillmentPendingCount > 0 ? fulfillmentPendingCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>
