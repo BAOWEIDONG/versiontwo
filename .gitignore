@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist_*/
+.DS_Store
+*.local
+.env
+*.tar.gz
+*.docx
+*.zip
+zisYyKrJ
