@@ -12,6 +12,7 @@ import { getTodayQuote } from '../lib/motivationalQuotes';
 import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import { generateStudentReport } from '../lib/campReport';
+import { studentNavIndex } from '../lib/studentNav';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import type { RewardTier } from '../types';
 
@@ -807,7 +808,7 @@ onMounted(() => {
       </div>
 
       </div>
-    <VanTabbar class="custom-tabbar" :model-value="0">
+    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
       <VanTabbarItem>
         <template #icon><Activity class="h-6 w-6" /></template>
         首页

@@ -5,6 +5,7 @@ import { Activity, FileText, Bell, ChevronRight, Gift, Zap, Scale, Coins, Trophy
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
+import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 
@@ -424,7 +425,7 @@ const unreadCount = computed(() => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar" :model-value="1">
+    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
       <VanTabbarItem @click="store.setCurrentView('dashboard')">
         <template #icon><Activity class="h-6 w-6" /></template>
         首页

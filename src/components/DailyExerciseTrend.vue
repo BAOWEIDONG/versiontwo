@@ -56,38 +56,45 @@ function scrollBarToCenter(idx: number) {
     const child = wrap.children[idx] as HTMLElement | undefined;
     if (child) {
       const w = wrap as HTMLElement;
-      w.scrollTo({ left: child.offsetLeft - w.clientWidth / 2 + child.clientWidth / 2, behavior: 'smooth' });
+      w.scrollTo({ left: child.offsetLeft - w.clientWidth / 2 + child.clientWidth / 2, behavior: 'auto' });
     }
   });
 }
 
-// 触摸滑动手势
-const touchX = ref(0);
-const touchY = ref(0);
+// 触摸滑动手势：手指拖动即实时切换选中日期（STEP px ≈ 一天；向右=前一天），松手即停，
+// 纵向手势仍交给原生滚动。相比「拖动时无反馈、松手才整段换天+ smooth 滚动动画」，实时跟随不卡顿。
+const STEP = 48;
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+const dragStartIdx = ref(0);
 const swiping = ref(false);
 const onTouchStart = (e: TouchEvent) => {
   const t = e.touches[0];
-  touchX.value = t.clientX;
-  touchY.value = t.clientY;
+  dragStartX.value = t.clientX;
+  dragStartY.value = t.clientY;
+  dragStartIdx.value = selectedIdx.value;
   swiping.value = false;
 };
 const onTouchMove = (e: TouchEvent) => {
   const t = e.touches[0];
-  const dx = t.clientX - touchX.value;
-  const dy = t.clientY - touchY.value;
+  const dx = t.clientX - dragStartX.value;
+  const dy = t.clientY - dragStartY.value;
   if (!swiping.value) {
+    // 只有明显横向的手势才接管；纵向交给原生滚动（容器 touch-action: pan-y）
     if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) swiping.value = true;
     else return;
   }
   e.preventDefault();
+  // 实时跟随手指切换日期：不再「松手猛跳 + smooth 动画」，避免滑动卡顿
+  const steps = Math.round(dx / STEP);
+  const target = Math.max(0, Math.min(daily.value.length - 1, dragStartIdx.value - steps));
+  if (target !== selectedIdx.value) {
+    selectedIdx.value = target;
+    scrollBarToCenter(target);
+  }
 };
-const onTouchEnd = (e: TouchEvent) => {
-  if (!swiping.value) return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchX.value;
-  if (dx < -40) move(1);   // 左滑 → 后一天
-  else if (dx > 40) move(-1); // 右滑 → 前一天
-  swiping.value = false;
+const onTouchEnd = () => {
+  swiping.value = false; // 已在 move 中实时到位，无需松手再判
 };
 
 const fmtDay = (d: string) => format(new Date(d), 'M/d');

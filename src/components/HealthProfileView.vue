@@ -7,6 +7,7 @@ import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil,
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
+import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 
@@ -527,8 +528,8 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
       />
     </VanPopup>
 
-    <!-- Bottom Nav (Vant Tabbar) - 首期上线版：首页 / 档案 -->
-    <VanTabbar class="custom-tabbar" :model-value="1">
+    <!-- Bottom Nav：首页(0) / 活动(1) / 消息(2) / 档案(3)；高亮随 currentView 推导 -->
+    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
       <VanTabbarItem @click="store.setCurrentView('dashboard')">
         <template #icon><Activity class="h-6 w-6" /></template>
         首页

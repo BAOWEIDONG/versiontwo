@@ -7,6 +7,7 @@ import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, Re
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { rankStudents } from '../lib/scoring';
+import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 const isMine = (r: { studentId?: string }) => r.studentId === store.user?.id;
@@ -372,7 +373,7 @@ const fmtDate = (d: string) => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar" :model-value="2">
+    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
       <VanTabbarItem @click="store.setCurrentView('dashboard')">
         <template #icon><Activity class="h-6 w-6" /></template>
         首页
