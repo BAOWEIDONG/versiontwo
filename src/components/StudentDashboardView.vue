@@ -549,11 +549,27 @@ onMounted(() => {
     }
 
     // 同步初始化连续打卡奖励「已通知」基线（首次使用不弹历史已解锁档位）
+    // 注：打卡页新增记录后返回首页，本组件会整体重新挂载（App.vue 以 currentView 为 key），
+    // 因此无法靠 watch 记录数量变化感知；改在每次进入首页时根据「已解锁未领取档位」对比历史已通知集合，
+    // 将新解锁的档位弹通知，提示用户可去领取。
     let seenRewards: string[] = [];
     try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
     if (seenRewards.length > 0) {
       shownRewardTiers.value = new Set(seenRewards);
+      // 有历史记录：本次尚未被记录的已解锁未领取档位，即本次新解锁，需弹系统通知
+      const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
+      if (fresh.length > 0) {
+        fresh.forEach((t) => shownRewardTiers.value.add(t.id));
+        persistShownRewards();
+        if (showDailySummary.value || showAchievementNotify.value) {
+          pendingRewards.value = fresh;
+        } else {
+          newRewards.value = fresh;
+          showRewardNotify.value = true;
+        }
+      }
     } else {
+      // 首次使用：记录当前已解锁档位为基线，不弹历史已解锁档位
       shownRewardTiers.value = new Set(unlockedUnclaimedRewards().map((t) => t.id));
       persistShownRewards();
     }
