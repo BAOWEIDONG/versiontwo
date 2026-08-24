@@ -30,6 +30,7 @@ const isLimitReached = (product: PointProduct): boolean =>
 
 // 兑换确认弹窗
 const showExchangeModal = ref(false);
+const submitting = ref(false); // 兑付防连点：请求期间忽略重复提交
 const selectedProduct = ref<PointProduct | null>(null);
 const deliveryMethod = ref<'shipped' | 'in-person'>('shipped');
 const recipientName = ref('');
@@ -62,6 +63,7 @@ function openExchange(product: PointProduct) {
 
 function confirmExchange() {
   if (!selectedProduct.value || !store.user) return;
+  if (submitting.value) return; // 防连点重复提交（重复兑换/重复扣库存/重复扣积分）
   formError.value = '';
 
   // 邮寄需校验收货信息
@@ -71,6 +73,7 @@ function confirmExchange() {
     if (!recipientAddress.value.trim()) { formError.value = '请填写收货地址'; return; }
   }
 
+  submitting.value = true;
   const result = store.exchangePointProduct(
     store.user.id,
     store.user.name,
@@ -85,6 +88,7 @@ function confirmExchange() {
       : { deliveryMethod: 'in-person', recipientName: '', recipientPhone: '', recipientAddress: '' },
     activeCampId.value || undefined,
   );
+  submitting.value = false;
   if (result) {
     showSuccessToast('兑换成功');
     showExchangeModal.value = false;
@@ -331,10 +335,11 @@ const unreadCount = computed(() => {
                   取消
                 </button>
                 <button
-                  class="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#FF976A] to-[#FF6B35] active:scale-95 transition-transform"
+                  :disabled="submitting"
+                  :class="['flex-1 py-3 rounded-xl text-sm font-bold text-white active:scale-95 transition-transform', submitting ? 'bg-gray-300' : 'bg-gradient-to-r from-[#FF976A] to-[#FF6B35]']"
                   @click="confirmExchange"
                 >
-                  确认兑换
+                  {{ submitting ? '提交中…' : '确认兑换' }}
                 </button>
               </div>
             </div>

@@ -546,26 +546,29 @@ export const useAppStore = defineStore('app', () => {
     deliveryInfo?: { recipientName: string; recipientPhone: string; recipientAddress: string; deliveryMethod: 'shipped' | 'in-person' },
     campId?: string,
   ): PointExchangeRecord | null {
+    // 实时重读商品，避免调用方传入的快照过期（已下架 / 库存已被其它兑换占用）。真实上线须由服务端做权威校验。
+    const fresh = pointProducts.value.find((p) => p.id === product.id);
+    if (!fresh || !fresh.active) return null;
     const available = getStudentMallPoints(studentId, campId);
-    if (available < product.pointsRequired) return null;
-    if (product.stock <= 0) return null;
+    if (available < fresh.pointsRequired) return null;
+    if (fresh.stock <= 0) return null;
     // 防御性校验：每人限兑换次数（maxExchange；0/未设置=不限）
-    if (product.maxExchange) {
+    if (fresh.maxExchange) {
       const used = pointExchanges.value.filter((e) => e.studentId === studentId && e.productId === product.id && e.status !== 'cancelled').length;
-      if (used >= product.maxExchange) return null;
+      if (used >= fresh.maxExchange) return null;
     }
     // 防御性校验：deliveryMethod 必须被商品支持
-    if (deliveryInfo && !product.deliveryOptions.includes(deliveryInfo.deliveryMethod)) return null;
+    if (deliveryInfo && !fresh.deliveryOptions.includes(deliveryInfo.deliveryMethod)) return null;
 
     const now = formatDateTimeStr();
     const record: PointExchangeRecord = {
       id: `pe_${Date.now()}`,
       studentId,
       studentName,
-      productId: product.id,
-      productName: product.name,
-      productImage: product.imageUrl,
-      pointsSpent: product.pointsRequired,
+      productId: fresh.id,
+      productName: fresh.name,
+      productImage: fresh.imageUrl,
+      pointsSpent: fresh.pointsRequired,
       exchangeDate: now,
       status: 'pending',
       deliveryMethod: deliveryInfo?.deliveryMethod,
@@ -575,8 +578,8 @@ export const useAppStore = defineStore('app', () => {
       campId,
     };
     pointExchanges.value.push(record);
-    // 扣减库存
-    updatePointProduct(product.id, { stock: product.stock - 1 });
+    // 扣减库存（剩余可发量语义：领取减 / 取消加 / 发货不动）
+    updatePointProduct(fresh.id, { stock: fresh.stock - 1 });
     api.createPointExchange(record).catch(() => {});
     return record;
   }
