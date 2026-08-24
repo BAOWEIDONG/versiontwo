@@ -12,8 +12,8 @@ import { calculateStreak } from '../lib/streak';
 
 const store = useAppStore();
 
-// ─── Tab ───
-type Tab = 'all' | 'exchange' | 'reward' | 'activity';
+// ─── Tab（去掉「活动奖励」，仅 全部/积分兑换/打卡奖励） ───
+type Tab = 'all' | 'exchange' | 'reward';
 const activeTab = ref<Tab>('all');
 
 // ─── 学员数据 ───
@@ -205,7 +205,6 @@ const tabCounts = computed(() => ({
   all: allRecords.value.length,
   exchange: allRecords.value.filter(r => r.type === 'exchange').length,
   reward: allRecords.value.filter(r => r.type === 'streak').length,
-  activity: allRecords.value.filter(r => r.type === 'activity').length,
 }));
 
 // ─── 跳转到领取页面 ───
@@ -265,7 +264,6 @@ const unreadCount = computed(() => {
             { key: 'all', label: '全部', count: tabCounts.all },
             { key: 'exchange', label: '积分兑换', count: tabCounts.exchange },
             { key: 'reward', label: '打卡奖励', count: tabCounts.reward },
-            { key: 'activity', label: '活动奖励', count: tabCounts.activity },
           ]"
           :key="t.key"
           @click="activeTab = t.key as Tab"

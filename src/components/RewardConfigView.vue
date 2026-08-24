@@ -105,6 +105,9 @@ const allMallProducts = computed(() => store.pointProducts);
 const allExchanges = computed(() =>
   [...store.pointExchanges].sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate))
 );
+// 上架中奖品需显示已领取（已兑换）数量：= 该商品非取消的兑换次数
+const getProductClaimCount = (productId: string) =>
+  allExchanges.value.filter(e => e.productId === productId && e.status !== 'cancelled').length;
 
 const showProductModal = ref(false);
 const editingProduct = ref<Partial<PointProduct> | null>(null);
@@ -288,7 +291,11 @@ function formatExchangeDate(dateStr: string) {
                 <div v-if="product.description" class="text-[10px] text-gray-500 mt-1 truncate">{{ product.description }}</div>
               </div>
               <div class="flex items-center justify-between">
-                <div class="text-xs text-gray-500 font-medium">库存: <span :class="product.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ product.stock }}</span> 件</div>
+                <div class="flex items-center gap-2">
+                  <div class="text-xs text-gray-500 font-medium">库存: <span :class="product.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ product.stock }}</span> 件</div>
+                  <!-- 上架中的商品显示已领取（已兑换）数量 -->
+                  <span v-if="product.active" class="text-[10px] font-bold text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full">已领取 {{ getProductClaimCount(product.id) }} 件</span>
+                </div>
                 <button
                   :class="['text-[10px] px-2 py-0.5 rounded-full font-bold', product.active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400']"
                   @click="toggleProductActive(product)"

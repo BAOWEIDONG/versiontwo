@@ -7,8 +7,9 @@ import {
   Truck, Coins, Clock, CheckCircle2,
   AlertCircle, ClipboardCheck, Eye,
 } from 'lucide-vue-next';
-import type { RewardClaim, PointExchangeRecord } from '../types';
+import type { RewardClaim, PointExchangeRecord, Camp } from '../types';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
+import { campDateRange } from '../lib/camps';
 
 const store = useAppStore();
 
@@ -28,6 +29,61 @@ const allRewardClaims = computed(() => store.rewardClaims);
 const allExchanges = computed(() =>
   [...store.pointExchanges].sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate))
 );
+
+// ─── 统一「兑换记录」：积分兑换 + 连续打卡奖励领取 ───
+// 每条记录带来源标签（积分兑换 / 连续打卡奖励）、营期名称及营期时间；
+// 排序：待发货优先，再按领取时间倒序；时间为年月日时分秒格式。
+interface ExchangeRecordItem {
+  id: string;
+  type: 'exchange' | 'checkin';
+  typeLabel: string;
+  productName: string;
+  productImage: string;
+  studentName: string;
+  pointsSpent?: number;
+  date: string; // 领取时间，yyyy-MM-dd HH:mm:ss
+  status: string;
+  trackingNumber?: string;
+  campId?: string;
+  camp?: Camp;
+}
+const campOf = (campId?: string): Camp | undefined =>
+  campId ? store.camps.find((c) => c.id === campId) : undefined;
+const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
+  const list: ExchangeRecordItem[] = [];
+
+  // 积分兑换（含已取消）
+  for (const e of allExchanges.value) {
+    list.push({
+      id: e.id, type: 'exchange', typeLabel: '积分兑换',
+      productName: e.productName, productImage: e.productImage,
+      studentName: e.studentName,
+      pointsSpent: e.pointsSpent,
+      date: e.exchangeDate, status: e.status,
+      trackingNumber: e.trackingNumber,
+      campId: e.campId, camp: campOf(e.campId),
+    });
+  }
+
+  // 连续打卡奖励领取记录（RewardClaim 中 source=streak，状态待发货起）
+  for (const c of allRewardClaims.value) {
+    const tier = allRewardTiers.value.find((t) => t.id === c.tierId);
+    if (tier?.source !== 'streak') continue;
+    if (c.status !== 'pending' && c.status !== 'shipped' && c.status !== 'in-person') continue;
+    list.push({
+      id: c.id, type: 'checkin', typeLabel: '连续打卡奖励',
+      productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
+      studentName: c.studentName,
+      date: c.claimDate, status: c.status,
+      trackingNumber: c.trackingNumber,
+      campId: c.campId, camp: campOf(c.campId),
+    });
+  }
+
+  // 待发货优先，再按领取时间倒序（时间均为 yyyy-MM-dd HH:mm:ss，可字节序比较）
+  const priority = (s: string) => (s === 'pending' ? 0 : 1);
+  return list.sort((a, b) => priority(a.status) - priority(b.status) || b.date.localeCompare(a.date));
+});
 
 /** 是否还有趣味活动奖品（阶梯/每周/全勤）——没有则发放中心隐藏「审核」模块 */
 const hasActivityTiers = computed(() => allRewardTiers.value.some(t => t.source === 'activity' && t.stock > 0));
@@ -371,6 +427,14 @@ function formatDate(dateStr: string) {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// 兑换记录时间格式：年月日时分秒（yyyy-MM-dd HH:mm:ss）
+function formatDateTime(dateStr: string) {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 function copyToClipboard(text: string, label = '单号') {
   // 优先使用 Clipboard API（需 HTTPS / 安全上下文）
   if (navigator.clipboard && window.isSecureContext) {
@@ -418,6 +482,12 @@ const EXCHANGE_STATUS: Record<string, { label: string; color: string; bg: string
   cancelled: { label: '已取消', color: '#969799', bg: '#F2F3F5' },
 };
 
+/** 兑换记录统一的来源标签 + 状态样式：积分兑换走 EXCHANGE_STATUS，连续打卡奖励走 CLAIM_STATUS */
+function statusMeta(type: 'exchange' | 'checkin', status: string) {
+  const map = type === 'exchange' ? EXCHANGE_STATUS : CLAIM_STATUS;
+  return map[status] || { label: status, color: '#969799', bg: '#F2F3F5' };
+}
+
 // ─── 顶层Tab数据（带条数） ───
 const moduleTabs = computed(() => {
   const tabs: { key: Module; label: string; icon: Component; count: number }[] = [
@@ -431,7 +501,7 @@ const moduleTabs = computed(() => {
       key: 'exchange' as Module,
       label: '兑换记录',
       icon: Coins,
-      count: allExchanges.value.length,
+      count: allExchangeRecords.value.length,
     },
   ];
   // 「审核」仅依赖趣味活动奖品（阶梯/每周/全勤）；没有趣味活动时隐藏该模块
@@ -706,13 +776,13 @@ function switchModule(m: Module) {
         </div>
       </div>
 
-      <!-- ═══ 兑换记录（纯查看） ═══ -->
+      <!-- ═══ 兑换记录（纯查看：积分兑换 + 连续打卡奖励） ═══ -->
       <div v-if="activeModule === 'exchange'" class="p-4 space-y-3">
-        <div v-if="allExchanges.length === 0" class="flex flex-col items-center py-16">
+        <div v-if="allExchangeRecords.length === 0" class="flex flex-col items-center py-16">
           <Coins class="w-10 h-10 text-gray-200 mb-2" />
           <p class="text-sm text-gray-400">暂无兑换记录</p>
         </div>
-        <Card v-for="record in allExchanges" :key="record.id" class="p-3">
+        <Card v-for="record in allExchangeRecords" :key="record.id" class="p-3">
           <div class="flex items-start gap-3">
             <div class="w-12 h-12 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
               <img :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
@@ -720,16 +790,29 @@ function switchModule(m: Module) {
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
                 <h4 class="text-sm font-bold text-gray-900 truncate">{{ record.productName }}</h4>
-                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="EXCHANGE_STATUS[record.status]?.bg, EXCHANGE_STATUS[record.status]?.color">
-                  {{ EXCHANGE_STATUS[record.status]?.label }}
+                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
+                  {{ statusMeta(record.type, record.status).label }}
                 </span>
               </div>
-              <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+              <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400 flex-wrap">
+                <!-- 来源标签：连续打卡奖励 / 积分兑换 -->
+                <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full',
+                  record.type === 'checkin' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#FFF4ED] text-[#FF6B35]']">
+                  {{ record.typeLabel }}
+                </span>
                 <span>{{ record.studentName }}</span>
+                <template v-if="record.type === 'exchange' && record.pointsSpent">
+                  <span>·</span>
+                  <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>
+                </template>
                 <span>·</span>
-                <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>
-                <span>·</span>
-                <span>{{ formatDate(record.exchangeDate) }}</span>
+                <span>{{ formatDateTime(record.date) }}</span>
+              </div>
+              <!-- 营期名称 + 营期时间 -->
+              <div v-if="record.camp" class="mt-1 text-[10px] text-gray-400">
+                <span class="font-bold text-gray-500">{{ record.camp.name }}</span>
+                <span class="mx-1 text-gray-300">·</span>
+                <span>{{ campDateRange(record.camp) }}</span>
               </div>
               <div v-if="record.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
                 <div class="text-[10px] text-gray-600">
