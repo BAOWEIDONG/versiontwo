@@ -94,6 +94,9 @@ const campEx = computed(() => activeCampId.value ? store.getCampExerciseRecords(
 const campWt = computed(() => activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords);
 const campManual = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 
+// 当前营期的活动配置（营养师端开关，学员端首页「优惠活动」入口按此显示）
+const activityCfg = computed(() => store.getActivityConfig(activeCampId.value));
+
 const scoreData = computed(() => {
   if (!store.user || campStudents.value.length === 0) return null;
   const ranked = rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
@@ -701,9 +704,42 @@ onMounted(() => {
 
         </div>
       </div>
-    </div>
 
-    <!-- Bottom Nav (Vant Tabbar) - 首期上线版：首页 / 档案 -->
+      <!-- 优惠活动入口（受营养师端活动配置开关控制：连续打卡 / 积分商城） -->
+      <div v-if="activityCfg.checkinStreak || activityCfg.pointsMall">
+        <h3 class="text-sm font-bold text-gray-900 mb-3 ml-1 flex items-center gap-1.5 mt-2">
+          <div class="w-1.5 h-4 bg-[#FF976A] rounded-full"></div>
+          优惠活动
+        </h3>
+        <div class="grid grid-cols-2 gap-3">
+          <Card v-if="activityCfg.checkinStreak" class="p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm flex flex-col justify-between h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('reward')">
+            <div class="absolute -top-8 -right-6 w-32 h-32 bg-gradient-to-br from-[#07C160]/10 to-[#07C160]/5 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#07C160]/15 to-[#07C160]/[0.06] flex items-center justify-center text-[#07C160] mb-2 shadow-sm">
+                <Flame class="h-5 w-5" />
+              </div>
+              <div>
+                <div class="text-sm font-bold text-gray-900">连续打卡</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">连续达标领奖</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card v-if="activityCfg.pointsMall" class="p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm flex flex-col justify-between h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('points-mall')">
+            <div class="absolute -top-8 -right-6 w-32 h-32 bg-gradient-to-br from-[#FF976A]/15 to-orange-50 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF976A]/20 to-orange-50 flex items-center justify-center text-[#FF976A] mb-2 shadow-sm">
+                <Gift class="h-5 w-5" />
+              </div>
+              <div>
+                <div class="text-sm font-bold text-gray-900">积分商城</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">积分兑换好礼</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
     <VanTabbar class="custom-tabbar" :model-value="0">
       <VanTabbarItem>
         <template #icon><Activity class="h-6 w-6" /></template>

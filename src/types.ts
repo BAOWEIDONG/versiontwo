@@ -176,6 +176,8 @@ export interface RewardClaim {
   recipientName: string;
   recipientPhone: string;
   recipientAddress: string;
+  /** 是否已编辑过一次收货地址（仅未发货前可编辑，最多一次） */
+  addressEdited?: boolean;
   claimDate: string;
   /**
    * 奖励状态流转：

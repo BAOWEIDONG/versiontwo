@@ -105,7 +105,7 @@ const campTiers = computed(() => activeCampId.value ? store.getCampRewardTiers(a
 
 interface MessageItem {
   id: string;
-  type: 'comment' | 'reward' | 'rank';
+  type: 'dietitian' | 'coach' | 'reward' | 'rank';
   date: string; // yyyy-MM-dd HH:mm:ss
   title: string;
   body: string;
@@ -114,22 +114,32 @@ interface MessageItem {
   targetDate?: string; // yyyy-MM-dd for scroll-to-record
 }
 
-// ---- 营养师批注消息 ----
+// ---- 批注消息（营养师：饮食/体重；教练：运动） ----
 const commentMessages = computed<MessageItem[]>(() => {
-  const wrap = (r: any, type: 'diet' | 'exercise' | 'weight'): MessageItem => ({
+  const dietitianWrap = (r: any, type: 'diet' | 'weight'): MessageItem => ({
     id: `${type}-${r.id}`,
-    type: 'comment',
-    date: r.dietitianCommentDate || r.coachCommentDate || r.date,
-    title: `${r.dietitianName || r.coachName || '老师'} 批注了你的${type === 'diet' ? '饮食' : type === 'exercise' ? '运动' : '体重'}打卡`,
-    body: r.dietitianComment || r.coachComment,
+    type: 'dietitian',
+    date: r.dietitianCommentDate || r.date,
+    title: `${r.dietitianName || '营养师'} 批注了你的${type === 'diet' ? '饮食' : '体重'}打卡`,
+    body: r.dietitianComment,
     unread: !r.commentRead,
-    targetView: type === 'diet' ? 'diet' : type === 'exercise' ? 'exercise' : 'weight-checkin',
+    targetView: type === 'diet' ? 'diet' : 'weight-checkin',
+    targetDate: (r.date || '').substring(0, 10),
+  });
+  const coachWrap = (r: any): MessageItem => ({
+    id: `ex-${r.id}`,
+    type: 'coach',
+    date: r.coachCommentDate || r.date,
+    title: `${r.coachName || '教练'} 批注了你的运动打卡`,
+    body: r.coachComment,
+    unread: r.coachCommentRead !== true,
+    targetView: 'exercise',
     targetDate: (r.date || '').substring(0, 10),
   });
   return [
-    ...campDietRecs.value.filter((r) => isMine(r) && r.dietitianComment).map((r) => wrap(r, 'diet')),
-    ...campExRecs.value.filter((r) => isMine(r) && r.coachComment).map((r) => wrap(r, 'exercise')),
-    ...campWtRecs.value.filter((r) => isMine(r) && r.dietitianComment).map((r) => wrap(r, 'weight')),
+    ...campDietRecs.value.filter((r) => isMine(r) && r.dietitianComment).map((r) => dietitianWrap(r, 'diet')),
+    ...campWtRecs.value.filter((r) => isMine(r) && r.dietitianComment).map((r) => dietitianWrap(r, 'weight')),
+    ...campExRecs.value.filter((r) => isMine(r) && r.coachComment).map((r) => coachWrap(r)),
   ];
 });
 
@@ -157,6 +167,29 @@ const rewardMessages = computed<MessageItem[]>(() => {
               : `恭喜达成「${tier?.name || '奖励'}」，礼品将尽快寄出`,
         unread: seenState.value.rewards[c.id] !== undefined && seenState.value.rewards[c.id] !== c.status,
         targetView: confirmed ? 'camp-activities' : 'reward',
+      };
+    });
+});
+
+// ---- 积分商城兑换消息（含发货） ----
+const exchangeMessages = computed<MessageItem[]>(() => {
+  if (!store.user) return [];
+  const mine = store.getStudentExchanges(store.user.id)
+    .filter((e) => !activeCampId.value || e.campId === activeCampId.value);
+  return mine
+    .map((e): MessageItem => {
+      const fulfilled = e.status === 'fulfilled';
+      const shipped = e.status === 'pending';
+      return {
+        id: `exch-${e.id}`,
+        type: 'reward',
+        date: (fulfilled && e.shipDate) || e.exchangeDate,
+        title: fulfilled ? '积分兑换已发货' : '积分兑换成功',
+        body: fulfilled
+          ? `「${e.productName}」已寄出${e.trackingNumber ? `，快递单号 ${e.trackingNumber}` : ''}，请注意查收`
+          : `你使用 ${e.pointsSpent} 积分兑换了「${e.productName}」，礼品将尽快寄出`,
+        unread: false,
+        targetView: 'points-mall',
       };
     });
 });
@@ -195,19 +228,35 @@ const rankMessage = computed<MessageItem[]>(() => {
 });
 
 // ---- 汇总排序 ----
-const messages = computed<MessageItem[]>(() =>
-  [...commentMessages.value, ...rewardMessages.value, ...rankMessage.value]
+const allMessages = computed<MessageItem[]>(() =>
+  [...commentMessages.value, ...rewardMessages.value, ...exchangeMessages.value, ...rankMessage.value]
     .sort((a, b) => b.date.localeCompare(a.date)),
 );
 
-const unreadCount = computed(() => messages.value.filter((m) => m.unread).length);
+// ---- 分类筛选：营养师批注 / 教练批注 / 奖励发货 ----
+const filters = [
+  { key: 'all', label: '全部' },
+  { key: 'dietitian', label: '营养师批注' },
+  { key: 'coach', label: '教练批注' },
+  { key: 'reward', label: '奖励发货' },
+];
+const activeFilter = ref<string>('all');
+const messages = computed<MessageItem[]>(() =>
+  activeFilter.value === 'all'
+    ? allMessages.value
+    : allMessages.value.filter((m) => m.type === activeFilter.value),
+);
+
+const unreadCount = computed(() => allMessages.value.filter((m) => m.unread).length);
 
 const typeMeta = (type: MessageItem['type']) =>
-  type === 'comment'
+  type === 'dietitian'
     ? { icon: MessageCircle, cls: 'bg-[#07C160]/10 text-[#07C160]', tag: '营养师批注', tagCls: 'bg-[#07C160]/10 text-[#07C160]' }
-    : type === 'reward'
-      ? { icon: Gift, cls: 'bg-orange-50 text-orange-500', tag: '系统通知', tagCls: 'bg-gray-100 text-gray-500' }
-      : { icon: Trophy, cls: 'bg-yellow-50 text-yellow-600', tag: '系统通知', tagCls: 'bg-gray-100 text-gray-500' };
+    : type === 'coach'
+      ? { icon: Activity, cls: 'bg-sky-50 text-sky-500', tag: '教练批注', tagCls: 'bg-sky-50 text-sky-500' }
+      : type === 'reward'
+        ? { icon: Gift, cls: 'bg-orange-50 text-orange-500', tag: '奖励通知', tagCls: 'bg-orange-50 text-orange-500' }
+        : { icon: Trophy, cls: 'bg-yellow-50 text-yellow-600', tag: '排名动态', tagCls: 'bg-yellow-50 text-yellow-600' };
 
 const openMessage = (m: MessageItem) => {
   if (m.targetDate) {
@@ -253,6 +302,19 @@ const fmtDate = (d: string) => {
       </div>
     </transition>
 
+    <div class="px-4 pt-4">
+      <div class="flex bg-white rounded-xl p-1 border border-gray-100 shadow-sm">
+        <button
+          v-for="f in filters"
+          :key="f.key"
+          @click="activeFilter = f.key"
+          :class="['flex-1 py-1.5 rounded-lg text-xs font-bold transition-all', activeFilter === f.key ? 'bg-[#07C160] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+        >
+          {{ f.label }}
+        </button>
+      </div>
+    </div>
+
     <div class="p-4 space-y-3">
       <!-- 顶部摘要 -->
       <div v-if="unreadCount > 0" class="flex items-center gap-2 px-4 py-3 bg-[#07C160]/5 border border-[#07C160]/15 rounded-xl">
@@ -266,7 +328,7 @@ const fmtDate = (d: string) => {
           <Bell class="w-8 h-8 text-gray-300" />
         </div>
         <div class="text-sm font-bold text-gray-600 mb-1">暂无消息</div>
-        <div class="text-xs text-gray-400">营养师的批注和奖励动态会出现在这里</div>
+        <div class="text-xs text-gray-400">营养师/教练的批注和奖励动态会出现在这里</div>
       </div>
 
       <!-- 消息列表 -->
@@ -274,7 +336,7 @@ const fmtDate = (d: string) => {
         v-for="m in messages"
         :key="m.id"
         @click="openMessage(m)"
-        :class="['w-full text-left bg-white rounded-2xl p-4 flex items-start gap-3 active:scale-[0.98] transition-all shadow-sm hover:shadow-md', m.type === 'comment' ? 'border border-[#07C160]/15' : 'border border-gray-100']"
+        :class="['w-full text-left bg-white rounded-2xl p-4 flex items-start gap-3 active:scale-[0.98] transition-all shadow-sm hover:shadow-md', m.type === 'dietitian' || m.type === 'coach' ? 'border border-[#07C160]/15' : 'border border-gray-100']"
       >
         <div :class="['w-10 h-10 rounded-xl flex items-center justify-center shrink-0', typeMeta(m.type).cls]">
           <component :is="typeMeta(m.type).icon" class="w-5 h-5" />

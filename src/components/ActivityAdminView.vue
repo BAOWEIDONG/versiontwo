@@ -10,7 +10,7 @@ import { ref, computed } from 'vue';
 import { useAppStore, type ActivityConfig } from '../store/app';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
-import { Zap, Scale, Calendar, PartyPopper, Settings, ChevronRight, Users, FileText, Coins, TrendingUp } from 'lucide-vue-next';
+import { Zap, Scale, Calendar, PartyPopper, Settings, ChevronRight, Users, FileText, Coins, TrendingUp, Flame } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Switch as VanSwitch } from 'vant';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import { differenceInCalendarDays } from 'date-fns';
@@ -28,7 +28,7 @@ const activityConfig = computed(() => store.getActivityConfig(selectedCampId.val
 const cfg = activityConfig;
 
 /** 更新当前营期的活动开关 */
-function updateActivityConfigSafe(key: 'weightMilestone' | 'weeklyChallenge' | 'luckyDraw' | 'pointsMall', value: boolean) {
+function updateActivityConfigSafe(key: 'weightMilestone' | 'weeklyChallenge' | 'luckyDraw' | 'pointsMall' | 'checkinStreak', value: boolean) {
   if (!selectedCampId.value) {
     showToast('请先选择营期');
     return;
@@ -245,6 +245,17 @@ function openStudent(id: string, focusType?: 'milestone' | 'weekly' | 'lucky') {
             </div>
           </div>
           <VanSwitch :model-value="cfg.pointsMall" @update:model-value="updateActivityConfigSafe('pointsMall', $event)" size="22" />
+        </div>
+
+        <div class="flex items-center justify-between py-2 border-t border-gray-50">
+          <div class="flex items-center gap-2">
+            <Flame class="h-4 w-4 text-[#07C160]" />
+            <div>
+              <div class="text-sm font-bold text-gray-900">连续打卡奖励</div>
+              <div class="text-[10px] text-gray-400">学员连续达标领取阶梯奖励</div>
+            </div>
+          </div>
+          <VanSwitch :model-value="cfg.checkinStreak" @update:model-value="updateActivityConfigSafe('checkinStreak', $event)" size="22" />
         </div>
       </Card>
 

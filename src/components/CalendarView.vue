@@ -243,6 +243,45 @@ onMounted(() => {
     setTimeout(() => detailCards.value.push(idx), delay);
   });
 });
+
+// ─── 领取后修改地址（仅未发货前，最多一次） ──────────────────
+const editingAddress = ref(false);
+const editAddressData = ref({ name: '', phone: '', address: '' });
+const editAddressError = ref('');
+
+/** 是否允许修改地址：待发货 && 尚未编辑过 */
+const canEditAddress = computed(() => {
+  const claim = getClaimInfo(selectedRewardTier.value);
+  return !!(claim && claim.status === 'pending' && !claim.addressEdited);
+});
+
+const startEditAddress = () => {
+  const claim = getClaimInfo(selectedRewardTier.value);
+  if (!claim) return;
+  editAddressData.value = {
+    name: claim.recipientName || '',
+    phone: claim.recipientPhone || '',
+    address: claim.recipientAddress || '',
+  };
+  editingAddress.value = true;
+  editAddressError.value = '';
+};
+
+const submitAddressEdit = () => {
+  const claim = getClaimInfo(selectedRewardTier.value);
+  if (!claim) return;
+  if (!editAddressData.value.name.trim()) { editAddressError.value = '请输入收货人姓名'; return; }
+  if (!/^1[3-9]\d{9}$/.test(editAddressData.value.phone.trim())) { editAddressError.value = '请输入有效的11位手机号'; return; }
+  if (!editAddressData.value.address.trim()) { editAddressError.value = '请输入详细收货地址'; return; }
+  store.updateRewardClaim(claim.id, {
+    recipientName: editAddressData.value.name.trim(),
+    recipientPhone: editAddressData.value.phone.trim(),
+    recipientAddress: editAddressData.value.address.trim(),
+    addressEdited: true,
+  });
+  editingAddress.value = false;
+  showToast('收货地址已更新');
+};
 </script>
 
 <template>
@@ -563,19 +602,54 @@ onMounted(() => {
 
           <!-- Claimed state -->
           <div v-if="getRewardState(selectedRewardTier) === 'claimed'" class="w-full">
-            <div class="flex items-center justify-center gap-1.5 text-[#07C160] text-sm font-bold mb-3">
-              <CheckCircle2 class="w-4 h-4" /> 已领取
+            <!-- 编辑收货地址（未发货前仅一次） -->
+            <div v-if="editingAddress" class="w-full text-left">
+              <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">修改收货信息</h3>
+              <div class="space-y-4 mb-4">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 block mb-1">收货人 <span class="text-red-500">*</span></label>
+                  <input type="text" placeholder="请输入姓名" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white text-sm transition-colors" v-model="editAddressData.name" @input="editAddressError = ''" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-700 block mb-1">手机号 <span class="text-red-500">*</span></label>
+                  <input type="tel" placeholder="请输入11位手机号" maxlength="11" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white text-sm transition-colors" v-model="editAddressData.phone" @input="editAddressError = ''" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-gray-700 block mb-1">详细地址 <span class="text-red-500">*</span></label>
+                  <textarea placeholder="省市区、街道、小区、楼栋及门牌号" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white text-sm h-20 resize-none transition-colors" v-model="editAddressData.address" @input="editAddressError = ''"></textarea>
+                </div>
+                <div class="text-xs text-gray-400 flex items-start gap-1.5">
+                  <Check class="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
+                  <span>收货地址仅可修改 1 次，修改后将不能再次调整。</span>
+                </div>
+                <div v-if="editAddressError" class="text-red-500 text-xs font-medium text-center">{{ editAddressError }}</div>
+              </div>
+              <div class="flex gap-3">
+                <button class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold" @click="editingAddress = false">取消</button>
+                <button class="flex-[2] py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold shadow-lg shadow-orange-500/30 active:scale-95 transition-transform" @click="submitAddressEdit">
+                  保存修改
+                </button>
+              </div>
             </div>
-            <div v-if="getClaimInfo(selectedRewardTier)?.status === 'shipped'" class="bg-blue-50 rounded-xl px-4 py-3 text-xs text-blue-600 border border-blue-100 mb-3">
-              <div class="font-bold mb-1 flex items-center gap-1"><Package class="w-3 h-3" /> 已发货</div>
-              <div class="font-mono">快递单号: {{ getClaimInfo(selectedRewardTier)?.trackingNumber }}</div>
-            </div>
-            <div v-else class="bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-500 border border-gray-100 mb-3 flex items-center justify-center gap-1">
-              <Package class="w-3 h-3" /> 仓库备货中，待发货
-            </div>
-            <button class="w-full py-2.5 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold" @click="showRewardInfo = false">
-              知道了
-            </button>
+            <template v-else>
+              <div class="flex items-center justify-center gap-1.5 text-[#07C160] text-sm font-bold mb-3">
+                <CheckCircle2 class="w-4 h-4" /> 已领取
+              </div>
+              <div v-if="getClaimInfo(selectedRewardTier)?.status === 'shipped'" class="bg-blue-50 rounded-xl px-4 py-3 text-xs text-blue-600 border border-blue-100 mb-3">
+                <div class="font-bold mb-1 flex items-center gap-1"><Package class="w-3 h-3" /> 已发货</div>
+                <div class="font-mono">快递单号: {{ getClaimInfo(selectedRewardTier)?.trackingNumber }}</div>
+              </div>
+              <div v-else class="bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-500 border border-gray-100 mb-3 flex items-center justify-center gap-1">
+                <Package class="w-3 h-3" /> 仓库备货中，待发货
+              </div>
+              <div v-if="canEditAddress" @click="startEditAddress"
+                   class="mb-3 py-2.5 rounded-xl bg-white border border-orange-200 text-orange-500 text-sm font-bold active:scale-95 transition-transform cursor-pointer">
+                修改收货地址
+              </div>
+              <button class="w-full py-2.5 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold" @click="showRewardInfo = false">
+                知道了
+              </button>
+            </template>
           </div>
 
           <!-- Claimable state -->

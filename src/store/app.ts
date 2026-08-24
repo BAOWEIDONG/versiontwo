@@ -68,7 +68,7 @@ export type View =
   | 'fulfillment-center'
   | 'my-rewards';
 
-/** 趣味活动配置（营养师端可切换开关；学员端 CampActivitiesView 按此展示） */
+/** 趣味活动配置（营养师端可切换开关；学员端按此展示） */
 export interface ActivityConfig {
   /** 阶梯达标奖 */
   weightMilestone: boolean;
@@ -78,6 +78,8 @@ export interface ActivityConfig {
   luckyDraw: boolean;
   /** 积分商城开关 */
   pointsMall: boolean;
+  /** 连续打卡奖励开关（学员端首页「连续打卡」活动入口按此显示） */
+  checkinStreak: boolean;
   /** 每周挑战独立配置：开始日期（不填则用营期开营日） */
   weeklyChallengeStartDate?: string;
   /** 每周挑战独立配置：总周数（默认4周） */
@@ -94,15 +96,15 @@ export const useAppStore = defineStore('app', () => {
   /** 趣味活动开关（按营期独立配置，营养师端配置，学员端按此展示） */
   /** 每周挑战默认关闭：需营养师先设置开始日期，再手动开启 */
   const activityConfigByCamp = ref<Record<string, ActivityConfig>>({
-    camp1: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, weeklyChallengeWeeks: 4 },
-    camp2: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, weeklyChallengeWeeks: 4 },
-    camp3: { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, weeklyChallengeWeeks: 4 },
+    camp1: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
+    camp2: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
+    camp3: { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 },
   });
 
   /** 获取指定营期的活动配置（无配置时返回全关默认值） */
   function getActivityConfig(campId: string | null | undefined): ActivityConfig {
-    if (!campId) return { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, weeklyChallengeWeeks: 4 };
-    return activityConfigByCamp.value[campId] || { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, weeklyChallengeWeeks: 4 };
+    if (!campId) return { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
+    return activityConfigByCamp.value[campId] || { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
   }
 
   /** 更新指定营期的活动配置 */
