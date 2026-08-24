@@ -92,9 +92,9 @@ const selectCamp = (campId: string | null) => {
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-24 font-sans">
+  <div class="flex min-h-full flex-col pb-24 font-sans bg-gradient-to-b from-[#D9F2E4] to-[#F7F8FA]">
     <!-- Header -->
-    <div class="pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-6 bg-gradient-to-b from-[#D9F2E4] to-[#F7F8FA]">
+    <div class="pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-6">
       <div class="flex justify-end mb-2">
         <button @click="store.logout()" class="text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1 text-xs bg-white/50 px-2 py-1 rounded-full backdrop-blur-sm">
           <LogOut class="h-3 w-3" /> 退出
@@ -116,7 +116,7 @@ const selectCamp = (campId: string | null) => {
       <div class="flex items-center gap-2 mb-1">
         <button
           @click="showCampPicker = true"
-          class="flex items-center gap-1.5 px-3 py-2 bg-white rounded-xl border border-gray-200 text-sm font-medium text-gray-700 active:bg-gray-50 shadow-sm"
+          class="flex items-center gap-1.5 px-3 py-2 bg-white rounded-xl border border-[#BFE3D1] text-sm font-medium text-gray-700 active:bg-gray-50 shadow-sm"
         >
           {{ activeCampName }}
           <ChevronDown class="w-4 h-4 text-gray-400" />
@@ -125,7 +125,7 @@ const selectCamp = (campId: string | null) => {
       </div>
 
       <!-- Tab 切换 -->
-      <div class="flex bg-white p-1 rounded-xl shadow-sm mb-4">
+      <div class="flex bg-white p-1 rounded-xl shadow-sm mb-4 border border-[#BFE3D1]">
         <button
           :class="['flex-1 py-2 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5', activeTab === 'incomplete' ? 'bg-[#FF976A] text-white shadow-sm' : 'text-gray-500 hover:text-gray-900']"
           @click="activeTab = 'incomplete'"
@@ -158,7 +158,7 @@ const selectCamp = (campId: string | null) => {
             v-model="searchQuery"
             type="text"
             placeholder="搜索学员姓名"
-            class="w-full pl-9 pr-9 py-2.5 bg-white border border-gray-100 rounded-xl text-sm shadow-sm focus:outline-none focus:border-[#07C160] transition-colors"
+            class="w-full pl-9 pr-9 py-2.5 bg-white border border-[#BFE3D1] rounded-xl text-sm shadow-sm focus:outline-none focus:border-[#07C160] transition-colors"
           />
           <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
             <X class="w-4 h-4" />
