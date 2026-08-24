@@ -72,6 +72,10 @@ const saveTier = () => {
   if (!editingTier.value.name?.trim()) { formError.value = '请输入礼品名称'; return; }
   if (!editingTier.value.imageUrl) { formError.value = '请上传礼品图片'; return; }
   if (editingTier.value.stock === undefined || editingTier.value.stock < 0) { formError.value = '请输入有效的库存'; return; }
+  if (editingTier.value.id) {
+    const c = getClaimCount(editingTier.value.id);
+    if (c > 0 && editingTier.value.stock < c) { formError.value = `库存不能低于已领取的 ${c} 件（该奖励已有 ${c} 人领取）`; return; }
+  }
   if (!editingTier.value.deliveryMethods || editingTier.value.deliveryMethods.length === 0) { formError.value = '请至少选择一种领取方式'; return; }
 
   const dup = campRewardTiers.value.find(t => t.requiredDays === editingTier.value!.requiredDays && t.id !== editingTier.value!.id);
@@ -145,6 +149,10 @@ const saveProduct = () => {
   if (!editingProduct.value.imageUrl) { productFormError.value = '请上传商品图片'; return; }
   if (!editingProduct.value.pointsRequired || editingProduct.value.pointsRequired <= 0) { productFormError.value = '请输入有效的积分'; return; }
   if (editingProduct.value.stock === undefined || editingProduct.value.stock < 0) { productFormError.value = '请输入有效的库存'; return; }
+  if (editingProduct.value.id) {
+    const c = getProductClaimCount(editingProduct.value.id);
+    if (c > 0 && editingProduct.value.stock < c) { productFormError.value = `库存不能低于已领取的 ${c} 件（已有 ${c} 人兑换）`; return; }
+  }
   const maxExchange = editingProduct.value.maxExchange;
   if (maxExchange !== 0 && (maxExchange === undefined || maxExchange < 0)) { productFormError.value = '请输入有效的限兑次数'; return; }
 
@@ -353,6 +361,7 @@ function formatExchangeDate(dateStr: string) {
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
             <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.stock" @input="editingTier.stock = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
+            <div v-if="editingTier.id && getClaimCount(editingTier.id) > 0" class="text-[11px] text-gray-400 mt-1">此数为当前可发放量，已有 {{ getClaimCount(editingTier.id) }} 件被领取（已占用）</div>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-2">领取方式 <span class="text-red-500">*</span></label>
@@ -402,6 +411,7 @@ function formatExchangeDate(dateStr: string) {
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
             <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.stock" @input="editingProduct.stock = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
+            <div v-if="editingProduct.id && getProductClaimCount(editingProduct.id) > 0" class="text-[11px] text-gray-400 mt-1">此数为当前可发放量，已有 {{ getProductClaimCount(editingProduct.id) }} 件被兑换（已占用）</div>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">每人限兑次数 <span class="text-xs text-gray-400 font-normal">（填 0 表示不限制）</span></label>
