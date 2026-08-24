@@ -2,9 +2,9 @@
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
-import { NavBar, Card } from './ui';
+import { NavBar, Card, StudentTabbar } from './ui';
 import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
+import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';
 import { exportElementAsImage } from '../lib/exportImage';
@@ -551,24 +551,7 @@ const exportPDF = () => {
       </div>
     </VanPopup>
 
-    <VanTabbar class="custom-tabbar print:hidden" :model-value="3">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="health-profile" print-hidden :badge="unreadCount > 0 ? unreadCount : undefined" />
   </div>
 </template>
 

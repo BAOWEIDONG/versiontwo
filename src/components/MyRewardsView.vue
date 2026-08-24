@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
-import { NavBar as VanNavBar, Tabbar as VanTabbar, TabbarItem as VanTabbarItem, showSuccessToast } from 'vant';
+import { NavBar as VanNavBar, showSuccessToast } from 'vant';
+import { StudentTabbar } from './ui';
 import {
   Activity, FileText, Bell, Coins, Gift, Zap,
   Truck, CheckCircle, XCircle, Clock, Package, AlertTriangle, ChevronRight, MapPin,
@@ -419,24 +420,7 @@ const unreadCount = computed(() => {
     </Teleport>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar" :model-value="1">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="activity-hub" :badge="unreadCount > 0 ? unreadCount : undefined" />
   </div>
 </template>
 

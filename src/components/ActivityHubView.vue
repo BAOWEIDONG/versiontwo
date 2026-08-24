@@ -2,10 +2,9 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { Activity, FileText, Bell, ChevronRight, Gift, Zap, Scale, Coins, Trophy, Package, Sparkles } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
+import { StudentTabbar } from './ui';
 import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
-import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 
@@ -425,24 +424,7 @@ const unreadCount = computed(() => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem>
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="activity-hub" :badge="unreadCount > 0 ? unreadCount : undefined" />
   </div>
 </template>
 

@@ -4,15 +4,14 @@ import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
-import { Card, GenderAvatar } from './ui';
+import { Card, GenderAvatar, StudentTabbar } from './ui';
 import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, Sparkles, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showToast } from 'vant';
+import { Popup as VanPopup, showToast } from 'vant';
 import { rankStudents } from '../lib/scoring';
 import { getTodayQuote } from '../lib/motivationalQuotes';
 import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import { generateStudentReport } from '../lib/campReport';
-import { studentNavIndex } from '../lib/studentNav';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import type { RewardTier } from '../types';
 
@@ -808,24 +807,7 @@ onMounted(() => {
       </div>
 
       </div>
-    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
-      <VanTabbarItem>
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="dashboard" :badge="unreadCount > 0 ? unreadCount : undefined" />
 
     <!-- 昨日小结弹层（今天首次打开时展示） -->
     <Teleport to="body">

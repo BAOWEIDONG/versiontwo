@@ -2,12 +2,10 @@
 import { computed, ref, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
-import { NavBar } from './ui';
+import { NavBar, StudentTabbar } from './ui';
 import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, RefreshCw } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { rankStudents } from '../lib/scoring';
-import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 const isMine = (r: { studentId?: string }) => r.studentId === store.user?.id;
@@ -373,23 +371,6 @@ const fmtDate = (d: string) => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem>
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="messages" :badge="unreadCount" />
   </div>
 </template>

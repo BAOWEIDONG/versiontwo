@@ -2,12 +2,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
-import { NavBar, Card } from './ui';
+import { NavBar, Card, StudentTabbar } from './ui';
 import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Bell, Gift } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
+import { Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
-import { studentNavIndex } from '../lib/studentNav';
 
 const store = useAppStore();
 
@@ -528,24 +527,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
       />
     </VanPopup>
 
-    <!-- Bottom Nav：首页(0) / 活动(1) / 消息(2) / 档案(3)；高亮随 currentView 推导 -->
-    <VanTabbar class="custom-tabbar" :model-value="studentNavIndex(store.currentView)">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem>
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <!-- Bottom Nav：首页 / 活动(显隐随营期) / 消息 / 档案；高亮由 anchor 推导 -->
+    <StudentTabbar anchor="health-profile" :badge="unreadCount > 0 ? unreadCount : undefined" />
   </div>
 </template>

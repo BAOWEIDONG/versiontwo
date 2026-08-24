@@ -2,10 +2,9 @@
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
-import { NavBar, Card } from './ui';
+import { NavBar, Card, StudentTabbar } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
 import { Zap, Scale, Calendar, CheckCircle2, PartyPopper, Activity, Gift, Truck, HandCoins, Package, FileText, Bell, ChevronDown, MapPin } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import type { RewardClaim } from '../types';
 
@@ -613,24 +612,7 @@ const activityTypeLabel = (type?: string) => {
       </div>
     </VanPopup>
 
-    <VanTabbar class="custom-tabbar" :model-value="0">
-      <VanTabbarItem @click="store.setCurrentView('dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        首页
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
-        <template #icon><Gift class="h-6 w-6" /></template>
-        活动
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
-        <template #icon><Bell class="h-6 w-6" /></template>
-        消息
-      </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('health-profile')">
-        <template #icon><FileText class="h-6 w-6" /></template>
-        档案
-      </VanTabbarItem>
-    </VanTabbar>
+    <StudentTabbar anchor="dashboard" :badge="unreadCount > 0 ? unreadCount : undefined" />
 
     <!-- 营期选择弹窗 -->
     <VanPopup v-model:show="showCampPicker" position="bottom" round class="custom-popup">

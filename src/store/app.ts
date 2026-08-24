@@ -107,6 +107,21 @@ export const useAppStore = defineStore('app', () => {
     return activityConfigByCamp.value[campId] || { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
   }
 
+  /** 该营期是否有「实际可见」的活动（判定口径与学员端活动页空态完全一致）：
+   *  积分商城开启，或 连续打卡奖励开启且存在对应奖品档(streak tier)，任一即算有活动。
+   *  决定学员端底部菜单是否显示「活动」tab：无活动则隐藏，仅留 首页/消息/档案（三等分）。 */
+  function getHasActivity(campId: string | null | undefined): boolean {
+    const cfg = getActivityConfig(campId);
+    if (cfg.pointsMall) return true;
+    if (cfg.checkinStreak) {
+      const tiers = campId
+        ? rewardTiers.value.filter((t) => !t.campId || t.campId === campId)
+        : rewardTiers.value;
+      if (tiers.some((t) => t.source === 'streak')) return true;
+    }
+    return false;
+  }
+
   /** 更新指定营期的活动配置 */
   function updateActivityConfig(campId: string, updates: Partial<ActivityConfig>) {
     const current = getActivityConfig(campId);
@@ -835,6 +850,7 @@ export const useAppStore = defineStore('app', () => {
     getCampMessage,
     activityConfigByCamp,
     getActivityConfig,
+    getHasActivity,
     updateActivityConfig,
     currentView,
     init,
