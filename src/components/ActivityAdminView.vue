@@ -232,7 +232,7 @@ function openStudent(id: string, focusType?: 'milestone' | 'weekly' | 'lucky') {
           </div>
           <VanSwitch :model-value="cfg.luckyDraw" @update:model-value="updateActivityConfigSafe('luckyDraw', $event)" size="22" />
         </div>
-        🎈 --/>
+        🎈 -->
 
         <div class="flex items-center justify-between py-2 border-t border-gray-50">
           <div class="flex items-center gap-2">
