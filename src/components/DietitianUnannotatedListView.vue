@@ -172,12 +172,12 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
 
 <template>
   <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-24">
-    <div class="pt-[calc(env(safe-area-inset-top)+1.5rem)] px-5 pb-3 bg-white">
+    <div class="pt-[calc(env(safe-area-inset-top)+1.5rem)] px-5 pb-3 bg-white/30">
       <h1 class="text-lg font-bold text-gray-900">待批注</h1>
     </div>
 
     <!-- 营期切换 -->
-    <div class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100">
+    <div class="bg-white/30 px-4 py-3 flex items-center justify-between border-b border-white/40">
       <div>
         <div class="text-xs text-gray-500">当前营期</div>
         <div class="text-sm font-medium text-gray-800">{{ selectedCamp?.name || '全部营期' }}</div>

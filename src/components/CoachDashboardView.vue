@@ -103,7 +103,7 @@ const selectCamp = (campId: string | null) => {
 </script>
 
 <template>
-  <div class="flex min-h-[100dvh] flex-col pb-24 font-sans bg-gradient-to-b from-[#E2F5EA] to-[#F7FBF8]">
+  <div class="flex min-h-[100dvh] flex-col pb-24 font-sans bg-gradient-to-b from-[#EDF9F1] to-[#FBFEFC]">
     <!-- Header -->
     <div class="pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-6">
       <div class="flex justify-end mb-2">

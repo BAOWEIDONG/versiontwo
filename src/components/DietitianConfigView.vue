@@ -4,7 +4,6 @@ import { useAppStore } from '../store/app';
 import { Card } from './ui';
 import { Clock, Gift, Trophy, Activity, FileText, Users, ChevronRight, Settings, Package } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
-import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 
 const store = useAppStore();
 
@@ -18,58 +17,14 @@ const unannotatedCount = computed(() => {
   return diet + weight;
 });
 
-// ─── 发放中心待处理条数 ───
-const pendingAuditCount = computed(() => {
-  let count = 0;
-  for (const camp of store.camps) {
-    const cfg = store.getActivityConfig(camp.id);
-    const dietRecords = store.getCampDietRecords(camp.id);
-    const exerciseRecords = store.getCampExerciseRecords(camp.id);
-    const weightRecords = store.getCampWeightRecords(camp.id);
-    const students = store.getStudentsByCamp(camp.id);
-    const claims = store.getCampRewardClaims(camp.id);
-    const tiers = store.getCampRewardTiers(camp.id);
-
-    const getStudentActivityClaims = (studentId: string, activityType: string) =>
-      claims.filter(c => {
-        const tier = tiers.find(t => t.id === c.tierId);
-        return c.studentId === studentId && tier?.source === 'activity' && tier?.activityType === activityType;
-      });
-
-    for (const s of students) {
-      const weights = weightRecords
-        .filter(w => w.studentId === s.id || w.studentId === undefined)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      const startW = weights.length > 0 ? weights[0].weight : null;
-      const milestones = computeWeightMilestones(weights, startW);
-
-      const challenges = computeWeeklyChallenges(dietRecords, exerciseRecords, weightRecords, s.id, {
-        challengeStartDate: cfg.weeklyChallengeStartDate,
-        challengeWeeks: cfg.weeklyChallengeWeeks,
-        campStartDate: camp.startDate,
-      });
-      const luckyDraw = computeLuckyDraw(dietRecords, exerciseRecords, weightRecords, s.id);
-
-      const pendingMilestone = milestones.filter(m => m.achieved).sort((a, b) => b.threshold - a.threshold)[0];
-
-      if (cfg.weightMilestone && pendingMilestone && getStudentActivityClaims(s.id, 'milestone').length === 0) count++;
-      if (cfg.weeklyChallenge) {
-        const totalWeeks = cfg.weeklyChallengeWeeks || 4;
-        if (challenges.filter(c => c.completed).length >= totalWeeks && getStudentActivityClaims(s.id, 'weekly').length === 0) count++;
-      }
-      if (cfg.luckyDraw && luckyDraw.eligible && getStudentActivityClaims(s.id, 'lucky').length === 0) count++;
-    }
-  }
-  return count;
-});
-
+// ─── 发放中心待办数（发货待处理 + 积分兑换待处理，与发放中心「发货」模块口径一致） ───
 const pendingShipCount = computed(() => {
   const claimCount = store.rewardClaims.filter(c => c.status === 'pending').length;
   const exchangeCount = store.pointExchanges.filter(e => e.status === 'pending').length;
   return claimCount + exchangeCount;
 });
 
-const fulfillmentPending = computed(() => pendingAuditCount.value + pendingShipCount.value);
+const fulfillmentPending = computed(() => pendingShipCount.value);
 
 interface ConfigItem {
   view: string;

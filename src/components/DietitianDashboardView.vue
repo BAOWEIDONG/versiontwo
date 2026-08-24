@@ -114,7 +114,7 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
 </script>
 
 <template>
-  <div class="flex min-h-[100dvh] flex-col pb-24 font-sans bg-gradient-to-b from-[#FFEFE3] to-[#FFFCF8]">
+  <div class="flex min-h-[100dvh] flex-col pb-24 font-sans bg-gradient-to-b from-[#FFF6EE] to-[#FFFDFB]">
     <div class="pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-6">
       <div class="flex justify-end mb-2">
         <button @click="store.logout()" class="text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1 text-xs bg-white/50 px-2 py-1 rounded-full backdrop-blur-sm">

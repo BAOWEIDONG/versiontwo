@@ -210,16 +210,23 @@ body.liquid-glass .custom-tabbar.van-tabbar {
    登录对应角色后 <body> 挂 role-diet / role-coach，子页面根容器 flat 灰底 (#F7F8FA) 转透明，
    让 body 的浅渐变透出到整屏，视觉与首页渐变统一；学员端不挂该类，保持原有底色。 */
 body.role-diet {
-  background-color: #FFEFE3;
-  background-image: linear-gradient(180deg, #FFEFE3 0%, #FFFCF8 100%);
+  background-color: #FFF6EE;
+  background-image: linear-gradient(180deg, #FFF6EE 0%, #FFFDFB 100%);
 }
 body.role-coach {
-  background-color: #E2F5EA;
-  background-image: linear-gradient(180deg, #E2F5EA 0%, #F7FBF8 100%);
+  background-color: #EDF9F1;
+  background-image: linear-gradient(180deg, #EDF9F1 0%, #FBFEFC 100%);
 }
 body.role-diet .bg-\[\#F7F8FA\],
 body.role-coach .bg-\[\#F7F8FA\] {
   background-color: transparent !important;
+}
+
+/* 营养师/教练端：顶栏 NavBar 从半透明白降为更浅透，透出 body 浅渐变，消除顶部白色带 */
+body.role-diet .custom-nav.van-nav-bar,
+body.role-coach .custom-nav.van-nav-bar {
+  background: rgba(255, 255, 255, 0.16);
+  border-bottom-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Tabs (van-tabs)：还原下划线 tab */
