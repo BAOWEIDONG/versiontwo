@@ -50,9 +50,20 @@ export function useTabSwipe<T extends string>(
     return false;
   }
 
+  // 只响应「本视图」内的手势。视图根节点 container 是当前页内容；当手指落在列表空白处时，
+  // touch 的 e.target 不是视图内元素，而是包裹视图的页面滚动外壳(视图的祖先)。若不认这个
+  // 外壳，空白区起手的手势就收不到 → 末tab(消息中心「系统通知」/数据页)在内容较短时空
+  // 白区回滑、tab「卡住不动」的真正根因。因此「target 在视图内」或「target 是视图的祖先」
+  // (即外壳上空白处)都算本视图手势。底部 tabbar/顶部 navbar 不含视图、也不被视图含，故排除。
+  function inView(target: EventTarget | null, view: HTMLElement | null): boolean {
+    if (!view || !(target instanceof Element)) return false;
+    return view.contains(target) || target.contains(view);
+  }
+
   function onTouchStart(e: TouchEvent) {
     const target = e.target as HTMLElement | null;
     if (target && target.closest('.van-nav-bar, .van-tabbar')) return; // 顶部导航/底部 tabs 上的手势不参与
+    if (!inView(e.target, container.value)) return; // 只响应本视图内/其滚动外壳上的起手
     const t = e.touches[0];
     if (!t) return;
     startX = t.clientX;
@@ -100,22 +111,20 @@ export function useTabSwipe<T extends string>(
   }
 
   onMounted(() => {
-    const el = container.value;
-    if (el) {
-      el.addEventListener('touchstart', onTouchStart, { passive: true });
-      el.addEventListener('touchmove', onTouchMove, { passive: false }); // 需要 preventDefault
-      el.addEventListener('touchend', onTouchEnd, { passive: true });
-      el.addEventListener('touchcancel', onTouchCancel);
-    }
+    // 把 touch 监听绑到 document 冒泡(而非只绑视图根节点)：手势落在列表空白处的 target 是
+    // 页面滚动外壳(视图祖先)，若只绑视图根节点会根本收不到触碰 → tab「卡住」。用冒泡而非
+    // 捕获：滑动趋势图等子组件在自身用 stopPropagation 与 tab 切换解耦，捕获会先于其执行、
+    // 破坏该解耦；冒泡则在其 stop 之后，天然不打扰子组件的水平手势。
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false }); // 需要 preventDefault
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', onTouchCancel);
   });
 
   onBeforeUnmount(() => {
-    const el = container.value;
-    if (el) {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('touchcancel', onTouchCancel);
-    }
+    document.removeEventListener('touchstart', onTouchStart);
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
+    document.removeEventListener('touchcancel', onTouchCancel);
   });
 }
