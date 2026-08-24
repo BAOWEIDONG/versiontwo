@@ -255,6 +255,9 @@ const tabUnread = (key: string): number =>
     ? unreadCount.value
     : allMessages.value.filter((m) => m.type === key && m.unread).length;
 
+/** 当前激活 sheet 的未读数（顶部摘要用，随切换联动） */
+const sheetUnread = computed(() => tabUnread(activeFilter.value));
+
 const typeMeta = (type: MessageItem['type']) =>
   type === 'dietitian'
     ? { icon: MessageCircle, cls: 'bg-[#07C160]/10 text-[#07C160]', tag: '营养师批注', tagCls: 'bg-[#07C160]/10 text-[#07C160]' }
@@ -314,23 +317,23 @@ const fmtDate = (d: string) => {
           v-for="f in filters"
           :key="f.key"
           @click="activeFilter = f.key"
-          :class="['flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1', activeFilter === f.key ? 'bg-[#07C160] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+          :class="['flex-1 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1 min-w-0', activeFilter === f.key ? 'bg-[#07C160] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700']"
         >
-          {{ f.label }}
+          <span class="truncate">{{ f.label }}</span>
           <span
-            v-if="tabUnread(f.key) > 0"
-            class="min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center"
+            v-if="tabUnread(f.key) > 0 && activeFilter !== f.key"
+            class="min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center shrink-0 whitespace-nowrap"
             :class="activeFilter === f.key ? 'bg-white/30 text-white' : 'bg-red-500 text-white'"
-          >{{ tabUnread(f.key) }}</span>
+          >{{ tabUnread(f.key) > 99 ? '99+' : tabUnread(f.key) }}</span>
         </button>
       </div>
     </div>
 
     <div class="p-4 space-y-3">
-      <!-- 顶部摘要 -->
-      <div v-if="unreadCount > 0" class="flex items-center gap-2 px-4 py-3 bg-[#07C160]/5 border border-[#07C160]/15 rounded-xl">
+      <!-- 顶部摘要：未读数随当前 sheet 联动 -->
+      <div v-if="sheetUnread > 0" class="flex items-center gap-2 px-4 py-3 bg-[#07C160]/5 border border-[#07C160]/15 rounded-xl">
         <Bell class="w-4 h-4 text-[#07C160] shrink-0" />
-        <span class="text-xs text-gray-700">你有 <span class="font-bold text-[#07C160]">{{ unreadCount }}</span> 条未读消息</span>
+        <span class="text-xs text-gray-700">你有 <span class="font-bold text-[#07C160]">{{ sheetUnread }}</span> 条未读消息</span>
       </div>
 
       <!-- 空态 -->

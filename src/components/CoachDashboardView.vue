@@ -5,8 +5,9 @@ import { campDateRange } from '../lib/camps';
 import { rankStudents } from '../lib/scoring';
 import { Card } from './ui';
 import ActivityCard from './ActivityCard.vue';
+import type { CoachActivityRecord } from '../types';
 import { UserCircle, LogOut, Clock, FileText, Users, CheckCircle, XCircle, Search, X, ChevronDown, Dumbbell } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
+import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showConfirmDialog } from 'vant';
 
 const store = useAppStore();
 
@@ -91,6 +92,22 @@ const sortedActivities = computed(() =>
 const openStudent = (id: string) => {
   store.setSelectedStudentId(id);
   store.setCurrentView('coach-student-detail');
+};
+
+// ─── 教练活动编辑/删除 ───
+const editActivity = (activity: CoachActivityRecord) => {
+  store.setEditingActivity(activity);
+  store.setCurrentView('activity-upload');
+};
+const deleteActivity = async (activity: CoachActivityRecord) => {
+  try {
+    await showConfirmDialog({
+      title: '删除活动',
+      message: `确认删除活动「${activity.title}」吗？删除后学员端将不再展示。`,
+      confirmButtonColor: '#ee0a24',
+    });
+    store.deleteCoachActivity(activity.id);
+  } catch { /* 用户取消 */ }
 };
 
 const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
@@ -219,7 +236,7 @@ const selectCamp = (campId: string | null) => {
 
       <!-- 活动管理 -->
       <template v-if="activeTab === 'activities'">
-        <Card class="flex items-center justify-between p-4 cursor-pointer hover:border-[#07C160] transition-colors bg-[#07C160]/[0.06] mb-4" @click="store.setCurrentView('activity-upload')">
+        <Card class="flex items-center justify-between p-4 cursor-pointer hover:border-[#07C160] transition-colors bg-[#07C160]/[0.06] mb-4" @click="store.setEditingActivity(null); store.setCurrentView('activity-upload')">
           <div class="flex items-center space-x-3">
             <div class="h-10 w-10 rounded-full bg-[#07C160]/10 flex items-center justify-center text-[#07C160]">
               <FileText class="h-5 w-5" />
@@ -243,7 +260,14 @@ const selectCamp = (campId: string | null) => {
           暂无发布的锻炼活动
         </div>
         <div v-else class="space-y-4">
-          <ActivityCard v-for="activity in sortedActivities" :key="activity.id" :activity="activity" />
+          <ActivityCard
+            v-for="activity in sortedActivities"
+            :key="activity.id"
+            :activity="activity"
+            editable
+            @edit="editActivity"
+            @delete="deleteActivity"
+          />
         </div>
       </template>
     </div>

@@ -245,18 +245,6 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
         <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
         <div class="space-y-2">
           <button
-            @click="store.selectedCampId = null; showCampPicker = false"
-            :class="[
-              'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all',
-              !activeCampId
-                ? 'border-[#FF976A] bg-orange-50 text-[#FF976A]'
-                : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
-            ]"
-          >
-            <span class="font-medium">全部营期</span>
-            <span class="text-xs text-gray-400">{{ store.getAllStudents().length }}人</span>
-          </button>
-          <button
             v-for="camp in availableCamps"
             :key="camp.id"
             @click="store.selectedCampId = camp.id; showCampPicker = false"

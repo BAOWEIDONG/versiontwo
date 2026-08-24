@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -12,8 +12,8 @@ import type { DietitianCampSummary } from '../types';
 
 const store = useAppStore();
 
-// ─── 营期切换 ───
-const selectedCampId = ref<string>(store.camps[0]?.id || '');
+// ─── 营期切换（默认最新一期） ───
+const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => store.camps.find((c) => c.id === selectedCampId.value));
 

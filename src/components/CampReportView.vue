@@ -44,18 +44,8 @@ const campDays = computed(() => {
   }
   return store.getCampDays(studentId.value);
 });
-const canView = computed(() => {
-  if (!campInfo.value) return false;
-  if (campInfo.value.status === 'ended') return true;
-  if (campInfo.value.endDate) {
-    const end = new Date(campInfo.value.endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    return today > end;
-  }
-  return false;
-});
+// 学员端结营报告不再上锁：营期未结束也可随时打开查看（数据为截至当前的累计）
+const canView = computed(() => true);
 
 // 按营期过滤打卡记录
 const campDietRecords = computed(() => selectedCampId.value ? store.getCampDietRecords(selectedCampId.value) : store.dietRecords);

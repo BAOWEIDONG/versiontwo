@@ -39,6 +39,34 @@ const videoUrls = ref<string[]>([]);
 const mediaType = ref<'image' | 'video'>('image');
 const error = ref('');
 
+// ─── 编辑模式：来源 coach-dashboard 点「编辑」，预填表单 ───
+const editingActivity = computed(() => store.editingActivity);
+const editingId = computed(() => editingActivity.value?.id);
+const isEditing = computed(() => Boolean(editingId.value));
+
+(function prefill() {
+  const record = store.editingActivity;
+  if (!record) return;
+  formData.title = record.title || '';
+  formData.description = record.description || '';
+  const imgs = record.imageUrls || [];
+  const vids = record.videoUrls || [];
+  if (vids.length > 0) {
+    mediaType.value = 'video';
+    videoUrls.value = [...vids];
+  } else {
+    mediaType.value = 'image';
+    imageFiles.value = [...imgs];
+  }
+  // 仅预填用户可见营期内的 id（不在可选营期的自动落入全部营期）
+  selectedCampIds.value = record.campIds ? record.campIds.filter((id) => camps.value.some((c) => c.id === id)) : [];
+})();
+
+const handleBack = () => {
+  store.setEditingActivity(null);
+  store.goBack();
+};
+
 const photoInputRef = ref<HTMLInputElement | null>(null);
 const videoInputRef = ref<HTMLInputElement | null>(null);
 
@@ -76,23 +104,34 @@ const handleSubmit = () => {
   if (mediaType.value === 'image' && imageFiles.value.length === 0) { error.value = '请至少上传一张图片'; return; }
   if (mediaType.value === 'video' && videoUrls.value.length === 0) { error.value = '请至少上传一个视频'; return; }
 
-  store.addCoachActivity({
-    id: `act_${Date.now()}`,
-    title: formData.title,
-    description: formData.description,
-    imageUrls: mediaType.value === 'image' ? imageFiles.value : [],
-    videoUrls: mediaType.value === 'video' ? videoUrls.value : [],
-    coachName: store.user?.name || '教练',
-    date: format(new Date(), 'yyyy-MM-dd'),
-    campIds: selectedCampIds.value.length > 0 ? [...selectedCampIds.value] : undefined,
-  });
+  if (isEditing.value) {
+    store.updateCoachActivity(editingId.value!, {
+      title: formData.title,
+      description: formData.description,
+      imageUrls: mediaType.value === 'image' ? imageFiles.value : [],
+      videoUrls: mediaType.value === 'video' ? videoUrls.value : [],
+      campIds: selectedCampIds.value.length > 0 ? [...selectedCampIds.value] : undefined,
+    });
+  } else {
+    store.addCoachActivity({
+      id: `act_${Date.now()}`,
+      title: formData.title,
+      description: formData.description,
+      imageUrls: mediaType.value === 'image' ? imageFiles.value : [],
+      videoUrls: mediaType.value === 'video' ? videoUrls.value : [],
+      coachName: store.user?.name || '教练',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      campIds: selectedCampIds.value.length > 0 ? [...selectedCampIds.value] : undefined,
+    });
+  }
+  store.setEditingActivity(null);
   store.setCurrentView('coach-dashboard');
 };
 </script>
 
 <template>
   <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-safe">
-    <NavBar title="发布锻炼活动" :on-back="store.goBack" />
+    <NavBar :title="isEditing ? '编辑锻炼活动' : '发布锻炼活动'" :on-back="handleBack" />
 
     <div class="p-4 space-y-4">
       <Card>
@@ -194,7 +233,7 @@ const handleSubmit = () => {
           size="lg"
           @click="handleSubmit"
         >
-          发布活动
+          {{ isEditing ? '保存修改' : '发布活动' }}
         </Button>
       </div>
     </div>

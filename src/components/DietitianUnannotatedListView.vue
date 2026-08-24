@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { UserCircle, Coffee, Clock, Activity, Scale, Video, ChevronDown, FileText, Settings, Users } from 'lucide-vue-next';
 import { Popup as VanPopup, Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import type { DietRecord, WeightRecord } from '../types';
@@ -42,8 +42,8 @@ const unannotatedCount = computed(() => {
   return diet + weight;
 });
 
-// ─── 营期切换（与 store 同步，null = 全部营期） ───
-const selectedCampId = ref<string | null>(store.selectedCampId);
+// ─── 营期切换（与 store 同步，默认最新一期；不再支持「全部营期」） ───
+const selectedCampId = ref<string>(store.selectedCampId || latestOrFirstId(store.camps) || '');
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => selectedCampId.value ? store.camps.find((c) => c.id === selectedCampId.value) : null);
 
@@ -298,19 +298,6 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
       <div class="p-4">
         <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
         <div class="space-y-2">
-          <!-- 全部营期 -->
-          <button
-            @click="selectedCampId = null; store.selectedCampId = null; showCampPicker = false"
-            :class="[
-              'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all',
-              !selectedCampId
-                ? 'border-[#FF976A] bg-orange-50 text-[#FF976A]'
-                : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
-            ]"
-          >
-            <span class="font-medium">全部营期</span>
-            <span class="text-[10px] text-gray-400">{{ store.getAllStudents().length }} 名学员</span>
-          </button>
           <!-- 各营期 -->
           <button
             v-for="camp in store.camps"

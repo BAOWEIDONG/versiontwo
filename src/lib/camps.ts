@@ -23,12 +23,32 @@ export function campDateRange(camp: Camp): string {
   return `${s} — ${e}`;
 }
 
-/** 最新营期：按 startDate 降序取最大者（无 startDate 视为最早）；空数组返回 null */
+/**
+ * 最新营期定义：优先「已开营」中开营时间最晚（= 距今天最近、且已开营）的一期；
+ * 若全都还没开营，则取开营时间距今天最近（即将开营）的一期；无日期则视为最早。
+ */
 export function latestCamp(camps: Camp[]): Camp | null {
   if (camps.length === 0) return null;
+  const now = Date.now();
+  const ts = (c: Camp): number | null => {
+    if (!c.startDate) return null;
+    const t = new Date(c.startDate).getTime();
+    return isNaN(t) ? null : t;
+  };
+  const dated = camps.filter((c) => ts(c) != null);
+  // 已开营（开营时间 ≤ 今天）的一期，取其中开营时间最晚 = 距今天最近
+  const started = dated.filter((c) => ts(c)! <= now);
+  if (started.length > 0) {
+    return [...started].sort((a, b) => ts(b)! - ts(a)!)[0];
+  }
+  // 都还没开营：取开营时间距今天最近的一场
+  if (dated.length > 0) {
+    return [...dated].sort((a, b) => Math.abs(ts(b)! - now) - Math.abs(ts(a)! - now))[0];
+  }
+  // 全无日期：退回原逻辑（无 startDate 视为最早）
   return [...camps].sort((a, b) => {
-    const av = a.startDate ? new Date(a.startDate).getTime() : -Infinity;
-    const bv = b.startDate ? new Date(b.startDate).getTime() : -Infinity;
+    const av = ts(a) ?? -Infinity;
+    const bv = ts(b) ?? -Infinity;
     return bv - av;
   })[0];
 }

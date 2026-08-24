@@ -269,6 +269,37 @@ export async function createCoachActivity(record: CoachActivityRecord): Promise<
   });
 }
 
+/**
+ * 编辑教练活动（教练端修改已发布的历史活动）
+ * PUT /coach-activities/:id
+ *
+ * @body  Partial<CoachActivityRecord> — 仅包含需要更新的字段
+ * @returns CoachActivityRecord
+ */
+export async function updateCoachActivity(id: string, updates: Partial<CoachActivityRecord>): Promise<CoachActivityRecord> {
+  if (USE_MOCK) {
+    const base = MOCK_COACH_ACTIVITIES.find((a) => a.id === id);
+    return { ...(base as CoachActivityRecord), ...updates, id };
+  }
+  return request<CoachActivityRecord>(`/coach-activities/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+}
+
+/**
+ * 删除教练活动（教练端删除已发布的历史活动）
+ * DELETE /coach-activities/:id
+ *
+ * @returns { success: boolean }
+ */
+export async function deleteCoachActivity(id: string): Promise<{ success: boolean }> {
+  if (USE_MOCK) return { success: true };
+  return request<{ success: boolean }>(`/coach-activities/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // ============ 奖励阶梯配置 ============
 
 /**

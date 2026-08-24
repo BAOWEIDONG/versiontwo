@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_STUDENTS, MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
@@ -38,13 +38,9 @@ watch(() => store.selectedStudentId, (id) => {
     if (store.detailSelectedCampId && studentCamps.value.some((c) => c.id === store.detailSelectedCampId)) {
       // 详情流已选营期 -> 继承（不影响全局）
       selectedCampId.value = store.detailSelectedCampId;
-    } else if (!store.detailSelectedCampId) {
-      // 全部营期模式 -> 不选具体营期，展示全部数据
-      selectedCampId.value = '';
     } else {
-      // 详情流营期但学员不在该营期 -> 回退到学员的第一个营期
-      const campId = store.getStudentCampId(id);
-      if (campId) selectedCampId.value = campId;
+      // 详情流未选营期 -> 默认展示该学员的最新一期（不再有「全部营期」合并模式）
+      selectedCampId.value = latestOrFirstId(studentCamps.value) || '';
     }
   }
 }, { immediate: true });
@@ -449,8 +445,7 @@ function handleDeleteManualScore(id: string) {
         </button>
       </div>
 
-      <!-- 结营寄语 - 首期上线版暂移除，后续版本上线 -->
-      <!-- <Card class="p-0 overflow-hidden border-[#07C160]/20 bg-[#07C160]/[0.03]">
+      <Card class="p-0 overflow-hidden border-[#07C160]/20 bg-[#07C160]/[0.03] shadow-sm">
         <button
           @click="showCampMessage = !showCampMessage"
           class="w-full flex items-center justify-between px-4 py-3"
@@ -488,7 +483,7 @@ function handleDeleteManualScore(id: string) {
             >{{ campMessageSaved ? '已保存 ✓' : '保存寄语' }}</button>
           </div>
         </div>
-      </Card> -->
+      </Card>
     </div>
 
     <!-- Tab 栏：独立 sticky，滚动时固定在顶部 -->
@@ -1310,13 +1305,6 @@ function handleDeleteManualScore(id: string) {
       <div class="p-4">
         <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
         <div class="space-y-2">
-          <button
-            @click="selectedCampId = ''; showCampPicker = false"
-            :class="['w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all', !selectedCampId ? 'border-[#FF976A] bg-orange-50 text-[#FF976A]' : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50']"
-          >
-            <span class="font-medium">全部营期</span>
-            <span class="text-xs text-gray-400">合并显示</span>
-          </button>
           <button
             v-for="camp in studentCamps"
             :key="camp.id"

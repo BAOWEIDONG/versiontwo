@@ -4,7 +4,8 @@ import { Clock, User, Play, ChevronDown } from 'lucide-vue-next';
 import { useAppStore } from '../store/app';
 import type { CoachActivityRecord } from '../types';
 
-const props = defineProps<{ activity: CoachActivityRecord }>();
+const props = defineProps<{ activity: CoachActivityRecord; editable?: boolean }>();
+const emit = defineEmits<{ (e: 'edit', activity: CoachActivityRecord): void; (e: 'delete', activity: CoachActivityRecord): void }>();
 const store = useAppStore();
 
 const campLabels = computed(() => {
@@ -139,6 +140,16 @@ const handleMediaClick = (item: { url: string; type: 'video' | 'image' }) => {
         <div class="flex items-center gap-1">
           <Clock class="w-3.5 h-3.5" />
           <span>发布于 {{ activity.date }}</span>
+        </div>
+        <div v-if="editable" class="ml-auto flex items-center gap-3">
+          <button
+            class="flex items-center gap-0.5 text-xs text-[#1677FF] font-medium active:scale-95 transition-transform"
+            @click="emit('edit', props.activity)"
+          >编辑</button>
+          <button
+            class="flex items-center gap-0.5 text-xs text-red-500 font-medium active:scale-95 transition-transform"
+            @click="emit('delete', props.activity)"
+          >删除</button>
         </div>
       </div>
     </div>

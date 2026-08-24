@@ -142,6 +142,8 @@ export const useAppStore = defineStore('app', () => {
   const exerciseRecords = ref<ExerciseRecord[]>([...MOCK_EXERCISE_RECORDS]);
   const dietRecords = ref<DietRecord[]>([...MOCK_DIET_RECORDS]);
   const coachActivities = ref<CoachActivityRecord[]>([...MOCK_COACH_ACTIVITIES]);
+  // 正在编辑的教练活动（from coach dashboard → activity-upload 编辑模式）
+  const editingActivity = ref<CoachActivityRecord | null>(null);
   const rewardTiers = ref<RewardTier[]>([...MOCK_REWARD_TIERS]);
   const rewardClaims = ref<RewardClaim[]>([...MOCK_REWARD_CLAIMS]);
   const mealTimeConfigByCamp = ref<Record<string, MealTimeConfig>>({});
@@ -228,12 +230,14 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  /** 默认展示最新营期：学员取本人所属期中最新的，营养师/教练取全局最新的 */
+  /** 默认展示最新营期：学员取本人所属期中最新的，教练取其负责期中最新的，营养师取全局最新的 */
   function applyLatestCampDefault() {
     if (!user.value) return;
     let pool: Camp[];
     if (user.value.role === 'student') {
       pool = getStudentCamps(user.value.id);
+    } else if (user.value.role === 'coach') {
+      pool = getCoachCamps();
     } else {
       pool = camps.value;
     }
@@ -400,6 +404,21 @@ export const useAppStore = defineStore('app', () => {
   function addCoachActivity(record: CoachActivityRecord) {
     coachActivities.value.push(record);
     api.createCoachActivity(record).catch(() => {});
+  }
+
+  function updateCoachActivity(id: string, updates: Partial<CoachActivityRecord>) {
+    const idx = coachActivities.value.findIndex((a) => a.id === id);
+    if (idx >= 0) coachActivities.value[idx] = { ...coachActivities.value[idx], ...updates, id };
+    api.updateCoachActivity(id, updates).catch(() => {});
+  }
+
+  function deleteCoachActivity(id: string) {
+    coachActivities.value = coachActivities.value.filter((a) => a.id !== id);
+    api.deleteCoachActivity(id).catch(() => {});
+  }
+
+  function setEditingActivity(record: CoachActivityRecord | null) {
+    editingActivity.value = record;
   }
 
   function setSelectedStudentId(id: string | null) {
@@ -842,6 +861,10 @@ export const useAppStore = defineStore('app', () => {
     addDietRecord,
     updateDietRecord,
     addCoachActivity,
+    updateCoachActivity,
+    deleteCoachActivity,
+    setEditingActivity,
+    editingActivity,
     setSelectedStudentId,
     setSelectedDateStr,
     rewardTiers,

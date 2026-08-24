@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Building2, Users, Activity, Trophy, Flame, Sparkles, Download, ShieldCheck, ChevronRight, HeartPulse, Dumbbell } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -11,8 +11,8 @@ import { exportElementAsImage } from '../lib/exportImage';
 
 const store = useAppStore();
 
-// ─── 营期切换 ───
-const selectedCampId = ref<string>(store.camps[0]?.id || '');
+// ─── 营期切换（默认最新一期） ───
+const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => store.camps.find((c) => c.id === selectedCampId.value));
 
