@@ -95,6 +95,16 @@ const campEx = computed(() => activeCampId.value ? store.getCampExerciseRecords(
 const campWt = computed(() => activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords);
 const campManual = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 
+// 消息未读数（与活动/消息页面口径一致：靠批注未读）
+const unreadCount = computed(() => {
+  if (store.user?.role !== 'student') return 0;
+  const id = store.user.id;
+  const diet = campDiet.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
+  const ex = campEx.value.filter((r) => isMine(r) && r.coachComment && !r.commentRead);
+  const wt = campWt.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
+  return diet.length + ex.length + wt.length;
+});
+
 const scoreData = computed(() => {
   if (!store.user || campStudents.value.length === 0) return null;
   const ranked = rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
@@ -486,7 +496,7 @@ onMounted(() => {
 <template>
   <div class="flex min-h-full flex-col bg-[#F4F6F8] pb-28 font-sans relative">
     <!-- Dynamic Background Header -->
-    <div class="relative pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-8 bg-gradient-to-br from-[#07C160] via-[#06b558] to-[#03a14f] rounded-b-[32px] shadow-[0_10px_34px_-14px_rgba(7,193,96,0.5)] overflow-hidden">
+    <div class="relative pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-8 bg-gradient-to-br from-[#13C67E] via-[#0AAB60] to-[#038A4E] rounded-b-[32px] shadow-[0_10px_34px_-14px_rgba(7,193,96,0.5)] overflow-hidden">
       <div class="absolute -top-12 -right-12 w-64 h-64 bg-white/15 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-16 -left-10 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -713,7 +723,7 @@ onMounted(() => {
         <template #icon><Gift class="h-6 w-6" /></template>
         活动
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')">
+      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
         <template #icon><Bell class="h-6 w-6" /></template>
         消息
       </VanTabbarItem>

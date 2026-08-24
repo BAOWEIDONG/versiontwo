@@ -555,7 +555,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
         <template #icon><Gift class="h-6 w-6" /></template>
         活动
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('messages')">
+      <VanTabbarItem @click="store.setCurrentView('messages')" :badge="unreadCount > 0 ? unreadCount : undefined">
         <template #icon><Bell class="h-6 w-6" /></template>
         消息
       </VanTabbarItem>

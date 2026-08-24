@@ -249,6 +249,12 @@ const messages = computed<MessageItem[]>(() =>
 
 const unreadCount = computed(() => allMessages.value.filter((m) => m.unread).length);
 
+/** 各分类筛选 Tab 的未读数：all=总未读，其余按 type 统计未读 */
+const tabUnread = (key: string): number =>
+  key === 'all'
+    ? unreadCount.value
+    : allMessages.value.filter((m) => m.type === key && m.unread).length;
+
 const typeMeta = (type: MessageItem['type']) =>
   type === 'dietitian'
     ? { icon: MessageCircle, cls: 'bg-[#07C160]/10 text-[#07C160]', tag: '营养师批注', tagCls: 'bg-[#07C160]/10 text-[#07C160]' }
@@ -308,9 +314,14 @@ const fmtDate = (d: string) => {
           v-for="f in filters"
           :key="f.key"
           @click="activeFilter = f.key"
-          :class="['flex-1 py-1.5 rounded-lg text-xs font-bold transition-all', activeFilter === f.key ? 'bg-[#07C160] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+          :class="['flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1', activeFilter === f.key ? 'bg-[#07C160] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700']"
         >
           {{ f.label }}
+          <span
+            v-if="tabUnread(f.key) > 0"
+            class="min-w-[16px] h-4 px-1 rounded-full text-[10px] font-black leading-4 text-center"
+            :class="activeFilter === f.key ? 'bg-white/30 text-white' : 'bg-red-500 text-white'"
+          >{{ tabUnread(f.key) }}</span>
         </button>
       </div>
     </div>
