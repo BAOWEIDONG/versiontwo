@@ -6,6 +6,7 @@ import { Activity, TrendingDown, Dumbbell, Award, Download, Lock, CheckCircle2, 
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generatePersonalJourney } from '../lib/journey';
+import { campDaysOf } from '../lib/camps';
 import { generateStudentReport } from '../lib/campReport';
 import { exportElementAsImage } from '../lib/exportImage';
 import type { Achievement } from '../types';
@@ -21,6 +22,8 @@ const activeCampId = computed(() => {
   const active = availableCamps.value.find(c => c.status === 'active');
   return active?.id || availableCamps.value[0]?.id || null;
 });
+const activeCamp = computed(() => store.camps.find((c) => c.id === activeCampId.value) || null);
+const campDays = computed(() => campDaysOf(activeCamp.value));
 
 // 按营期过滤打卡记录
 const campDiet = computed(() => activeCampId.value ? store.getCampDietRecords(activeCampId.value) : store.dietRecords);
@@ -71,6 +74,7 @@ const report = computed(() =>
     studentDiets.value,
     studentExercises.value,
     studentWeights.value,
+    campDays.value,
   ),
 );
 const unlockedCount = computed(() => report.value.achievements.filter((a) => a.unlocked).length);

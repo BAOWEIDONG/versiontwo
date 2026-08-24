@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
-import { campDateRange, latestOrFirstId } from '../lib/camps';
+import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -19,6 +19,7 @@ const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => store.camps.find((c) => c.id === selectedCampId.value));
+const campDays = computed(() => campDaysOf(selectedCamp.value));
 
 // 按营期过滤学员和记录
 const campStudents = computed(() => selectedCampId.value ? store.getStudentsByCamp(selectedCampId.value) : store.getAllStudents());
@@ -35,6 +36,7 @@ const summary = computed<DietitianCampSummary>(() =>
     campDietRecords.value,
     campExerciseRecords.value,
     campWeightRecords.value,
+    campDays.value,
   ),
 );
 

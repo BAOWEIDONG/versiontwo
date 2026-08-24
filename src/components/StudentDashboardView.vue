@@ -3,7 +3,7 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, campDaysOf } from '../lib/camps';
 import { Card, GenderAvatar } from './ui';
 import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, Sparkles, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showToast } from 'vant';
@@ -78,6 +78,7 @@ const activeCampId = computed(() => {
   return active?.id || availableCamps.value[0]?.id || null;
 });
 const activeCamp = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);
+const campDays = computed(() => campDaysOf(activeCamp.value));
 const showCampSwitcher = computed(() => availableCamps.value.length > 1);
 const showCampPicker = ref(false);
 const handleCampSelect = (campId: string) => {
@@ -212,10 +213,7 @@ const activityPreview = computed(() => {
     });
   }
   if (activityConfig.value.luckyDraw) {
-    const campDays = camp?.startDate && camp?.endDate
-      ? Math.max(1, Math.round((new Date(camp.endDate).getTime() - new Date(camp.startDate).getTime()) / 86400000))
-      : 28;
-    const lucky = computeLuckyDraw(cDiet, cEx, cWt, store.user?.id, campDays);
+    const lucky = computeLuckyDraw(cDiet, cEx, cWt, store.user?.id, campDays.value);
     items.push({
       label: '全勤抽奖',
       progress: lucky.eligible ? '已入围 ✓' : Math.round(lucky.completionRate * 100) + '%',
@@ -358,6 +356,7 @@ const dismissAchievementNotify = () => {
     campDiet.value.filter(isMine),
     campEx.value.filter(isMine),
     campWt.value.filter(isMine),
+    campDays.value,
   ).achievements.filter((a) => a.unlocked).map((a) => a.id);
   prevAchievementIds.value = new Set(all);
   localStorage.setItem(key, JSON.stringify(all));
@@ -379,6 +378,7 @@ function checkNewAchievements() {
     campDiet.value.filter(isMine),
     campEx.value.filter(isMine),
     campWt.value.filter(isMine),
+    campDays.value,
   );
   const unlocked = report.achievements.filter((a) => a.unlocked);
   const fresh = unlocked.filter((a) => !prevAchievementIds.value.has(a.id));
@@ -531,6 +531,7 @@ onMounted(() => {
         campDiet.value.filter(isMine),
         campEx.value.filter(isMine),
         campWt.value.filter(isMine),
+        campDays.value,
       );
       const unlocked = report.achievements.filter((a) => a.unlocked).map((a) => a.id);
       prevAchievementIds.value = new Set(unlocked);

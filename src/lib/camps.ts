@@ -62,3 +62,23 @@ export function latestOrFirst(camps: Camp[]): Camp | null {
 export function latestOrFirstId(camps: Camp[]): string | null {
   return latestOrFirst(camps)?.id ?? null;
 }
+
+/** 营期默认天数（无日期配置时回退值） */
+export const DEFAULT_CAMP_DAYS = 28;
+
+/**
+ * 营期天数：优先由该营期配置的 startDate/endDate 计算；缺日期回退默认 28 天。
+ * 口径与既有实现一致（CampReportView / store.getCampDays）：营期天数 = end - start，
+ * 区间本身按起始日到结束日（如 28 天营期 start…end 相差 28）。
+ */
+export function campDaysOf(camp: { startDate?: string; endDate?: string } | null | undefined): number {
+  if (camp?.startDate && camp?.endDate) {
+    const start = new Date(camp.startDate);
+    const end = new Date(camp.endDate);
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (diff > 0) return diff;
+    }
+  }
+  return DEFAULT_CAMP_DAYS;
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
-import { campDateRange } from '../lib/camps';
+import { campDateRange, campDaysOf } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -34,13 +34,8 @@ watch(() => studentId.value, (id) => {
 // 营期信息
 const campInfo = computed(() => selectedCamp.value || store.getStudentCamp(studentId.value));
 const campDays = computed(() => {
-  if (selectedCampId.value && campInfo.value) {
-    if (campInfo.value.startDate && campInfo.value.endDate) {
-      const start = new Date(campInfo.value.startDate);
-      const end = new Date(campInfo.value.endDate);
-      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      return diff > 0 ? diff : 28;
-    }
+  if (campInfo.value?.startDate && campInfo.value?.endDate) {
+    return campDaysOf(campInfo.value);
   }
   return store.getCampDays(studentId.value);
 });
