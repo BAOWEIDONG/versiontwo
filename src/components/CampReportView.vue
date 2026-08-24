@@ -180,27 +180,37 @@ const weightTrendIcon = computed(() => {
   return Activity;
 });
 
-// 鼓励语
+// 顶部鼓励语：数据自适应展示本营期「最亮的一面」——锚定本人真实进步，而非平铺全部指标；
+// 且不造假：没有身体亮点时按实际坚持程度给有依据的鼓励，而非万能套话。
 const encouragement = computed(() => {
   const s = report.value.summary;
+  const name = studentName.value;
   const parts: string[] = [];
-  if (s.weightLossKg !== null && s.weightLossKg > 0) {
-    parts.push(`体重减少了${s.weightLossKg.toFixed(1)}公斤`);
+  // 1) 体重维度：优先百分比(归一化到体型)，否则绝对公斤
+  if (s.weightLossPercent !== null && s.weightLossPercent > 0) {
+    parts.push(`体重下降${s.weightLossPercent.toFixed(1)}%`);
+  } else if (s.weightLossKg !== null && s.weightLossKg > 0) {
+    parts.push(`减重${s.weightLossKg.toFixed(1)}公斤`);
   }
-  if (s.bodyFatLossKg !== null && s.bodyFatLossKg > 0) {
-    parts.push(`脂肪量减少${s.bodyFatLossKg.toFixed(1)}公斤`);
+  // 2) 体成分：肌肉增加独立成亮点(含体重未降的「减脂增肌」重塑)；体脂降仅在不与体重重复时补充，避免注水
+  if (s.muscleChangeKg !== null && s.muscleChangeKg > 0) parts.push(`肌肉增加${s.muscleChangeKg.toFixed(1)}公斤`);
+  if (s.bodyFatLossKg !== null && s.bodyFatLossKg > 0 && !(s.weightLossKg !== null && s.weightLossKg > 0)) parts.push(`体脂减少${s.bodyFatLossKg.toFixed(1)}公斤`);
+  // 3) 健康指标正常化
+  if (s.abnormalImprovedCount > 0) parts.push(`${s.abnormalImprovedCount}项异常指标恢复正常`);
+  // 4) 坚持维度：与身体数据互为补充，长连击优先、其次高完成率
+  if (s.longestStreak >= 7) parts.push(`最长连续打卡${s.longestStreak}天`);
+  else if (s.completionRate !== null && s.completionRate >= 0.8) parts.push(`打卡完成率${fmtPct(s.completionRate)}`);
+
+  if (parts.length > 0) {
+    // 最多取 3 句，避免罗列过载
+    return `恭喜你，${name}！本次营期${parts.slice(0, 3).join('，')}，这些变化的背后，是你每天的自律与坚持。`;
   }
-  if (s.muscleChangeKg !== null && s.muscleChangeKg > 0) {
-    parts.push(`肌肉量增加${s.muscleChangeKg.toFixed(1)}公斤`);
+  // 无身体数据亮点：肯定坚持过程(有依据、不造假)
+  if (s.totalCheckinDays > 0) {
+    return `无论如何，你在这个营期坚持打卡了${s.totalCheckinDays}天。别用一次数字否定自己的努力，改变正在习惯里悄悄发生。${name}，继续加油！`;
   }
-  if (s.abnormalImprovedCount > 0) {
-    parts.push(`${s.abnormalImprovedCount}项异常指标恢复正常`);
-  }
-  if (s.longestStreak > 0) {
-    parts.push(`最长连续打卡${s.longestStreak}天`);
-  }
-  if (parts.length === 0) return '坚持就是胜利，继续加油！';
-  return `恭喜你！在本次训练营中${parts.join('，')}，展现了出色的自律和毅力！`;
+  // 数据尚在累积（刚开营记录少）
+  return `${name}，你已获得了这份结营报告。请继续保持打卡习惯，每一次记录都会在积累中看到回响。`;
 });
 
 // ─── 长图导出（微信可用；未装 html2canvas 时自动降级为打印）───
