@@ -29,9 +29,6 @@ const activityConfig = computed(() => store.getActivityConfig(activeCampId.value
 
 // 模块开关
 const showMall = computed(() => activityConfig.value.pointsMall);
-const showActivities = computed(() =>
-  activityConfig.value.weightMilestone || activityConfig.value.weeklyChallenge || activityConfig.value.luckyDraw
-);
 
 // ─── 奖品池数据（汇总所有奖品来源） ──────────────────────
 interface PrizePoolItem {
@@ -205,15 +202,6 @@ const claimedCount = computed(() => {
     const tier = tiers.find(t => t.id === c.tierId);
     return tier?.source === 'streak';
   }).length;
-});
-
-// 趣味活动摘要
-const activityCount = computed(() => {
-  let count = 0;
-  if (activityConfig.value.weightMilestone) count++;
-  if (activityConfig.value.weeklyChallenge) count++;
-  if (activityConfig.value.luckyDraw) count++;
-  return count;
 });
 
 // 积分商城摘要
@@ -404,53 +392,8 @@ const unreadCount = computed(() => {
         </div>
       </div>
 
-      <!-- 趣味活动（需营养师开启） -->
-      <div
-        v-if="showActivities"
-        class="relative rounded-3xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
-        @click="store.setCurrentView('camp-activities')"
-      >
-        <div class="absolute inset-0 bg-gradient-to-br from-[#1677FF]/10 via-[#FF976A]/8 to-[#FF976A]/10 border border-white/60"></div>
-        <div class="absolute -top-8 -right-6 w-24 h-24 rounded-full bg-[#FF976A]/12 blur-2xl"></div>
-        <div class="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-[#1677FF]/8 blur-2xl"></div>
-
-        <div class="relative z-10 p-5 min-h-[160px] flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center shadow-sm">
-                <Zap class="w-5 h-5 text-[#FF976A]" />
-              </div>
-              <div>
-                <div class="text-base font-black text-gray-900">趣味活动</div>
-                <div class="text-[11px] text-gray-500">限时挑战，赢取额外奖品</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span v-if="activityCount > 0" class="text-[10px] text-[#FF976A] bg-white/60 px-2 py-0.5 rounded-full font-bold">{{ activityCount }}项进行中</span>
-              <ChevronRight class="w-5 h-5 text-gray-300" />
-            </div>
-          </div>
-
-          <div v-if="activityCount > 0" class="flex items-center gap-2 flex-wrap">
-            <div v-if="activityConfig.weightMilestone" class="flex items-center gap-1.5 bg-white/50 rounded-lg px-3 py-2 border border-white/40">
-              <Scale class="w-4 h-4 text-[#07C160]" />
-              <span class="text-[11px] text-gray-700 font-medium">阶梯达标</span>
-            </div>
-            <div v-if="activityConfig.weeklyChallenge" class="flex items-center gap-1.5 bg-white/50 rounded-lg px-3 py-2 border border-white/40">
-              <Activity class="w-4 h-4 text-[#1677FF]" />
-              <span class="text-[11px] text-gray-700 font-medium">每周挑战</span>
-            </div>
-            <div v-if="activityConfig.luckyDraw" class="flex items-center gap-1.5 bg-white/50 rounded-lg px-3 py-2 border border-white/40">
-              <Trophy class="w-4 h-4 text-[#FF976A]" />
-              <span class="text-[11px] text-gray-700 font-medium">全勤抽奖</span>
-            </div>
-          </div>
-          <div v-else class="text-[11px] text-gray-400">营养师正在准备中，敬请期待</div>
-        </div>
-      </div>
-
       <!-- 空状态：所有模块都未开启 -->
-      <div v-if="!showMall && !showActivities && rewardTiers.length === 0" class="flex flex-col items-center justify-center py-16">
+      <div v-if="!showMall && rewardTiers.length === 0" class="flex flex-col items-center justify-center py-16">
         <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
           <Gift class="w-8 h-8 text-gray-300" />
         </div>

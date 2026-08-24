@@ -551,6 +551,14 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
         <template #icon><Activity class="h-6 w-6" /></template>
         首页
       </VanTabbarItem>
+      <VanTabbarItem @click="store.setCurrentView('activity-hub')">
+        <template #icon><Gift class="h-6 w-6" /></template>
+        活动
+      </VanTabbarItem>
+      <VanTabbarItem @click="store.setCurrentView('messages')">
+        <template #icon><Bell class="h-6 w-6" /></template>
+        消息
+      </VanTabbarItem>
       <VanTabbarItem>
         <template #icon><FileText class="h-6 w-6" /></template>
         档案

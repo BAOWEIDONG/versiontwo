@@ -161,6 +161,7 @@ function openStudent(id: string, focusType?: 'milestone' | 'weekly' | 'lucky') {
         </h3>
         <p class="text-[10px] text-gray-400">关闭后学员端将隐藏对应活动模块</p>
 
+        <!-- 🎈 趣味活动（首期上线版暂移除，后续版本再上线）——
         <div class="flex items-center justify-between py-2 border-b border-gray-50">
           <div class="flex items-center gap-2">
             <Scale class="h-4 w-4 text-[#07C160]" />
@@ -183,15 +184,11 @@ function openStudent(id: string, focusType?: 'milestone' | 'weekly' | 'lucky') {
           <VanSwitch :model-value="cfg.weeklyChallenge" @update:model-value="updateActivityConfigSafe('weeklyChallenge', $event)" size="22" />
         </div>
 
-        <!-- 每周挑战独立配置：开始日期（必填） + 总周数（1-8） -->
-        <!-- 始终展示配置区：开关关闭时可编辑，开关打开后锁定（改了会破坏学员进度数据） -->
         <div class="ml-6 pl-3 border-l-2 border-[#1677FF]/20 space-y-2 py-1">
-          <!-- 锁定提示 -->
           <div v-if="cfg.weeklyChallenge" class="text-[10px] text-gray-400 bg-gray-50 rounded px-2 py-1 flex items-center gap-1">
             <svg class="w-3 h-3 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             挑战已开启，开始日期和周数已锁定（修改将影响学员进度数据）
           </div>
-          <!-- 未开启时引导 -->
           <div v-if="!cfg.weeklyChallenge && !cfg.weeklyChallengeStartDate" class="text-[10px] text-orange-500 bg-orange-50 rounded px-2 py-1">⚠ 请先设置开始日期，然后开启挑战</div>
 
           <div class="flex items-center justify-between py-1">
@@ -235,6 +232,7 @@ function openStudent(id: string, focusType?: 'milestone' | 'weekly' | 'lucky') {
           </div>
           <VanSwitch :model-value="cfg.luckyDraw" @update:model-value="updateActivityConfigSafe('luckyDraw', $event)" size="22" />
         </div>
+        🎈 --/>
 
         <div class="flex items-center justify-between py-2 border-t border-gray-50">
           <div class="flex items-center gap-2">
