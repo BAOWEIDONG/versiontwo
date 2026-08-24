@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { NavBar, Card } from './ui';
-import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Trophy, Lock, Bell, Gift } from 'lucide-vue-next';
+import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Trophy, Bell, Gift } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
@@ -451,7 +451,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
         </p>
       </Card>
 
-      <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.canViewCampReport(store.user?.id || '') ? store.setCurrentView('camp-report') : undefined">
+      <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.setCurrentView('camp-report')">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-[#07C160]/15 flex items-center justify-center shrink-0">
             <Trophy class="w-5 h-5 text-[#07C160]" />
@@ -459,13 +459,12 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
           <div class="flex-1">
             <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5">
               结营报告
-              <Lock v-if="!store.canViewCampReport(store.user?.id || '')" class="w-3.5 h-3.5 text-gray-400" />
             </div>
             <div class="text-xs text-gray-500 mt-0.5">
-              {{ store.canViewCampReport(store.user?.id || '') ? '查看你的打卡统计、体重变化和健康指标改善' : '营期结束后自动生成' }}
+              报告由你的打卡与健康数据自动生成，可随时查看
             </div>
           </div>
-          <ChevronRight v-if="store.canViewCampReport(store.user?.id || '')" class="w-4 h-4 text-[#07C160]" />
+          <ChevronRight class="w-4 h-4 text-[#07C160]" />
         </div>
       </Card>
 
