@@ -233,12 +233,12 @@ const allMessages = computed<MessageItem[]>(() =>
     .sort((a, b) => b.date.localeCompare(a.date)),
 );
 
-// ---- 分类筛选：营养师批注 / 教练批注 / 奖励发货 ----
+// ---- 分类筛选：营养师批注 / 教练批注 / 系统通知 ----
 const filters = [
   { key: 'all', label: '全部' },
   { key: 'dietitian', label: '营养师批注' },
   { key: 'coach', label: '教练批注' },
-  { key: 'reward', label: '奖励发货' },
+  { key: 'reward', label: '系统通知' },
 ];
 const activeFilter = ref<string>('all');
 const messages = computed<MessageItem[]>(() =>
@@ -264,7 +264,7 @@ const typeMeta = (type: MessageItem['type']) =>
     : type === 'coach'
       ? { icon: Activity, cls: 'bg-sky-50 text-sky-500', tag: '教练批注', tagCls: 'bg-sky-50 text-sky-500' }
       : type === 'reward'
-        ? { icon: Gift, cls: 'bg-orange-50 text-orange-500', tag: '奖励通知', tagCls: 'bg-orange-50 text-orange-500' }
+        ? { icon: Gift, cls: 'bg-orange-50 text-orange-500', tag: '系统通知', tagCls: 'bg-orange-50 text-orange-500' }
         : { icon: Trophy, cls: 'bg-yellow-50 text-yellow-600', tag: '排名动态', tagCls: 'bg-yellow-50 text-yellow-600' };
 
 const openMessage = (m: MessageItem) => {
@@ -342,7 +342,7 @@ const fmtDate = (d: string) => {
           <Bell class="w-8 h-8 text-gray-300" />
         </div>
         <div class="text-sm font-bold text-gray-600 mb-1">暂无消息</div>
-        <div class="text-xs text-gray-400">营养师/教练的批注和奖励动态会出现在这里</div>
+        <div class="text-xs text-gray-400">营养师/教练的批注和系统通知会出现在这里</div>
       </div>
 
       <!-- 消息列表 -->

@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { NavBar, Card } from './ui';
-import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Trophy, Bell, Gift } from 'lucide-vue-next';
+import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Bell, Gift } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
@@ -449,23 +449,6 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
         <p class="text-xs text-orange-800">
           提示：以下数据在客户结营完成后进行更新。橙色字体表示该指标超出医学参考范围。结营后数据若为空，显示为"待更新"；若报告中未包含该项，显示为"未检测"。
         </p>
-      </Card>
-
-      <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.setCurrentView('camp-report')">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-[#07C160]/15 flex items-center justify-center shrink-0">
-            <Trophy class="w-5 h-5 text-[#07C160]" />
-          </div>
-          <div class="flex-1">
-            <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5">
-              结营报告
-            </div>
-            <div class="text-xs text-gray-500 mt-0.5">
-              报告由你的打卡与健康数据自动生成，可随时查看
-            </div>
-          </div>
-          <ChevronRight class="w-4 h-4 text-[#07C160]" />
-        </div>
       </Card>
 
       <Card v-for="(cat, idx) in medicalData" :key="idx" class="p-0 overflow-hidden shadow-sm border border-gray-100">

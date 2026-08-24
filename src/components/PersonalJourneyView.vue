@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar, Card, ChartRulePopup } from './ui';
-import { Activity, TrendingDown, Dumbbell, Award, Download, Lock, CheckCircle2, BookOpen, FileText, Bell, Gift } from 'lucide-vue-next';
+import { Activity, TrendingDown, Dumbbell, Award, Download, Lock, CheckCircle2, BookOpen, FileText, Bell, Gift, Trophy, ChevronRight } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generatePersonalJourney } from '../lib/journey';
@@ -163,6 +163,26 @@ const exportPDF = () => {
         </button>
       </template>
     </NavBar>
+
+    <!-- 个人营期报告入口（置顶，由完结/数据指标自动生成） -->
+    <div class="px-4 pt-4">
+      <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.setCurrentView('camp-report')">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#07C160]/15 flex items-center justify-center shrink-0">
+            <Trophy class="w-5 h-5 text-[#07C160]" />
+          </div>
+          <div class="flex-1">
+            <div class="font-bold text-gray-900 text-sm flex items-center gap-1.5">
+              个人营期报告
+            </div>
+            <div class="text-xs text-gray-500 mt-0.5">
+              报告由你的打卡与健康数据自动生成，可随时查看
+            </div>
+          </div>
+          <ChevronRight class="w-4 h-4 text-[#07C160]" />
+        </div>
+      </Card>
+    </div>
 
     <div ref="exportRef" class="p-4 space-y-4">
       <!-- 顶部概览卡片 -->

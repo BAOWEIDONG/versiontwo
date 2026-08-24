@@ -12,6 +12,7 @@ import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import { generateStudentReport } from '../lib/campReport';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
+import type { RewardTier } from '../types';
 
 const store = useAppStore();
 
@@ -429,6 +430,7 @@ watch(checkinRecordCount, (newVal, oldVal) => {
       return;
     }
     checkNewAchievements();
+    checkNewRewardUnlocks();
   };
   setTimeout(tryCheck, 800);
 });
@@ -440,7 +442,70 @@ watch(showDailySummary, (val) => {
     pendingAchievements.value = [];
     showAchievementNotify.value = true;
   }
+  flushPendingRewards();
 });
+
+// 成就弹窗关闭后，若有待展示的连续打卡奖励弹窗，继续展示（避免多个弹层叠加）
+watch(showAchievementNotify, (val) => {
+  if (!val) flushPendingRewards();
+});
+
+// ---- 连续打卡奖励解锁通知（打卡完成后弹窗，提示去领取） ----
+const newRewards = ref<RewardTier[]>([]);
+const showRewardNotify = ref(false);
+// 已通知过的档位 id（防重复弹窗）
+const shownRewardTiers = ref<Set<string>>(new Set());
+// 昨日小结/成就弹窗占位时暂存的待展示奖励
+const pendingRewards = ref<RewardTier[]>([]);
+const rewardSeenKey = () => `seen_streak_reward_v2_${store.user?.id || 'anon'}`;
+
+// 连续打卡奖励档位（排除趣味活动 source=activity，按 requiredDays 升序）
+const streakRewardTiers = computed(() => {
+  const campId = activeCampId.value;
+  const tiers = campId ? store.getCampRewardTiers(campId) : store.rewardTiers;
+  return [...tiers].filter((t) => t.source !== 'activity').sort((a, b) => a.requiredDays - b.requiredDays);
+});
+
+// 当前「已解锁且未领取」的连续打卡档位
+function unlockedUnclaimedRewards(): RewardTier[] {
+  if (!store.user) return [];
+  const myClaims = store.rewardClaims.filter((c) => c.studentId === store.user!.id);
+  return streakRewardTiers.value
+    .filter((t) => t.requiredDays > 0 && currentStreak.value >= t.requiredDays)
+    .filter((t) => !myClaims.some((c) => c.tierId === t.id));
+}
+
+function persistShownRewards() {
+  try { localStorage.setItem(rewardSeenKey(), JSON.stringify([...shownRewardTiers.value])); } catch { /* */ }
+}
+
+// 检测新解锁的连续打卡奖励（打卡记录增加后由 watch 触发）
+function checkNewRewardUnlocks() {
+  if (!store.user) return;
+  const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
+  if (fresh.length === 0) return;
+  fresh.forEach((t) => shownRewardTiers.value.add(t.id));
+  persistShownRewards();
+  // 与昨日小结/成就弹窗协调，避免多个弹层叠加
+  if (showDailySummary.value || showAchievementNotify.value) {
+    pendingRewards.value = fresh;
+  } else {
+    newRewards.value = fresh;
+    showRewardNotify.value = true;
+  }
+}
+
+// 当最外层弹窗（昨日小结/成就）都关闭时，放行暂存的奖励弹窗
+function flushPendingRewards() {
+  if (showDailySummary.value || showAchievementNotify.value) return;
+  if (pendingRewards.value.length === 0) return;
+  newRewards.value = pendingRewards.value;
+  pendingRewards.value = [];
+  showRewardNotify.value = true;
+}
+
+const dismissRewardNotify = () => { showRewardNotify.value = false; persistShownRewards(); };
+const goClaimRewards = () => { showRewardNotify.value = false; persistShownRewards(); store.setCurrentView('reward'); };
 
 onMounted(() => {
   const delays = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
@@ -481,6 +546,16 @@ onMounted(() => {
         .filter(m => m.achieved).map(m => m.threshold);
       prevMilestoneThresholds.value = new Set(ms);
       localStorage.setItem(mKey, JSON.stringify(ms));
+    }
+
+    // 同步初始化连续打卡奖励「已通知」基线（首次使用不弹历史已解锁档位）
+    let seenRewards: string[] = [];
+    try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
+    if (seenRewards.length > 0) {
+      shownRewardTiers.value = new Set(seenRewards);
+    } else {
+      shownRewardTiers.value = new Set(unlockedUnclaimedRewards().map((t) => t.id));
+      persistShownRewards();
     }
 
     // 如果刚完成打卡，立即检测新成就（不被昨日小结阻塞）
@@ -811,6 +886,36 @@ onMounted(() => {
             <button @click="dismissAchievementNotify" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF976A] to-[#F7941D] text-white text-sm font-bold active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20">
               继续加油 ->
             </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 连续打卡奖励解锁通知弹层 -->
+    <Teleport to="body">
+      <Transition name="summary-fade">
+        <div v-if="showRewardNotify" class="fixed inset-0 z-[997] bg-black/40 flex items-center justify-center px-8" @click.self="dismissRewardNotify">
+          <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center summary-slide-up">
+            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center mb-3">
+              <Gift class="w-8 h-8 text-[#FF976A]" />
+            </div>
+            <h3 class="text-base font-black text-gray-900 mb-1">恭喜解锁连续打卡奖励！</h3>
+            <p class="text-xs text-gray-400 mb-4">
+              完成打卡解锁了{{ newRewards.length > 1 ? `${newRewards.length}份奖励` : '一份打卡奖励' }}，快去打卡奖励页领取吧
+            </p>
+            <div class="space-y-3 mb-5">
+              <div v-for="rw in newRewards" :key="rw.id" class="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-3 text-left">
+                <img :src="rw.imageUrl" class="w-11 h-11 rounded-xl object-cover shrink-0" :alt="rw.name" />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-bold text-gray-900 truncate">{{ rw.name }}</div>
+                  <div class="text-[10px] text-orange-600">连续打卡 {{ rw.requiredDays }} 天解锁，可前往领取</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button @click="dismissRewardNotify" class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold active:scale-[0.98] transition-transform">稍后再说</button>
+              <button @click="goClaimRewards" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#FF976A] to-[#F7941D] text-white text-sm font-bold active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20">去领取 →</button>
+            </div>
           </div>
         </div>
       </Transition>

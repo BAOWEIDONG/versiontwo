@@ -221,14 +221,14 @@ const openAchievementDetail = (ach: Achievement) => {
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
   if (exportRef.value) {
-    exportElementAsImage(exportRef.value, `结营报告_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
+    exportElementAsImage(exportRef.value, `个人营期报告_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
   }
 };
 </script>
 
 <template>
   <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-24 font-sans">
-    <NavBar title="结营报告" :on-back="store.goBack">
+    <NavBar title="个人营期报告" :on-back="store.goBack">
       <template #right>
         <button v-if="canView" class="text-[#07C160] hover:bg-green-50 p-2 rounded-full transition-colors" @click="exportPDF">
           <Download class="h-5 w-5" />
@@ -252,11 +252,11 @@ const exportPDF = () => {
       <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
         <Lock class="w-10 h-10 text-gray-400" />
       </div>
-      <h3 class="text-lg font-bold text-gray-700 mb-2">结营报告尚未生成</h3>
+      <h3 class="text-lg font-bold text-gray-700 mb-2">个人营期报告尚未生成</h3>
       <p class="text-sm text-gray-500 leading-relaxed">
         你的营期（{{ campInfo?.name || '当前期' }}）预计于
         <span class="font-medium text-gray-700">{{ campInfo?.endDate || '--' }}</span>
-        结束，届时将自动生成结营报告。
+        结束，届时将自动生成个人营期报告。
       </p>
     </div>
 
@@ -266,7 +266,7 @@ const exportPDF = () => {
       <div class="bg-gradient-to-br from-[#07C160] to-[#06A952] rounded-2xl p-5 text-white shadow-lg">
         <div class="flex items-center gap-2 mb-3">
           <Trophy class="w-6 h-6" />
-          <h2 class="text-lg font-bold">结营报告</h2>
+          <h2 class="text-lg font-bold">个人营期报告</h2>
         </div>
         <p class="text-sm leading-relaxed opacity-95">{{ encouragement }}</p>
         <div class="flex gap-4 mt-4 text-center">
