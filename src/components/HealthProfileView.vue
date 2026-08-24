@@ -451,8 +451,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
         </p>
       </Card>
 
-      <!-- 结营报告入口 - 首期上线版暂移除，后续版本上线 -->
-      <!-- <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.canViewCampReport(store.user?.id || '') ? store.setCurrentView('camp-report') : undefined">
+      <Card class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow" @click="store.canViewCampReport(store.user?.id || '') ? store.setCurrentView('camp-report') : undefined">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-[#07C160]/15 flex items-center justify-center shrink-0">
             <Trophy class="w-5 h-5 text-[#07C160]" />
@@ -468,7 +467,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
           </div>
           <ChevronRight v-if="store.canViewCampReport(store.user?.id || '')" class="w-4 h-4 text-[#07C160]" />
         </div>
-      </Card> -->
+      </Card>
 
       <Card v-for="(cat, idx) in medicalData" :key="idx" class="p-0 overflow-hidden shadow-sm border border-gray-100">
         <div @click="toggleCat(cat.title)" class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center gap-2 cursor-pointer hover:bg-gray-100/80 transition-colors select-none">

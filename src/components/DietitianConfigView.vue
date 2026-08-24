@@ -81,13 +81,12 @@ interface ConfigItem {
 }
 
 const configItems = computed<ConfigItem[]>(() => [
-  // 首期上线版暂移除以下入口，后续版本上线
-  // { view: 'meal-time-config', title: '打卡时间', desc: '每餐打卡时间区间', icon: Clock, color: '#FF976A' },
-  // { view: 'reward-config', title: '奖励配置', desc: '礼品阶梯与商城商品', icon: Gift, color: '#FF976A' },
-  // { view: 'fulfillment-center', title: '发放中心', desc: '发货·发放·兑换记录', icon: Package, color: '#FF976A', badge: fulfillmentPending.value > 0 ? fulfillmentPending.value : undefined },
-  // { view: 'activity-admin', title: '活动配置', desc: '活动开关与达标看板', icon: Activity, color: '#FF976A' },
+  { view: 'meal-time-config', title: '打卡时间', desc: '每餐打卡时间区间', icon: Clock, color: '#FF976A' },
+  { view: 'reward-config', title: '奖品配置', desc: '连续打卡奖励阶梯与配置', icon: Gift, color: '#FF976A' },
+  { view: 'fulfillment-center', title: '发放中心', desc: '发货·发放·兑换记录', icon: Package, color: '#FF976A', badge: fulfillmentPending.value > 0 ? fulfillmentPending.value : undefined },
+  { view: 'activity-admin', title: '活动配置', desc: '活动开关与达标看板', icon: Activity, color: '#FF976A' },
   { view: 'metric-config', title: '指标配置', desc: '健康档案体检指标项', icon: FileText, color: '#FF976A' },
-  // { view: 'camp-summary', title: '结营统计', desc: '学员数据变化与打卡频率', icon: Trophy, color: '#FF976A' },
+  { view: 'camp-summary', title: '结营统计', desc: '学员数据变化与打卡频率', icon: Trophy, color: '#FF976A' },
   { view: 'account-manage', title: '账户管理', desc: '各角色手机号与营期', icon: Users, color: '#FF976A' },
 ]);
 </script>

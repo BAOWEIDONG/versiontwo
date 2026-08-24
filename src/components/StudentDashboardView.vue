@@ -674,8 +674,7 @@ onMounted(() => {
             </div>
           </Card>
 
-          <!-- 个人历程入口 - 首期上线版暂移除，后续版本上线 -->
-          <!-- <Card class="col-span-2 p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('personal-journey')">
+          <Card class="col-span-2 p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('personal-journey')">
             <div class="absolute -top-10 -right-8 w-44 h-44 bg-gradient-to-br from-[#07C160]/12 to-green-50 rounded-full blur-2xl pointer-events-none"></div>
             <div class="absolute -bottom-14 -right-2 w-36 h-36 bg-gradient-to-br from-teal-50 to-[#07C160]/8 rounded-full blur-2xl pointer-events-none"></div>
             <div class="relative z-10 h-full flex items-center justify-between">
@@ -698,7 +697,7 @@ onMounted(() => {
                 <ChevronRight class="w-4 h-4 text-gray-300" />
               </div>
             </div>
-          </Card> -->
+          </Card>
 
         </div>
       </div>
