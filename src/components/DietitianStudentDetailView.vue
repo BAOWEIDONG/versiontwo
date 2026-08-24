@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { MOCK_STUDENTS, MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
@@ -1327,7 +1328,7 @@ function handleDeleteManualScore(id: string) {
                 : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
             ]"
           >
-            <span class="font-medium">{{ camp.name }}</span>
+            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
             <span
               v-if="camp.status === 'active'"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600"

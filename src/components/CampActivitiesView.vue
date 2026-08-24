@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
 import { Zap, Scale, Calendar, CheckCircle2, PartyPopper, Activity, Gift, Truck, HandCoins, Package, FileText, Bell, ChevronDown, MapPin } from 'lucide-vue-next';
@@ -648,7 +649,7 @@ const activityTypeLabel = (type?: string) => {
             ]"
           >
             <div>
-              <span class="font-medium">{{ camp.name }}</span>
+              <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
               <span v-if="camp.startDate && camp.endDate" class="text-xs text-gray-400 ml-2">{{ camp.startDate }} ~ {{ camp.endDate }}</span>
             </div>
             <span

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -312,7 +313,7 @@ const fmtChange = (v: number | null, unit = ''): string => {
                 : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
             ]"
           >
-            <span class="font-medium">{{ camp.name }}</span>
+            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
             <span
               v-if="camp.status === 'active'"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600"

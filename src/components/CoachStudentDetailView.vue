@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { MOCK_STUDENTS } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
@@ -652,7 +653,7 @@ const openReport = (r: any) => {
             @click="selectedCampId = camp.id; showCampPicker = false"
             :class="['w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all', selectedCampId === camp.id ? 'border-[#07C160] bg-green-50 text-[#07C160]' : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50']"
           >
-            <span class="font-medium">{{ camp.name }}</span>
+            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
             <span v-if="camp.status === 'active'" class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600">进行中</span>
             <span v-else-if="camp.status === 'ended'" class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">已结束</span>
             <span v-else class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-500">未开始</span>

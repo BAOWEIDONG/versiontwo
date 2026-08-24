@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { Card, GenderAvatar } from './ui';
 import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, Sparkles, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showToast } from 'vant';
@@ -822,7 +823,7 @@ onMounted(() => {
             ]"
           >
             <div>
-              <span class="font-medium">{{ camp.name }}</span>
+              <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
               <span v-if="camp.startDate && camp.endDate" class="text-xs text-gray-400 ml-2">{{ camp.startDate }} ~ {{ camp.endDate }}</span>
             </div>
             <span

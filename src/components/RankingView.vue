@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { campDateRange } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { rankStudents } from '../lib/scoring';
 import { Trophy, Download, ChevronRight, Info, RefreshCw, ChevronDown, TrendingUp, TrendingDown, Minus, Heart } from 'lucide-vue-next';
@@ -357,7 +358,7 @@ const rankNumberCls = (rank: number) =>
                 : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
             ]"
           >
-            <span class="font-medium">{{ camp.name }}</span>
+            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400">{{ store.getStudentsByCamp(camp.id).length }}人</span>
               <span

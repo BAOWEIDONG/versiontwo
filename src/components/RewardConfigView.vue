@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
-import { Plus, Trash2, Edit3, Camera, AlertTriangle, Gift, Zap, ChevronDown, Coins, Package, Clock, CheckCircle, XCircle } from 'lucide-vue-next';
+import { Plus, Trash2, Edit3, Camera, AlertTriangle, ChevronDown, Coins, Package, Clock, CheckCircle, XCircle } from 'lucide-vue-next';
 import { uploadFile } from '../lib/api';
 import type { RewardTier, PointProduct, PointExchangeRecord } from '../types';
 
 const store = useAppStore();
 
-// ─── 营期切换 ───
-const selectedCampId = ref<string>(store.camps[0]?.id || '');
+// ─── 营期切换（默认最新营期） ───
+const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => store.camps.find((c) => c.id === selectedCampId.value));
 
@@ -25,16 +26,10 @@ const photoInputRef = ref<HTMLInputElement | null>(null);
 
 const getClaimCount = (tierId: string) => campRewardClaims.value.filter(c => c.tierId === tierId).length;
 
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  milestone: '阶梯达标奖',
-  weekly: '每周主题挑战',
-  lucky: '全勤幸运抽奖',
-};
-
-const handleEdit = (tier?: RewardTier, source: 'streak' | 'activity' = 'streak') => {
+const handleEdit = (tier?: RewardTier) => {
   editingTier.value = tier
     ? { ...tier }
-    : { name: '', requiredDays: source === 'streak' ? 1 : 0, imageUrl: '', stock: 10, source, activityType: source === 'activity' ? 'milestone' : undefined, deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
+    : { name: '', requiredDays: 1, imageUrl: '', stock: 10, source: 'streak', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
   formError.value = '';
   showEditModal.value = true;
 };
@@ -79,24 +74,19 @@ const saveTier = () => {
   if (editingTier.value.stock === undefined || editingTier.value.stock < 0) { formError.value = '请输入有效的库存'; return; }
   if (!editingTier.value.deliveryMethods || editingTier.value.deliveryMethods.length === 0) { formError.value = '请至少选择一种领取方式'; return; }
 
-  const isStreak = editingTier.value.source !== 'activity';
-  if (isStreak) {
-    if (!editingTier.value.requiredDays || editingTier.value.requiredDays <= 0) { formError.value = '请输入有效的天数'; return; }
-    const dup = campRewardTiers.value.find(t => t.source !== 'activity' && t.requiredDays === editingTier.value!.requiredDays && t.id !== editingTier.value!.id);
-    if (dup) { formError.value = `已存在连续打卡 ${editingTier.value.requiredDays} 天的奖励（${dup.name}），请设置不同天数`; return; }
-  }
+  const dup = campRewardTiers.value.find(t => t.requiredDays === editingTier.value!.requiredDays && t.id !== editingTier.value!.id);
+  if (dup) { formError.value = `已存在连续打卡 ${editingTier.value.requiredDays} 天的奖励（${dup.name}），请设置不同天数`; return; }
 
   if (editingTier.value.id) {
-    store.updateRewardTier(editingTier.value.id, editingTier.value);
+    store.updateRewardTier(editingTier.value.id, { ...editingTier.value, source: 'streak' });
   } else {
     store.addRewardTier({
       id: `t_${Date.now()}`,
       name: editingTier.value.name.trim(),
-      requiredDays: isStreak ? editingTier.value.requiredDays! : 0,
+      requiredDays: editingTier.value.requiredDays!,
       imageUrl: editingTier.value.imageUrl,
       stock: editingTier.value.stock,
-      source: editingTier.value.source || (isStreak ? 'streak' : 'activity'),
-      activityType: !isStreak ? editingTier.value.activityType : undefined,
+      source: 'streak',
       description: editingTier.value.description,
       deliveryMethods: editingTier.value.deliveryMethods,
       campId: selectedCampId.value,
@@ -106,11 +96,8 @@ const saveTier = () => {
 };
 
 const streakTiers = computed(() =>
-  [...campRewardTiers.value.filter(t => t.source !== 'activity')]
+  [...campRewardTiers.value]
     .sort((a, b) => a.requiredDays - b.requiredDays)
-);
-const activityTiers = computed(() =>
-  campRewardTiers.value.filter(t => t.source === 'activity')
 );
 
 // ─── 积分商城商品管理 ───
@@ -231,7 +218,7 @@ function formatExchangeDate(dateStr: string) {
             <div class="w-1.5 h-4 bg-[#1677FF] rounded-full"></div>
             连续打卡奖励
           </h3>
-          <button @click="handleEdit(undefined, 'streak')" class="text-xs font-bold text-[#1677FF] flex items-center gap-0.5">
+          <button @click="handleEdit()" class="text-xs font-bold text-[#1677FF] flex items-center gap-0.5">
             <Plus class="w-3.5 h-3.5" /> 添加
           </button>
         </div>
@@ -251,47 +238,6 @@ function formatExchangeDate(dateStr: string) {
                   </div>
                 </div>
                 <div class="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded inline-block mt-1">连续打卡 {{ tier.requiredDays }} 天</div>
-                <div class="flex flex-wrap gap-1 mt-1">
-                  <span v-for="m in (tier.deliveryMethods || ['shipped'])" :key="m" class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ DELIVERY_LABELS[m] }}</span>
-                </div>
-                <div v-if="getClaimCount(tier.id) > 0" class="text-[10px] text-gray-500 mt-1">已有 {{ getClaimCount(tier.id) }} 人领取</div>
-              </div>
-              <div class="text-xs text-gray-500 font-medium">库存: <span :class="tier.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ tier.stock }}</span> 件</div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      <!-- 趣味活动奖品 -->
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-            <div class="w-1.5 h-4 bg-[#FF976A] rounded-full"></div>
-            趣味活动奖品
-          </h3>
-          <button @click="handleEdit(undefined, 'activity')" class="text-xs font-bold text-[#FF976A] flex items-center gap-0.5">
-            <Plus class="w-3.5 h-3.5" /> 添加
-          </button>
-        </div>
-        <div v-if="activityTiers.length === 0" class="text-center py-8 text-gray-400 text-xs bg-white rounded-xl border border-gray-100">暂无活动奖品，请添加</div>
-        <div class="space-y-3">
-          <Card v-for="tier in activityTiers" :key="tier.id" class="p-4 flex gap-4">
-            <div class="w-20 h-20 rounded-xl bg-gray-100 shrink-0 overflow-hidden border border-gray-50 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
-              <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
-            </div>
-            <div class="flex-1 flex flex-col justify-between min-w-0">
-              <div>
-                <div class="flex justify-between items-start">
-                  <h3 class="font-bold text-gray-900 text-base truncate pr-2">{{ tier.name }}</h3>
-                  <div class="flex gap-2 shrink-0">
-                    <button @click="handleEdit(tier)" class="text-blue-500 p-1"><Edit3 class="w-4 h-4" /></button>
-                    <button @click="handleDelete(tier.id)" :class="['p-1', getClaimCount(tier.id) > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500']"><Trash2 class="w-4 h-4" /></button>
-                  </div>
-                </div>
-                <div class="flex items-center gap-1.5 mt-1">
-                  <span class="text-xs text-[#FF976A] bg-orange-50 px-2 py-0.5 rounded">{{ ACTIVITY_TYPE_LABELS[tier.activityType || ''] || '活动奖品' }}</span>
-                </div>
-                <div v-if="tier.description" class="text-[10px] text-gray-500 mt-1">{{ tier.description }}</div>
                 <div class="flex flex-wrap gap-1 mt-1">
                   <span v-for="m in (tier.deliveryMethods || ['shipped'])" :key="m" class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ DELIVERY_LABELS[m] }}</span>
                 </div>
@@ -377,38 +323,6 @@ function formatExchangeDate(dateStr: string) {
           </div>
         </div>
         <div class="space-y-4 mb-6">
-          <!-- 奖品来源 -->
-          <div>
-            <label class="text-sm font-medium text-gray-700 block mb-2">奖品来源</label>
-            <div class="flex gap-2">
-              <button
-                :class="['flex-1 py-2 rounded-lg text-xs font-bold border transition-colors', editingTier.source !== 'activity' ? 'border-[#1677FF] bg-[#1677FF]/5 text-[#1677FF]' : 'border-gray-200 text-gray-500']"
-                @click="editingTier.source = 'streak'; editingTier.activityType = undefined; editingTier.requiredDays = editingTier.requiredDays || 1"
-              >
-                <Gift class="w-4 h-4 inline mr-1" />连续打卡
-              </button>
-              <button
-                :class="['flex-1 py-2 rounded-lg text-xs font-bold border transition-colors', editingTier.source === 'activity' ? 'border-[#FF976A] bg-[#FF976A]/5 text-[#FF976A]' : 'border-gray-200 text-gray-500']"
-                @click="editingTier.source = 'activity'; editingTier.activityType = editingTier.activityType || 'milestone'; editingTier.requiredDays = 0"
-              >
-                <Zap class="w-4 h-4 inline mr-1" />趣味活动
-              </button>
-            </div>
-          </div>
-
-          <!-- 活动类型（source=activity 时） -->
-          <div v-if="editingTier.source === 'activity'">
-            <label class="text-sm font-medium text-gray-700 block mb-2">活动类型</label>
-            <div class="flex gap-2">
-              <button
-                v-for="(label, key) in ACTIVITY_TYPE_LABELS"
-                :key="key"
-                :class="['flex-1 py-2 rounded-lg text-[10px] font-bold border transition-colors', editingTier.activityType === key ? 'border-[#FF976A] bg-[#FF976A]/5 text-[#FF976A]' : 'border-gray-200 text-gray-500']"
-                @click="editingTier.activityType = key as any"
-              >{{ label }}</button>
-            </div>
-          </div>
-
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-2">礼品图片 <span class="text-red-500">*</span></label>
             <input ref="photoInputRef" type="file" accept="image/*" class="hidden" @change="handlePhotoSelect" />
@@ -421,13 +335,9 @@ function formatExchangeDate(dateStr: string) {
             <label class="text-sm font-medium text-gray-700 block mb-1">礼品名称 <span class="text-red-500">*</span></label>
             <input type="text" placeholder="如：运动水杯" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" v-model="editingTier.name" @input="formError = ''" />
           </div>
-          <div v-if="editingTier.source !== 'activity'">
+          <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">解锁条件 (连续打卡天数) <span class="text-red-500">*</span></label>
             <input type="number" inputmode="numeric" placeholder="如：10" min="1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.requiredDays" @input="editingTier.requiredDays = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
-          </div>
-          <div v-if="editingTier.source === 'activity'">
-            <label class="text-sm font-medium text-gray-700 block mb-1">发放说明</label>
-            <input type="text" placeholder="如：减重达 3% 发放" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" v-model="editingTier.description" />
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
@@ -522,7 +432,7 @@ function formatExchangeDate(dateStr: string) {
                 : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
             ]"
           >
-            <span class="font-medium">{{ camp.name }}</span>
+            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
             <span
               v-if="camp.status === 'active'"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600"

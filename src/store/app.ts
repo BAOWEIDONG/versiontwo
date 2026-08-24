@@ -20,6 +20,7 @@ import {
 } from '../mock/data';
 import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
+import { latestOrFirstId } from '../lib/camps';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
 function formatDateTimeStr(): string {
@@ -227,9 +228,24 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  /** 默认展示最新营期：学员取本人所属期中最新的，营养师/教练取全局最新的 */
+  function applyLatestCampDefault() {
+    if (!user.value) return;
+    let pool: Camp[];
+    if (user.value.role === 'student') {
+      pool = getStudentCamps(user.value.id);
+    } else {
+      pool = camps.value;
+    }
+    const latestId = latestOrFirstId(pool);
+    if (latestId) selectedCampId.value = latestId;
+  }
+
   function setUser(u: User | null) {
     user.value = u;
     if (u) {
+      // 默认展示最新营期（学员取本人所属期中最新的，营养师/教练取全局最新的）
+      applyLatestCampDefault();
       // 持久化登录态到 localStorage，实现保活
       const authData = {
         user: u,
@@ -278,6 +294,8 @@ export const useAppStore = defineStore('app', () => {
       }
       if (data.user && data.user.role) {
         user.value = data.user;
+        // 默认展示最新营期
+        applyLatestCampDefault();
         // 恢复问卷状态
         const qSaved = localStorage.getItem('submitted_questionnaire');
         questionnaireAnswered.value = !!qSaved;

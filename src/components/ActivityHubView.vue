@@ -30,6 +30,9 @@ const activityConfig = computed(() => store.getActivityConfig(activeCampId.value
 // 模块开关
 const showMall = computed(() => activityConfig.value.pointsMall);
 
+// 连续打卡奖励卡片是否展示（受营养师开关控制，关闭则隐藏；已发放奖励不受影响）
+const showStreakReward = computed(() => activityConfig.value.checkinStreak && rewardTiers.value.length > 0);
+
 // ─── 奖品池数据（汇总所有奖品来源） ──────────────────────
 interface PrizePoolItem {
   id: string;
@@ -347,8 +350,9 @@ const unreadCount = computed(() => {
         </div>
       </div>
 
-      <!-- 打卡奖励 -->
+      <!-- 打卡奖励（受连续打卡奖励开关控制，关闭则隐藏） -->
       <div
+        v-if="showStreakReward"
         class="relative rounded-3xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
         @click="store.setCurrentView('reward')"
       >
@@ -393,7 +397,7 @@ const unreadCount = computed(() => {
       </div>
 
       <!-- 空状态：所有模块都未开启 -->
-      <div v-if="!showMall && rewardTiers.length === 0" class="flex flex-col items-center justify-center py-16">
+      <div v-if="!showMall && !showStreakReward" class="flex flex-col items-center justify-center py-16">
         <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
           <Gift class="w-8 h-8 text-gray-300" />
         </div>
