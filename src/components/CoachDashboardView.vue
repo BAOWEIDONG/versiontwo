@@ -11,7 +11,10 @@ import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, sh
 
 const store = useAppStore();
 
-const activeTab = ref<'incomplete' | 'completed' | 'activities'>('incomplete');
+const activeTab = computed<'incomplete' | 'completed' | 'activities'>({
+  get: () => store.coachDashboardTab,
+  set: (v) => { store.coachDashboardTab = v; },
+});
 const searchQuery = ref('');
 
 // ─── 营期切换 ───

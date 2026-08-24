@@ -144,6 +144,8 @@ export const useAppStore = defineStore('app', () => {
   const coachActivities = ref<CoachActivityRecord[]>([...MOCK_COACH_ACTIVITIES]);
   // 正在编辑的教练活动（from coach dashboard → activity-upload 编辑模式）
   const editingActivity = ref<CoachActivityRecord | null>(null);
+  // 教练端首页当前激活 Tab（持久化，返回/编辑发布后回到对应 Tab，而非重置到「未运动」）
+  const coachDashboardTab = ref<'incomplete' | 'completed' | 'activities'>('incomplete');
   const rewardTiers = ref<RewardTier[]>([...MOCK_REWARD_TIERS]);
   const rewardClaims = ref<RewardClaim[]>([...MOCK_REWARD_CLAIMS]);
   const mealTimeConfigByCamp = ref<Record<string, MealTimeConfig>>({});
@@ -531,6 +533,11 @@ export const useAppStore = defineStore('app', () => {
     const available = getStudentMallPoints(studentId, campId);
     if (available < product.pointsRequired) return null;
     if (product.stock <= 0) return null;
+    // 防御性校验：每人限兑换次数（maxExchange；0/未设置=不限）
+    if (product.maxExchange) {
+      const used = pointExchanges.value.filter((e) => e.studentId === studentId && e.productId === product.id && e.status !== 'cancelled').length;
+      if (used >= product.maxExchange) return null;
+    }
     // 防御性校验：deliveryMethod 必须被商品支持
     if (deliveryInfo && !product.deliveryOptions.includes(deliveryInfo.deliveryMethod)) return null;
 
@@ -865,6 +872,7 @@ export const useAppStore = defineStore('app', () => {
     deleteCoachActivity,
     setEditingActivity,
     editingActivity,
+    coachDashboardTab,
     setSelectedStudentId,
     setSelectedDateStr,
     rewardTiers,

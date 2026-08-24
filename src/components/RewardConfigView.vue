@@ -142,6 +142,8 @@ const saveProduct = () => {
   if (!editingProduct.value.imageUrl) { productFormError.value = '请上传商品图片'; return; }
   if (!editingProduct.value.pointsRequired || editingProduct.value.pointsRequired <= 0) { productFormError.value = '请输入有效的积分'; return; }
   if (editingProduct.value.stock === undefined || editingProduct.value.stock < 0) { productFormError.value = '请输入有效的库存'; return; }
+  const maxExchange = editingProduct.value.maxExchange;
+  if (maxExchange !== 0 && (maxExchange === undefined || maxExchange < 0)) { productFormError.value = '请输入有效的限兑次数'; return; }
 
   if (editingProduct.value.id) {
     store.updatePointProduct(editingProduct.value.id, editingProduct.value);
@@ -155,6 +157,8 @@ const saveProduct = () => {
       stock: editingProduct.value.stock,
       active: true,
       deliveryOptions: editingProduct.value.deliveryOptions || ['shipped', 'in-person'],
+      // 每人限兑换次数：0 / 不填 = 不限
+      maxExchange: maxExchange && maxExchange > 0 ? maxExchange : undefined,
     });
   }
   showProductModal.value = false;
@@ -391,6 +395,10 @@ function formatExchangeDate(dateStr: string) {
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
             <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.stock" @input="editingProduct.stock = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">每人限兑次数 <span class="text-xs text-gray-400 font-normal">（填 0 表示不限制）</span></label>
+            <input type="number" inputmode="numeric" placeholder="如：1" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.maxExchange" @input="editingProduct.maxExchange = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-2">配送方式</label>

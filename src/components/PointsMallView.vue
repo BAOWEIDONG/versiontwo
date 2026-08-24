@@ -21,6 +21,12 @@ const availablePoints = computed(() => store.user ? store.getStudentMallPoints(s
 const totalEarned = computed(() => store.user ? store.getStudentTotalEarnedPoints(store.user.id, activeCampId.value || undefined) : 0);
 const products = computed(() => store.getPointProducts());
 
+// 每人限兑换次数（maxExchange；0/未设置=不限）。已兑换 count 按学员+商品统计（取消的不算）
+const myExchangeCount = (productId: string) =>
+  (store.getStudentExchanges(store.user?.id || '').filter((e) => e.productId === productId && e.status !== 'cancelled')).length;
+const isLimitReached = (product: PointProduct): boolean =>
+  !!product.maxExchange && myExchangeCount(product.id) >= product.maxExchange;
+
 // 兑换确认弹窗
 const showExchangeModal = ref(false);
 const selectedProduct = ref<PointProduct | null>(null);
@@ -37,6 +43,10 @@ function openExchange(product: PointProduct) {
   }
   if (product.stock <= 0) {
     showFailToast('已无库存');
+    return;
+  }
+  if (isLimitReached(product)) {
+    showFailToast('该商品已达兑换上限');
     return;
   }
   selectedProduct.value = product;
@@ -178,6 +188,9 @@ const unreadCount = computed(() => {
           <div class="p-3">
             <h3 class="text-[13px] font-bold text-gray-900 truncate">{{ product.name }}</h3>
             <p class="text-[10px] text-gray-400 mt-0.5 line-clamp-2 leading-tight">{{ product.description }}</p>
+            <div v-if="product.maxExchange" class="text-[10px] font-bold text-[#FF6B35] mt-1">
+              每人限兑 {{ product.maxExchange }} 次
+            </div>
 
             <div class="flex items-center justify-between mt-2">
               <div class="flex items-baseline gap-1">
@@ -186,17 +199,19 @@ const unreadCount = computed(() => {
                 <span class="text-[9px] text-gray-400">积分</span>
               </div>
               <button
-                :disabled="product.stock === 0 || availablePoints < product.pointsRequired"
+                :disabled="product.stock === 0 || availablePoints < product.pointsRequired || isLimitReached(product)"
                 :class="[
                   'text-[11px] font-bold px-3 py-1 rounded-full transition-colors',
                   product.stock === 0
                     ? 'bg-gray-100 text-gray-300'
-                    : availablePoints < product.pointsRequired
-                      ? 'bg-gray-100 text-gray-400'
-                      : 'bg-[#FF6B35] text-white active:bg-[#E55A2B]'
+                    : isLimitReached(product)
+                      ? 'bg-gray-100 text-gray-300'
+                      : availablePoints < product.pointsRequired
+                        ? 'bg-gray-100 text-gray-400'
+                        : 'bg-[#FF6B35] text-white active:bg-[#E55A2B]'
                 ]"
               >
-                {{ product.stock === 0 ? '已兑完' : availablePoints < product.pointsRequired ? '积分不足' : '兑换' }}
+                {{ product.stock === 0 ? '已兑完' : isLimitReached(product) ? '已兑满' : availablePoints < product.pointsRequired ? '积分不足' : '兑换' }}
               </button>
             </div>
           </div>

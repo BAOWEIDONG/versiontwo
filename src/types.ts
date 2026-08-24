@@ -208,8 +208,10 @@ export interface PointProduct {
   pointsRequired: number;
   stock: number;
   active: boolean;
-  /** 支持的配送方式 */
+  /** 支持配送方式 */
   deliveryOptions: ('shipped' | 'in-person')[];
+  /** 每人限兑换次数；0/未设置 = 不限制（营养师端配置） */
+  maxExchange?: number;
 }
 
 /** 积分兑换记录 */
