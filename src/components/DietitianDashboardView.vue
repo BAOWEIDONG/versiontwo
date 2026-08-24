@@ -229,11 +229,11 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
         <template #icon><Users class="h-6 w-6" /></template>
         首页
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-unannotated-list')">
         <template #icon><FileText class="h-6 w-6" /></template>
         批注
       </VanTabbarItem>
-      <VanTabbarItem @click="store.setCurrentView('dietitian-config')">
+      <VanTabbarItem @click="store.setCurrentView('dietitian-config')" :badge="unannotatedCount > 0 ? unannotatedCount : undefined">
         <template #icon><Settings class="h-6 w-6" /></template>
         配置
       </VanTabbarItem>

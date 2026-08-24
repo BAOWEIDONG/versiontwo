@@ -3,12 +3,12 @@ import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { NavBar, Card } from './ui';
-import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Award, Download, Lock, CheckCircle2, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
+import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';
 import { exportElementAsImage } from '../lib/exportImage';
-import type { StudentCampReport, MetricChange, Achievement } from '../types';
+import type { StudentCampReport, MetricChange } from '../types';
 
 const store = useAppStore();
 
@@ -208,15 +208,6 @@ const encouragement = computed(() => {
   return `恭喜你！在本次训练营中${parts.join('，')}，展现了出色的自律和毅力！`;
 });
 
-// ─── 成就说明弹窗 ─────────────────────────────────
-const selectedAchievement = ref<Achievement | null>(null);
-const showAchievementPopup = ref(false);
-
-const openAchievementDetail = (ach: Achievement) => {
-  selectedAchievement.value = ach;
-  showAchievementPopup.value = true;
-};
-
 // ─── 长图导出（微信可用；未装 html2canvas 时自动降级为打印）───
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
@@ -284,30 +275,6 @@ const exportPDF = () => {
           </div>
         </div>
       </div>
-
-      <!-- 成就墙 -->
-      <Card>
-        <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
-          <Award class="h-4 w-4 text-[#FF976A]" />
-          成就墙
-          <span class="ml-auto text-xs text-gray-400 font-normal">{{ unlockedAchievements.length }}/{{ report.achievements.length }}</span>
-        </h3>
-        <div class="grid grid-cols-4 gap-3">
-          <div
-            v-for="ach in report.achievements"
-            :key="ach.id"
-            class="flex flex-col items-center text-center cursor-pointer hover:scale-105 transition-transform"
-            :class="ach.unlocked ? '' : 'opacity-30 grayscale'"
-            @click="openAchievementDetail(ach)"
-          >
-            <div class="w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-1"
-              :class="ach.unlocked ? 'bg-gradient-to-br from-yellow-100 to-orange-100' : 'bg-gray-100'"
-            >{{ ach.icon }}</div>
-            <div class="text-[10px] font-medium text-gray-700 leading-tight">{{ ach.title }}</div>
-          </div>
-        </div>
-        <p class="text-[10px] text-gray-400 mt-3 text-center">点击成就图标查看说明</p>
-      </Card>
 
       <!-- 体重变化 -->
       <Card>
@@ -554,24 +521,6 @@ const exportPDF = () => {
         <p class="text-xs text-gray-300 mt-1">坚持就是胜利，健康是最好的奖励</p>
       </div>
     </div>
-
-    <!-- 成就说明弹窗 -->
-    <VanPopup v-model:show="showAchievementPopup" position="center" round closeable close-icon-position="top-right" class="custom-popup !w-[80%] !max-w-[320px]">
-      <div v-if="selectedAchievement" class="p-6 text-center">
-        <div class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-3"
-          :class="selectedAchievement.unlocked ? 'bg-gradient-to-br from-yellow-100 to-orange-100' : 'bg-gray-100'"
-        >{{ selectedAchievement.icon }}</div>
-        <h3 class="font-bold text-gray-900 text-lg mb-2">{{ selectedAchievement.title }}</h3>
-        <p class="text-sm text-gray-500 mb-4 leading-relaxed">{{ selectedAchievement.description }}</p>
-        <div class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium"
-          :class="selectedAchievement.unlocked ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-gray-100 text-gray-400'"
-        >
-          <CheckCircle2 v-if="selectedAchievement.unlocked" class="w-3.5 h-3.5" />
-          <Lock v-else class="w-3.5 h-3.5" />
-          {{ selectedAchievement.unlocked ? '已解锁' : '尚未解锁' }}
-        </div>
-      </div>
-    </VanPopup>
 
     <!-- 营期选择弹窗 -->
     <VanPopup v-model:show="showCampPicker" position="bottom" round>

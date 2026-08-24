@@ -13,6 +13,7 @@ import { computeExerciseTrends } from '../lib/journey';
 import DailyExerciseTrend from './DailyExerciseTrend.vue';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
+import { useTabSwipe } from '../lib/useTabSwipe';
 
 const EXERCISE_TYPES = ['跑步', '游泳', '力量训练', '瑜伽', '快走', '骑行', '其他'];
 
@@ -37,6 +38,7 @@ const store = useAppStore();
 
 // ─── Tab 结构：打卡 / 趋势 / 记录 ────────────────────────
 const activeTab = ref<'checkin' | 'trend' | 'records'>('checkin');
+const { onTouchStart: tabSwipeStart, onTouchEnd: tabSwipeEnd } = useTabSwipe(activeTab, ['checkin', 'trend', 'records']);
 
 // ─── 营期切换（多期时显示） ──────────────────────────────
 const availableCamps = computed(() => store.user ? store.getStudentCamps(store.user.id) : []);
@@ -369,7 +371,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-8 font-sans">
+  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-8 font-sans" @touchstart.passive="tabSwipeStart" @touchend.passive="tabSwipeEnd">
     <NavBar title="运动打卡" :on-back="store.goBack" />
 
     <!-- Tab 切换：打卡 / 趋势 / 记录（液态玻璃胶囊） -->
