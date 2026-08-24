@@ -1,12 +1,16 @@
-import type { Ref } from 'vue';
+import { onMounted, onBeforeUnmount, type Ref } from 'vue';
 
 /**
  * 数据页顶部 sheet tab 支持左右滑动切换。
- * 绑定到根容器上：@touchstart.passive="th" @touchend.passive="th"
+ *
+ * 用 onMounted + addEventListener 把 touch 事件直接绑到容器元素上（而非模板
+ * `@touchstart.passive` 属性），以免疫生产构建里模板事件属性被压缩改名而错绑
+ * 到其它处理器、导致滑动失效的问题（曾因该坑全站三个数据页滑动都失灵）。
+ *
  * 仅在该手势被判定为横向滑动时切换 activeTab（打卡 ⇄ 趋势 ⇄ 记录），
  * 纵向滚动（|dy| > |dx|）或滑动距离过小则不触发，避免和页面滚动冲突。
  */
-export function useTabSwipe<T extends string>(activeTab: Ref<T>, tabs: readonly T[], threshold = 50) {
+export function useTabSwipe<T extends string>(container: Ref<HTMLElement | null>, activeTab: Ref<T>, tabs: readonly T[], threshold = 50) {
   let startX = 0;
   let startY = 0;
   let tracking = false;
@@ -33,5 +37,19 @@ export function useTabSwipe<T extends string>(activeTab: Ref<T>, tabs: readonly 
     if (next !== cur) activeTab.value = tabs[next];
   }
 
-  return { onTouchStart, onTouchEnd };
+  onMounted(() => {
+    const el = container.value;
+    if (el) {
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
+  });
+
+  onBeforeUnmount(() => {
+    const el = container.value;
+    if (el) {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchend', onTouchEnd);
+    }
+  });
 }

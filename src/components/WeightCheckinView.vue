@@ -16,7 +16,8 @@ const store = useAppStore();
 
 // ─── Tab 结构：打卡 / 趋势 / 记录 ────────────────────────
 const activeTab = ref<'checkin' | 'trend' | 'records'>('checkin');
-const { onTouchStart: tabSwipeStart, onTouchEnd: tabSwipeEnd } = useTabSwipe(activeTab, ['checkin', 'trend', 'records']);
+const sheetRoot = ref<HTMLElement | null>(null);
+useTabSwipe(sheetRoot, activeTab, ['checkin', 'trend', 'records']);
 
 // ─── 营期切换（多期时显示） ──────────────────────────────
 const availableCamps = computed(() => store.user ? store.getStudentCamps(store.user.id) : []);
@@ -384,7 +385,7 @@ function handleChartTouchMove(e: TouchEvent) {
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-safe" @touchstart.passive="tabSwipeStart" @touchend.passive="tabSwipeEnd">
+  <div ref="sheetRoot" class="flex min-h-full flex-col bg-[#F7F8FA] pb-safe">
     <NavBar title="体重打卡" :on-back="store.goBack" />
 
     <!-- Tab 切换：打卡 / 趋势 / 记录（液态玻璃胶囊） -->

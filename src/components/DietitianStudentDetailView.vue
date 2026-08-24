@@ -411,7 +411,7 @@ function handleDeleteManualScore(id: string) {
   <div v-else class="flex min-h-full flex-col bg-[#F7F8FA] pb-safe relative font-sans">
     <NavBar :title="`${student.name} 的档案`" :on-back="store.goBack" />
 
-    <div class="bg-white px-4 pt-4 border-b border-gray-200 space-y-4">
+    <div class="bg-white px-4 pt-4 pb-4 border-b border-gray-200 space-y-4">
       <Card class="flex items-center justify-between p-4 bg-[#FF976A]/5 border-[#FF976A]/20">
         <div class="flex items-center space-x-3">
           <div class="h-10 w-10 rounded-full bg-[#FF976A]/10 flex items-center justify-center text-[#FF976A]">

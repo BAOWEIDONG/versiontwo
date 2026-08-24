@@ -459,7 +459,7 @@ function switchModule(m: Module) {
     <NavBar title="发放中心" :on-back="store.goBack" />
 
     <!-- 顶层模块Tab（平铺，带条数） -->
-    <div class="bg-white px-2 border-b border-gray-100 sticky top-0 z-10">
+    <div class="bg-white px-2 border-b border-gray-100 sticky top-14 z-10">
       <div class="flex">
         <button
           v-for="tab in moduleTabs"

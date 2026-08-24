@@ -73,7 +73,7 @@ const handleSave = () => {
       <VanPicker :columns="campColumns" @confirm="onCampConfirm" @cancel="showCampPicker = false" />
     </VanPopup>
 
-    <div class="p-4 space-y-4">
+    <div class="p-4 space-y-4 pb-24">
       <div class="bg-blue-50 rounded-xl p-3 text-xs text-blue-600 flex items-start gap-2 border border-blue-100">
         <Clock class="w-4 h-4 shrink-0 mt-0.5" />
         <span>配置每餐允许打卡的时间区间。学员在区间外无法打卡，系统会提示不在打卡时间。关闭开关则该餐不限制时间。</span>
