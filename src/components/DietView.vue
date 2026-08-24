@@ -259,7 +259,7 @@ onMounted(() => {
     <div class="sticky top-14 z-20 px-4 pt-3 pb-1">
       <div class="seg-tabs">
         <button
-          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'records', label: '记录' }] as const)"
+          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'trend', label: '趋势' }, { id: 'records', label: '记录' }] as const)"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="['seg-tab seg-tab-orange', activeTab === tab.id ? 'active' : '']"

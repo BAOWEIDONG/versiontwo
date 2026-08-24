@@ -389,7 +389,7 @@ const openReport = (r: any) => {
                     <Button class="bg-[#07C160] text-white" size="sm" @click="handleSaveExerciseComment(record.id)">保存</Button>
                   </div>
                 </div>
-                <div v-else-if="record.coachComment" class="relative group">
+                <div v-else-if="record.coachComment || typeof record.coachScore === 'number'" class="relative group">
                   <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-2">
                       <span class="text-xs font-bold text-[#07C160]">教练批注</span>

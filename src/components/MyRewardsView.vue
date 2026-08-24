@@ -41,9 +41,10 @@ const campWt = computed(() => activeCampId.value ? store.getCampWeightRecords(ac
 // 连续打卡数据
 const streakData = computed(() => calculateStreak(campEx.value, campDiet.value, campWt.value, studentId.value));
 
-// 积分兑换记录
+// 积分兑换记录（按当前营期过滤，与打卡/活动奖励口径一致）
 const exchanges = computed(() =>
-  store.getStudentExchanges(studentId.value),
+  store.getStudentExchanges(studentId.value)
+    .filter((e) => !activeCampId.value || !e.campId || e.campId === activeCampId.value),
 );
 
 // 打卡奖励 claims（source = streak）— 按营期过滤

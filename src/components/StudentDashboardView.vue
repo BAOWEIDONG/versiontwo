@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
+import type { View } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { Card, GenderAvatar } from './ui';
 import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, Sparkles, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
@@ -154,7 +155,7 @@ const campNotStartedText = computed(() => {
   return '营期尚未开始，暂不能打卡';
 });
 // 打卡入口统一拦截：未开始时弹提示，不进入打卡页
-function guardCheckin(view: string) {
+function guardCheckin(view: View) {
   if (campNotStarted.value) {
     showToast(campNotStartedText.value);
     return;

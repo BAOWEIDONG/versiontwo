@@ -6,7 +6,7 @@ import type { Ref } from 'vue';
  * 仅在该手势被判定为横向滑动时切换 activeTab（打卡 ⇄ 趋势 ⇄ 记录），
  * 纵向滚动（|dy| > |dx|）或滑动距离过小则不触发，避免和页面滚动冲突。
  */
-export function useTabSwipe<T extends string>(activeTab: Readonly<Ref<T>>, tabs: readonly T[], threshold = 50) {
+export function useTabSwipe<T extends string>(activeTab: Ref<T>, tabs: readonly T[], threshold = 50) {
   let startX = 0;
   let startY = 0;
   let tracking = false;

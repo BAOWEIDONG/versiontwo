@@ -97,9 +97,13 @@ function confirmExchange() {
 const unreadCount = computed(() => {
   if (store.user?.role !== 'student') return 0;
   const id = store.user.id;
-  const diet = store.dietRecords.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
-  const ex = store.exerciseRecords.filter((r) => r.studentId === id && r.coachComment && !r.commentRead);
-  const wt = store.weightRecords.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
+  // 按当前营期过滤，避免多营期学员看到其它营期的批注未读（与首页/我的奖励/个人历程口径一致）
+  const diet = (activeCampId.value ? store.getCampDietRecords(activeCampId.value) : store.dietRecords)
+    .filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
+  const ex = (activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords)
+    .filter((r) => r.studentId === id && r.coachComment && !r.commentRead);
+  const wt = (activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords)
+    .filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
   return diet.length + ex.length + wt.length;
 });
 </script>

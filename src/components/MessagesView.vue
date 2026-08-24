@@ -110,7 +110,7 @@ interface MessageItem {
   title: string;
   body: string;
   unread: boolean;
-  targetView: 'diet' | 'exercise' | 'weight-checkin' | 'reward' | 'ranking' | 'camp-activities';
+  targetView: 'diet' | 'exercise' | 'weight-checkin' | 'reward' | 'ranking' | 'camp-activities' | 'points-mall';
   targetDate?: string; // yyyy-MM-dd for scroll-to-record
 }
 
@@ -132,7 +132,7 @@ const commentMessages = computed<MessageItem[]>(() => {
     date: r.coachCommentDate || r.date,
     title: `${r.coachName || '教练'} 批注了你的运动打卡`,
     body: r.coachComment,
-    unread: r.coachCommentRead !== true,
+    unread: !r.commentRead,
     targetView: 'exercise',
     targetDate: (r.date || '').substring(0, 10),
   });

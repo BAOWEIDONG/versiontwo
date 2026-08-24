@@ -498,8 +498,9 @@ export const useAppStore = defineStore('app', () => {
    */
   function getStudentMallPoints(studentId: string, campId?: string): number {
     const earned = getStudentTotalEarnedPoints(studentId, campId);
+    // 已消费也按营期过滤，与 earned 同口径：避免多营期学员在一营期的兑换侵蚀另一营期的可用积分/重复抵扣
     const spent = pointExchanges.value
-      .filter((e) => e.studentId === studentId && e.status !== 'cancelled')
+      .filter((e) => e.studentId === studentId && e.status !== 'cancelled' && (!campId || !e.campId || e.campId === campId))
       .reduce((sum, e) => sum + e.pointsSpent, 0);
     return Math.max(0, earned - spent);
   }
