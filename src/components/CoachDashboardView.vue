@@ -92,7 +92,7 @@ const selectCamp = (campId: string | null) => {
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col pb-24 font-sans bg-gradient-to-b from-[#E2F5EA] to-[#F7FBF8]">
+  <div class="flex min-h-[100dvh] flex-col pb-24 font-sans bg-gradient-to-b from-[#E2F5EA] to-[#F7FBF8]">
     <!-- Header -->
     <div class="pt-[calc(env(safe-area-inset-top)+2.5rem)] px-6 pb-6">
       <div class="flex justify-end mb-2">
@@ -238,7 +238,7 @@ const selectCamp = (campId: string | null) => {
     </div>
 
     <!-- Bottom Nav -->
-    <VanTabbar class="custom-tabbar tabbar-green" :model-value="0">
+    <VanTabbar class="custom-tabbar tabbar-green tabbar-flat" :model-value="0">
       <VanTabbarItem>
         <template #icon><Users class="h-6 w-6" /></template>
         首页

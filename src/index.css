@@ -206,6 +206,26 @@ body.liquid-glass .custom-tabbar.van-tabbar {
 }
 .custom-tabbar.tabbar-orange .van-tabbar-item--active { color: #FF976A; }
 
+/* 全宽融入式 Tabbar（随页面渐变延伸到最底部，不显示独立色块） */
+body.liquid-glass .custom-tabbar.van-tabbar.tabbar-flat {
+  position: fixed;
+  left: 0;
+  transform: none;
+  bottom: 0;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 56px;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* Tabs (van-tabs)：还原下划线 tab */
 .custom-tabs.van-tabs { background: transparent; }
 .custom-tabs .van-tabs__wrap { height: 44px; background: transparent; }
