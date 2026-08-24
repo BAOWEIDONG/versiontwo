@@ -212,6 +212,9 @@ export interface PointProduct {
   deliveryOptions: ('shipped' | 'in-person')[];
   /** 每人限兑换次数；0/未设置 = 不限制（营养师端配置） */
   maxExchange?: number;
+  /** 所属营期 id；未设置(=undefined)视为全局/所有营期共用（与 RewardTier.campId 口径一致）。
+   *  营养师在某个营期下新增商品时写入当前营期，随营期切换在配置端与学员商城分别展示。 */
+  campId?: string;
 }
 
 /** 积分兑换记录 */

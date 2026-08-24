@@ -796,12 +796,13 @@ export const MOCK_ACCOUNTS: Account[] = [
 
 /** 积分商城商品 */
 export const MOCK_POINT_PRODUCTS: PointProduct[] = [
-  { id: 'pp1', name: '运动水杯', imageUrl: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), description: '便携运动水杯 500ml，BPA-free 材质，健康饮水好搭档', pointsRequired: 30, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'], maxExchange: 2 },
-  { id: 'pp2', name: '跳绳', imageUrl: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), description: '专业计数跳绳，防滑手柄，轴承顺滑，燃脂利器', pointsRequired: 50, stock: 30, active: true, deliveryOptions: ['shipped', 'in-person'] },
-  { id: 'pp3', name: '瑜伽垫', imageUrl: rewardImg('瑜伽垫', '🧘', '#07C160', '#04A551'), description: '加厚防滑瑜伽垫 6mm，TPE 环保材质，运动更舒适', pointsRequired: 80, stock: 20, active: true, deliveryOptions: ['shipped'] },
-  { id: 'pp4', name: '电子体脂秤', imageUrl: rewardImg('体脂秤', '⚖️', '#8B5CF6', '#6D28D9'), description: '智能体脂秤，13项身体数据监测，蓝牙连接APP', pointsRequired: 120, stock: 10, active: true, deliveryOptions: ['shipped'] },
-  { id: 'pp5', name: '蛋白粉', imageUrl: rewardImg('蛋白粉', '💪', '#F59E0B', '#D97706'), description: '乳清蛋白粉 500g，运动后补充蛋白质，助力恢复', pointsRequired: 100, stock: 15, active: true, deliveryOptions: ['shipped', 'in-person'] },
-  { id: 'pp6', name: '筋膜枪', imageUrl: rewardImg('筋膜枪', '🔫', '#EC4899', '#DB2777'), description: '迷你筋膜枪，4档力度调节，运动后放松肌肉', pointsRequired: 200, stock: 5, active: true, deliveryOptions: ['shipped'], maxExchange: 1 },
+  // 按营期分流：camp1 = 水杯/瑜伽垫/筋膜枪；camp2 = 跳绳/体脂秤/蛋白粉（camp3 新营期默认空，营养师可自行新增）
+  { id: 'pp1', name: '运动水杯', imageUrl: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), description: '便携运动水杯 500ml，BPA-free 材质，健康饮水好搭档', pointsRequired: 30, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'], maxExchange: 2, campId: 'camp1' },
+  { id: 'pp2', name: '跳绳', imageUrl: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), description: '专业计数跳绳，防滑手柄，轴承顺滑，燃脂利器', pointsRequired: 50, stock: 30, active: true, deliveryOptions: ['shipped', 'in-person'], campId: 'camp2' },
+  { id: 'pp3', name: '瑜伽垫', imageUrl: rewardImg('瑜伽垫', '🧘', '#07C160', '#04A551'), description: '加厚防滑瑜伽垫 6mm，TPE 环保材质，运动更舒适', pointsRequired: 80, stock: 20, active: true, deliveryOptions: ['shipped'], campId: 'camp1' },
+  { id: 'pp4', name: '电子体脂秤', imageUrl: rewardImg('体脂秤', '⚖️', '#8B5CF6', '#6D28D9'), description: '智能体脂秤，13项身体数据监测，蓝牙连接APP', pointsRequired: 120, stock: 10, active: true, deliveryOptions: ['shipped'], campId: 'camp2' },
+  { id: 'pp5', name: '蛋白粉', imageUrl: rewardImg('蛋白粉', '💪', '#F59E0B', '#D97706'), description: '乳清蛋白粉 500g，运动后补充蛋白质，助力恢复', pointsRequired: 100, stock: 15, active: true, deliveryOptions: ['shipped', 'in-person'], campId: 'camp2' },
+  { id: 'pp6', name: '筋膜枪', imageUrl: rewardImg('筋膜枪', '🔫', '#EC4899', '#DB2777'), description: '迷你筋膜枪，4档力度调节，运动后放松肌肉', pointsRequired: 200, stock: 5, active: true, deliveryOptions: ['shipped'], maxExchange: 1, campId: 'camp1' },
 ];
 
 /** 积分兑换记录 */

@@ -20,7 +20,7 @@ const activeCampId = computed(() => {
 
 const availablePoints = computed(() => store.user ? store.getStudentMallPoints(store.user.id, activeCampId.value || undefined) : 0);
 const totalEarned = computed(() => store.user ? store.getStudentTotalEarnedPoints(store.user.id, activeCampId.value || undefined) : 0);
-const products = computed(() => store.getPointProducts());
+const products = computed(() => store.getPointProducts(activeCampId.value || undefined));
 
 // 每人限兑换次数（maxExchange；0/未设置=不限）。已兑换 count 按学员+商品统计（取消的不算）
 const myExchangeCount = (productId: string) =>

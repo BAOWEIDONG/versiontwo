@@ -105,7 +105,8 @@ const streakTiers = computed(() =>
 );
 
 // ─── 积分商城商品管理 ───
-const allMallProducts = computed(() => store.pointProducts);
+/** 积分商城商品：按当前营期过滤（未绑定 campId 视为全局共享，与连续打卡档口径一致） */
+const allMallProducts = computed(() => store.pointProducts.filter((p) => !p.campId || p.campId === selectedCampId.value));
 const allExchanges = computed(() =>
   [...store.pointExchanges].sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate))
 );
@@ -129,7 +130,7 @@ const handleProductPhotoSelect = async (e: Event) => {
 const handleEditProduct = (product?: PointProduct) => {
   editingProduct.value = product
     ? { ...product }
-    : { name: '', imageUrl: '', description: '', pointsRequired: 100, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'] };
+    : { name: '', imageUrl: '', description: '', pointsRequired: 100, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'], campId: selectedCampId.value };
   productFormError.value = '';
   showProductModal.value = true;
 };
@@ -170,13 +171,27 @@ const saveProduct = () => {
       deliveryOptions: editingProduct.value.deliveryOptions || ['shipped', 'in-person'],
       // 每人限兑换次数：0 / 不填 = 不限
       maxExchange: maxExchange && maxExchange > 0 ? maxExchange : undefined,
+      campId: editingProduct.value.campId,
     });
   }
   showProductModal.value = false;
 };
 
 const toggleProductActive = (product: PointProduct) => {
-  store.updatePointProduct(product.id, { active: !product.active });
+  // 下架需二次确认，防误下架；已有领取/兑换时明示连带影响
+  if (product.active) {
+    const claimed = getProductClaimCount(product.id);
+    const pending = allExchanges.value.filter((e) => e.productId === product.id && e.status === 'pending').length;
+    const impact =
+      claimed > 0
+        ? `该商品已有 ${claimed} 件被领取${pending > 0 ? `（其中 ${pending} 件待发放）` : ''}。下架后学员端不再展示、不可再兑换，但已产生的兑换记录不受影响，仍可在「兑换记录与发货管理」中发货。`
+        : '下架后学员端将不再展示该商品，学员不可再兑换。';
+    showConfirmDialog({ title: '确认下架', message: `${impact} 确定下架吗？` })
+      .then(() => store.updatePointProduct(product.id, { active: false }))
+      .catch(() => {});
+    return;
+  }
+  store.updatePointProduct(product.id, { active: true });
 };
 
 function toggleDeliveryOption(option: 'shipped' | 'in-person') {
@@ -264,7 +279,7 @@ function formatExchangeDate(dateStr: string) {
         </div>
       </div>
 
-      <!-- 积分商城商品（全局，不按营期过滤） -->
+      <!-- 积分商城商品（按当前营期过滤；未绑定营期视为全局共享） -->
       <div>
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-bold text-gray-900 flex items-center gap-1.5">
@@ -275,7 +290,7 @@ function formatExchangeDate(dateStr: string) {
             <Plus class="w-3.5 h-3.5" /> 添加
           </button>
         </div>
-        <p class="text-[10px] text-gray-400 mb-3">商城商品为全局配置，所有营期共用。学员通过打卡累积积分兑换。</p>
+        <p class="text-[10px] text-gray-400 mb-3">商品随当前营期展示，各营期可配置不同商品。新增商品绑定当前营期。学员通过打卡累积积分兑换当前营期商品。</p>
         <div v-if="allMallProducts.length === 0" class="text-center py-8 text-gray-400 text-xs bg-white rounded-xl border border-gray-100">暂无商品，请添加</div>
         <div class="space-y-3">
           <Card v-for="product in allMallProducts" :key="product.id" class="p-4 flex gap-4">

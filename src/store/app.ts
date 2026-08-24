@@ -481,15 +481,16 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // ─── 积分商城 ──────────────────────────────────────────
-  /** 积分商城商品（全局，不按营期隔离） */
+  /** 积分商城商品。可绑定营期(campId)；未绑定则全局共享。兑换记录按 exchange.campId 营期隔离。 */
   const pointProducts = ref<PointProduct[]>([...MOCK_POINT_PRODUCTS]);
   /** 积分兑换记录 */
   const pointExchanges = ref<PointExchangeRecord[]>([...MOCK_POINT_EXCHANGES]);
   /** 营养师手动加减分记录 */
   const manualScoreRecords = ref<ManualScoreRecord[]>([...MOCK_MANUAL_SCORES]);
 
-  function getPointProducts() {
-    return pointProducts.value.filter((p) => p.active);
+  /** 获取上架商品；campId 传入时按营期过滤（未绑定 campId 的商品视为全局共享，与 RewardTier 口径一致） */
+  function getPointProducts(campId?: string | null) {
+    return pointProducts.value.filter((p) => p.active && (!campId || !p.campId || p.campId === campId));
   }
 
   function addPointProduct(product: PointProduct) {

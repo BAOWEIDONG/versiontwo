@@ -74,7 +74,7 @@ const prizePool = computed<PrizePoolItem[]>(() => {
   }
   // 积分商城商品：受 pointsMall 开关控制
   if (cfg.pointsMall) {
-    for (const p of store.getPointProducts()) {
+    for (const p of store.getPointProducts(activeCampId.value)) {
       if (p.stock <= 0 || !p.active) continue;
       items.push({
         id: p.id, name: p.name, imageUrl: p.imageUrl,
@@ -220,7 +220,7 @@ const claimedCount = computed(() => {
 // 积分商城摘要
 const mallPoints = computed(() => store.user ? store.getStudentMallPoints(store.user.id, activeCampId.value || undefined) : 0);
 const totalEarned = computed(() => store.user ? store.getStudentTotalEarnedPoints(store.user.id, activeCampId.value || undefined) : 0);
-const productCount = computed(() => store.getPointProducts().length);
+const productCount = computed(() => store.getPointProducts(activeCampId.value).length);
 
 // 未读批注
 const unreadCount = computed(() => {
@@ -351,7 +351,7 @@ const unreadCount = computed(() => {
               </div>
             </div>
             <div class="flex items-center gap-1.5">
-              <div v-for="p in store.getPointProducts().slice(0, 3)" :key="p.id"
+              <div v-for="p in store.getPointProducts(activeCampId).slice(0, 3)" :key="p.id"
                 class="w-10 h-10 rounded-lg overflow-hidden bg-white/20 border border-white/20 shrink-0">
                 <img :src="p.imageUrl" class="w-full h-full object-cover" />
               </div>
