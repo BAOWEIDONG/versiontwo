@@ -85,13 +85,16 @@ const completedStudents = computed(() => studentsStatus.value.filter(s => s.hasE
 const incompleteStudents = computed(() => studentsStatus.value.filter(s => !s.hasExercise));
 
 const searchKeyword = computed(() => searchQuery.value.trim().toLowerCase());
+// 姓名或手机号匹配
+const matchStudent = (s: { name: string; phone: string }) =>
+  s.name.toLowerCase().includes(searchKeyword.value) || s.phone.includes(searchQuery.value.trim());
 const filteredComplete = computed(() => {
   if (!searchKeyword.value) return completedStudents.value;
-  return completedStudents.value.filter(s => s.name.toLowerCase().includes(searchKeyword.value));
+  return completedStudents.value.filter(matchStudent);
 });
 const filteredIncomplete = computed(() => {
   if (!searchKeyword.value) return incompleteStudents.value;
-  return incompleteStudents.value.filter(s => s.name.toLowerCase().includes(searchKeyword.value));
+  return incompleteStudents.value.filter(matchStudent);
 });
 
 const sortedActivities = computed(() =>
@@ -188,13 +191,13 @@ const selectCamp = (campId: string | null) => {
 
       <!-- 学员列表 -->
       <template v-if="activeTab === 'incomplete' || activeTab === 'completed'">
-        <!-- 搜索框 -->
+        <!-- 搜索框（未运动/已运动 tab 下方，支持姓名或手机号） -->
         <div class="relative mb-4">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="搜索学员姓名"
+            placeholder="搜索学员姓名或手机号"
             class="w-full pl-9 pr-9 py-2.5 bg-white/55 backdrop-blur-md border border-white/60 rounded-xl text-sm shadow-sm focus:outline-none focus:border-[#07C160] transition-colors"
           />
           <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">

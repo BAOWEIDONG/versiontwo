@@ -40,6 +40,7 @@ interface ExchangeRecordItem {
   productName: string;
   productImage: string;
   studentName: string;
+  studentPhone?: string;
   pointsSpent?: number;
   date: string; // 领取时间，yyyy-MM-dd HH:mm:ss
   status: string;
@@ -50,6 +51,8 @@ interface ExchangeRecordItem {
 }
 const campOf = (campId?: string): Camp | undefined =>
   campId ? store.camps.find((c) => c.id === campId) : undefined;
+const studentPhoneOf = (studentId?: string): string | undefined =>
+  studentId ? store.getAllStudents().find((s) => s.id === studentId)?.phone : undefined;
 const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
   const list: ExchangeRecordItem[] = [];
 
@@ -59,6 +62,7 @@ const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
       id: e.id, type: 'exchange', typeLabel: '积分兑换',
       productName: e.productName, productImage: e.productImage,
       studentName: e.studentName,
+      studentPhone: studentPhoneOf(e.studentId),
       pointsSpent: e.pointsSpent,
       date: e.exchangeDate, status: e.status,
       trackingNumber: e.trackingNumber,
@@ -76,6 +80,7 @@ const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
       id: c.id, type: 'checkin', typeLabel: '连续打卡奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
       studentName: c.studentName,
+      studentPhone: studentPhoneOf(c.studentId),
       date: c.claimDate, status: c.status,
       trackingNumber: c.trackingNumber,
       campId: c.campId, camp: campOf(c.campId),
@@ -319,7 +324,7 @@ const filteredExchangeRecords = computed(() => {
   return allExchangeRecords.value.filter((r) => {
     if (exSource.value !== 'all' && r.type !== exSource.value) return false;
     if (exCamp.value !== 'all' && r.campId !== exCamp.value) return false;
-    if (kw && !r.studentName.toLowerCase().includes(kw)) return false;
+    if (kw && !r.studentName.toLowerCase().includes(kw) && !(r.studentPhone || '').includes(kw)) return false;
     return true;
   });
 });
@@ -872,7 +877,7 @@ function switchModule(m: Module) {
           <div>
             <div class="relative">
               <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
-              <input v-model="exKeyword" type="text" placeholder="搜索学员姓名"
+              <input v-model="exKeyword" type="text" placeholder="搜索学员姓名或手机号"
                 class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-100 rounded-full text-xs focus:outline-none focus:border-[#FF976A]/40 placeholder:text-gray-300" />
             </div>
           </div>
@@ -915,6 +920,7 @@ function switchModule(m: Module) {
                           {{ record.typeLabel }}
                         </span>
                         <span class="font-bold text-gray-600">{{ record.studentName }}</span>
+                        <span v-if="record.studentPhone" class="font-mono">{{ record.studentPhone }}</span>
                         <template v-if="record.type === 'exchange' && record.pointsSpent">
                           <span>·</span>
                           <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>

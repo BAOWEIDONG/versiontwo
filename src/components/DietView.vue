@@ -95,21 +95,6 @@ const checkMealTime = (mealId: string): string | null => {
   return null;
 };
 
-// 各餐打卡时间提示（从营养师配置读取，展示给学员）
-const mealTimeHints = computed(() => {
-  const campId = activeCampId.value;
-  const mealConfig = campId ? store.getMealTimeConfig(campId) : null;
-  return MEAL_TYPES.map(m => {
-    const slot = mealConfig ? mealConfig[m.id as keyof typeof mealConfig] : null;
-    return {
-      label: m.label,
-      timeText: slot?.enabled ? `${slot.start}~${slot.end}` : '随时',
-      enabled: slot?.enabled ?? false,
-      isSelected: formData.value.meal === m.id,
-    };
-  });
-});
-
 const handleSubmit = () => {
   if (!formData.value.meal) {
     error.value = '今日餐次已全部打卡';
@@ -273,20 +258,6 @@ onMounted(() => {
             >
               {{ m.label }}
             </button>
-          </div>
-          <!-- 各餐打卡时间提示 -->
-          <div class="flex flex-wrap gap-1.5 pt-0.5">
-            <div
-              v-for="hint in mealTimeHints"
-              :key="hint.label"
-              :class="[
-                'flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors',
-                hint.isSelected ? 'bg-[#FF976A]/10 text-[#FF976A]' : 'bg-gray-50 text-gray-500'
-              ]"
-            >
-              <span>{{ hint.label }}</span>
-              <span :class="hint.enabled ? '' : 'text-gray-300'">{{ hint.timeText }}</span>
-            </div>
           </div>
         </div>
 

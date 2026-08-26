@@ -8,7 +8,7 @@ import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Downloa
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary } from '../lib/campReport';
-import { exportElementAsImage } from '../lib/exportImage';
+import { exportElementAsPDF } from '../lib/exportPDF';
 import type { DietitianCampSummary } from '../types';
 
 const store = useAppStore();
@@ -56,11 +56,11 @@ const openStudent = (id: string) => {
   store.setCurrentView('dietitian-student-detail');
 };
 
-// 长图导出（微信可用；未装 html2canvas 时自动降级为打印）
+// PDF 导出（A4 分页，微信可用）
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
   if (exportRef.value) {
-    exportElementAsImage(exportRef.value, `结营统计_${new Date().toISOString().split('T')[0]}`);
+    exportElementAsPDF(exportRef.value, `结营统计_${new Date().toISOString().split('T')[0]}`);
   }
 };
 
@@ -203,15 +203,7 @@ const fmtChange = (v: number | null, unit = ''): string => {
                 </span>
               </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0 ml-2">
-              <div class="flex flex-wrap gap-0.5 max-w-[80px]">
-                <span
-                  v-for="ach in report.achievements.filter(a => a.unlocked).slice(0, 4)"
-                  :key="ach.id"
-                  class="text-sm"
-                  :title="ach.title"
-                >{{ ach.icon }}</span>
-              </div>
+            <div class="flex items-center shrink-0 ml-2">
               <ChevronRight class="w-4 h-4 text-gray-300" />
             </div>
           </div>

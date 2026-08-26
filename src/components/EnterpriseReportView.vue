@@ -3,11 +3,11 @@ import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { NavBar, Card } from './ui';
-import { Building2, Users, Activity, Trophy, Flame, Sparkles, Download, ShieldCheck, ChevronRight, HeartPulse, Dumbbell } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
+import { Building2, Users, Trophy, Flame, Sparkles, Download, ShieldCheck, HeartPulse, Dumbbell } from 'lucide-vue-next';
+import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary, generateEnterpriseReport } from '../lib/campReport';
-import { exportElementAsImage } from '../lib/exportImage';
+import { exportElementAsPDF } from '../lib/exportPDF';
 
 const store = useAppStore();
 
@@ -41,11 +41,11 @@ const report = computed(() => generateEnterpriseReport(summary.value));
 const fmt = (v: number | null, digits = 1): string => (v === null ? '--' : v.toFixed(digits));
 const fmtPct = (v: number | null): string => (v === null ? '--' : `${Math.round(v * 100)}%`);
 
-// 导出长图
+// 导出 PDF（A4 分页）
 const exportRef = ref<HTMLElement | null>(null);
 const handleExport = () => {
   if (exportRef.value) {
-    exportElementAsImage(exportRef.value, `企业汇报_健康训练营_${new Date().toISOString().split('T')[0]}`);
+    exportElementAsPDF(exportRef.value, `企业汇报_健康训练营_${new Date().toISOString().split('T')[0]}`);
   }
 };
 </script>
@@ -249,17 +249,6 @@ const handleExport = () => {
       </div>
     </div>
 
-    <!-- 入口：查看营养师明细版 -->
-    <div class="px-4 pb-4" data-html2canvas-ignore>
-      <button
-        @click="store.setCurrentView('camp-summary')"
-        class="w-full py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 flex items-center justify-center gap-1 active:bg-gray-50 transition-colors"
-      >
-        查看学员明细统计（仅营养师可见）
-        <ChevronRight class="w-4 h-4 text-gray-400" />
-      </button>
-    </div>
-
     <!-- 营期选择弹窗 -->
     <VanPopup v-model:show="showCampPicker" position="bottom" round>
       <div class="p-4">
@@ -293,12 +282,5 @@ const handleExport = () => {
         </div>
       </div>
     </VanPopup>
-
-    <VanTabbar class="custom-tabbar print:hidden" :model-value="0">
-      <VanTabbarItem @click="store.setCurrentView('dietitian-dashboard')">
-        <template #icon><Activity class="h-6 w-6" /></template>
-        返回工作台
-      </VanTabbarItem>
-    </VanTabbar>
   </div>
 </template>
