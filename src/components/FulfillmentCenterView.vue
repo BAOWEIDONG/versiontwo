@@ -749,7 +749,7 @@ function switchModule(m: Module) {
               </div>
             </div>
 
-            <!-- 商品明细行：发什么（含营期名+营期时间，批次标识） -->
+            <!-- 商品明细行：发什么（营期名+营期时间分行完整展示，批次标识） -->
             <div class="flex items-center gap-2.5 mt-3 bg-gray-50 rounded-lg p-2">
               <div class="w-9 h-9 rounded-lg bg-white shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
@@ -757,9 +757,7 @@ function switchModule(m: Module) {
               <div class="flex-1 min-w-0">
                 <div class="text-xs font-bold text-gray-800 truncate">{{ item.productName }}</div>
                 <div v-if="item.camp" class="text-[10px] text-gray-400 truncate">{{ item.camp.name }}</div>
-              </div>
-              <div v-if="item.camp" class="shrink-0 text-[10px] text-gray-400 max-w-[5rem] text-right leading-tight truncate">
-                {{ campDateRange(item.camp) }}
+                <div v-if="item.camp" class="text-[10px] text-gray-500 font-medium truncate">{{ campDateRange(item.camp) }}</div>
               </div>
               <span v-if="item.type === 'exchange'" class="shrink-0 text-[9px] text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full font-bold">兑换</span>
               <span v-else class="shrink-0 text-[9px] text-[#1677FF] bg-[#EBF5FF] px-1.5 py-0.5 rounded-full font-bold">活动</span>
@@ -827,9 +825,9 @@ function switchModule(m: Module) {
                 <div v-if="item.camp" class="mt-1 text-[10px] text-gray-400 truncate">
                   {{ item.camp.name }} · {{ campDateRange(item.camp) }}
                 </div>
-                <div v-if="item.trackingNumber" class="mt-1.5 bg-green-50 rounded-lg px-2 py-1 flex items-center justify-between">
-                  <span class="text-[10px] text-gray-500 font-mono font-bold truncate min-w-0">单号 {{ item.trackingNumber }}</span>
-                  <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(item.trackingNumber!, '单号')">复制</button>
+                <div v-if="item.trackingNumber" class="mt-1.5 bg-green-50 rounded-lg px-2 py-1 flex items-start justify-between">
+                  <span class="text-[10px] text-gray-500 font-mono font-bold break-all min-w-0">单号 {{ item.trackingNumber }}</span>
+                  <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95 ml-2" @click="copyToClipboard(item.trackingNumber!, '单号')">复制</button>
                 </div>
                 <div v-if="item.deliveryMethod === 'in-person' && item.deliveredAt" class="mt-1 text-[10px] text-gray-400">
                   线下发放于 {{ formatDate(item.deliveredAt) }}
@@ -916,12 +914,10 @@ function switchModule(m: Module) {
                       </div>
                     </div>
                   </div>
-                  <div v-if="record.camp || record.trackingNumber" class="mt-2 flex items-center gap-2 text-[10px] text-gray-400 min-w-0">
-                    <span v-if="record.camp" class="truncate min-w-0 shrink">{{ record.camp.name }} · {{ campDateRange(record.camp) }}</span>
-                    <template v-if="record.trackingNumber">
-                      <span class="truncate min-w-0 max-w-[12rem] font-mono font-bold text-gray-500">单号 {{ record.trackingNumber }}</span>
-                      <button class="shrink-0 text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(record.trackingNumber!, '单号')">复制</button>
-                    </template>
+                  <div v-if="record.camp" class="mt-2 text-[10px] text-gray-400 truncate">{{ record.camp.name }} · {{ campDateRange(record.camp) }}</div>
+                  <div v-if="record.trackingNumber" class="mt-1.5 bg-green-50 rounded-lg px-2 py-1 flex items-start justify-between">
+                    <span class="text-[10px] text-gray-600 font-mono font-bold break-all min-w-0">单号 {{ record.trackingNumber }}</span>
+                    <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95 ml-2" @click="copyToClipboard(record.trackingNumber!, '单号')">复制</button>
                   </div>
                 </Card>
               </div>
