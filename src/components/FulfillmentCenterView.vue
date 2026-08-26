@@ -307,7 +307,6 @@ const shippedItems = computed<ShipItem[]>(() => {
 
 // ─── 兑换记录：筛选条 + 按状态分组 ───
 const exSource = ref<'all' | 'exchange' | 'checkin'>('all');
-const exStatus = ref<'all' | 'pending' | 'shipped' | 'cancelled'>('all');
 const exCamp = ref<string>('all'); // 'all' 或 campId
 const exKeyword = ref('');
 
@@ -319,7 +318,6 @@ const filteredExchangeRecords = computed(() => {
   const kw = exKeyword.value.trim().toLowerCase();
   return allExchangeRecords.value.filter((r) => {
     if (exSource.value !== 'all' && r.type !== exSource.value) return false;
-    if (exStatus.value !== 'all' && statusGroupOf(r) !== exStatus.value) return false;
     if (exCamp.value !== 'all' && r.campId !== exCamp.value) return false;
     if (kw && !r.studentName.toLowerCase().includes(kw)) return false;
     return true;
@@ -346,7 +344,6 @@ const exchangeGroups = computed(() => {
 const exchangeCamps = computed(() => store.camps);
 function resetExchangeFilter() {
   exSource.value = 'all';
-  exStatus.value = 'all';
   exCamp.value = 'all';
   exKeyword.value = '';
 }
@@ -853,14 +850,6 @@ function switchModule(m: Module) {
               v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'exchange', l: '积分兑换' }, { v: 'checkin', l: '连续打卡' }] as const)"
               :key="opt.v" @click="exSource = opt.v"
               :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', exSource === opt.v ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']"
-            >{{ opt.l }}</button>
-          </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[10px] text-gray-400 mr-0.5">状态</span>
-            <button
-              v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'pending', l: '待发货' }, { v: 'shipped', l: '已发货' }, { v: 'cancelled', l: '已取消' }] as const)"
-              :key="opt.v" @click="exStatus = opt.v"
-              :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', exStatus === opt.v ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']"
             >{{ opt.l }}</button>
           </div>
           <div class="flex flex-wrap items-center gap-1.5">
