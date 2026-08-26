@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { useDietitianCounts } from '../lib/dietitianCounts';
+import { usePaged } from '../composables/usePaged';
 import { UserCircle, Coffee, Clock, Activity, Scale, Video, ChevronDown, FileText, Settings, Users } from 'lucide-vue-next';
 import { Popup as VanPopup, Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import type { DietRecord, WeightRecord } from '../types';
@@ -117,6 +118,8 @@ const studentGroups = computed(() => {
     }))
     .sort((a, b) => b.count - a.count);
 });
+// 长列表分页：按学员分组较多时分页，默认前 10 组，更多点「加载更多」
+const { items: pagedGroups, hasMore, remaining, loadMore } = usePaged(studentGroups, 10);
 
 // 折叠状态
 const expandedStudents = ref<Set<string>>(new Set());
@@ -212,7 +215,7 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
 
         <!-- 学员分组 -->
         <div
-          v-for="g in studentGroups"
+          v-for="g in pagedGroups"
           :key="g.studentId"
           class="bg-white rounded-xl border border-gray-100 overflow-hidden"
         >
@@ -278,6 +281,9 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
             </div>
           </div>
         </div>
+        <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-2 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+          加载更多（还有 {{ remaining }} 名学员）
+        </button>
       </div>
 
       <!-- 空状态 -->

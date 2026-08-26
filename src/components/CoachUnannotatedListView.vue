@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { usePaged } from '../composables/usePaged';
 import { useAppStore } from '../store/app';
 import { useCoachCounts } from '../lib/coachCounts';
 import { campDateRange, latestOrFirstId, fmtShortDate } from '../lib/camps';
@@ -57,6 +58,8 @@ const openStudent = (studentId: string) => {
   store.setSelectedStudentId(studentId);
   store.setCurrentView('coach-student-detail');
 };
+// 长列表分页：默认渲染前 10 个学员分组，更多点「加载更多」
+const { items: pagedGroups, hasMore, remaining, loadMore } = usePaged(studentGroups, 10);
 
 const intentLabel = (intensity: number) =>
   (['', '很轻松', '轻松', '适中', '较累', '非常吃力'][intensity] || '适中');
@@ -90,7 +93,7 @@ const intentLabel = (intensity: number) =>
 
     <div class="p-4 space-y-3">
       <template v-if="studentGroups.length > 0">
-        <div v-for="group in studentGroups" :key="group.studentId" class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div v-for="group in pagedGroups" :key="group.studentId" class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           <button @click="openStudent(group.studentId)"
             class="w-full flex items-center justify-between px-4 py-3 bg-[#07C160]/5 active:bg-[#07C160]/10 transition-colors">
             <div class="flex items-center gap-2">
@@ -114,6 +117,9 @@ const intentLabel = (intensity: number) =>
             </button>
           </div>
         </div>
+        <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-2 text-xs font-bold text-[#07C160] bg-white border border-[#07C160]/30 rounded-xl active:bg-green-50">
+          加载更多（还有 {{ remaining }} 名学员）
+        </button>
       </template>
       <div v-else class="text-center py-14 text-gray-400 text-sm bg-white rounded-2xl border border-gray-100">
         {{ searchKeyword ? '没有匹配该学员的待批注记录' : '暂无待批注记录，全部已处理！' }}

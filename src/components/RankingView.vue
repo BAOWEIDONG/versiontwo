@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { usePaged } from '../composables/usePaged';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { NavBar, Card } from './ui';
@@ -191,6 +192,8 @@ const handleScrollToMe = () => {
 };
 
 const currentUserRank = computed(() => rankedStudents.value.find((s) => s.studentId === store.user?.id));
+// 长列表分页：默认渲染前 20 名，更多名次点「加载更多」（生产由后端分页）
+const { items: pagedRanked, hasMore, remaining, loadMore } = usePaged(rankedStudents, 20);
 
 const medalConfig = (rank: number) =>
   rank === 1
@@ -266,7 +269,7 @@ const rankNumberCls = (rank: number) =>
       </div>
 
       <Card
-        v-for="student in rankedStudents"
+        v-for="student in pagedRanked"
         :key="student.studentId"
         :id="`rank-row-${student.studentId}`"
         :class="['p-4 flex items-center transition-all duration-300', store.user?.id === student.studentId ? 'bg-green-50/30' : '', highlightedId === student.studentId ? 'ring-2 ring-[#FF976A] bg-orange-50/50 scale-[1.02]' : '']"
@@ -329,6 +332,9 @@ const rankNumberCls = (rank: number) =>
           <ChevronRight :class="['w-4 h-4', store.user?.role === 'dietitian' || store.user?.id === student.studentId ? 'text-gray-300' : 'text-transparent']" />
         </div>
       </Card>
+      <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-2 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+        加载更多（还有 {{ remaining }} 名）
+      </button>
     </div>
 
     <VanPopup v-model:show="showRules" position="center" closeable close-icon-position="top-right" class="custom-popup">

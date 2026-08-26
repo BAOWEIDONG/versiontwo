@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import { NavBar, StudentTabbar } from './ui';
 import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, RefreshCw } from 'lucide-vue-next';
 import { useTabSwipe } from '../lib/useTabSwipe';
+import { usePaged } from '../composables/usePaged';
 import { rankStudents } from '../lib/scoring';
 
 const store = useAppStore();
@@ -249,6 +250,8 @@ const messages = computed<MessageItem[]>(() =>
 );
 
 const unreadCount = computed(() => allMessages.value.filter((m) => m.unread).length);
+// 长列表分页：默认只渲染前 20 条，滚动更多再加载（生产由后端分页）
+const { items: pagedMessages, hasMore, remaining, loadMore } = usePaged(messages, 20);
 
 /** 各分类筛选 Tab 的未读数：all=总未读，其余按 type 统计未读 */
 const tabUnread = (key: string): number =>
@@ -348,7 +351,7 @@ const fmtDate = (d: string) => {
 
       <!-- 消息列表 -->
       <button
-        v-for="m in messages"
+        v-for="m in pagedMessages"
         :key="m.id"
         @click="openMessage(m)"
         :class="['w-full text-left bg-white rounded-2xl p-4 flex items-start gap-3 active:scale-[0.98] transition-all shadow-sm hover:shadow-md', m.type === 'dietitian' || m.type === 'coach' ? 'border border-[#07C160]/15' : 'border border-gray-100']"
@@ -366,6 +369,9 @@ const fmtDate = (d: string) => {
           <div class="text-[10px] text-gray-400 mt-1">{{ fmtDate(m.date) }}</div>
         </div>
         <ChevronRight class="w-4 h-4 text-gray-300 shrink-0 mt-1" />
+      </button>
+      <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-2 text-xs font-bold text-[#07C160] bg-white border border-[#07C160]/30 rounded-xl active:bg-green-50">
+        加载更多（还有 {{ remaining }} 条）
       </button>
     </div>
 
