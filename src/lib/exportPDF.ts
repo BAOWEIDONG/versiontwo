@@ -14,6 +14,20 @@ export const isWeChat = (): boolean =>
   /MicroMessenger/i.test(navigator.userAgent);
 
 /**
+ * 高清渲染缩放倍数：目标 3x；若报告面积过大（超长页）按 iOS Safari 画布
+ * 像素上限（约 1600 万像素）自适应下调，最低 2x，避免 canvas 创建失败白屏。
+ */
+const renderScaleOf = (el: HTMLElement): number => {
+  const w = el.scrollWidth || el.offsetWidth;
+  const h = el.scrollHeight || el.offsetHeight;
+  const area = Math.max(w * h, 1);
+  const MAX_PIXELS = 16_000_000;
+  if (area * 9 <= MAX_PIXELS) return 3;
+  const adaptive = Math.sqrt(MAX_PIXELS / area);
+  return Math.min(3, Math.max(2, Math.floor(adaptive * 10) / 10));
+};
+
+/**
  * 报告导出统一入口（自动适配环境）：
  * - 普通浏览器：生成 A4 分页 PDF 下载；
  * - 微信内置浏览器：生成 PNG 长图并全屏预览，提示长按保存（微信无法直接下载文件，
@@ -24,7 +38,7 @@ export async function exportReport(el: HTMLElement, filename: string): Promise<v
     showToast({ message: '正在生成长图…', duration: 1200 });
     try {
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: renderScaleOf(el),
         useCORS: true,
         backgroundColor: '#F7F8FA',
         logging: false,
@@ -51,7 +65,7 @@ export async function exportElementAsPDF(
   showToast({ message: '正在生成 PDF，请稍候…', duration: 1500 });
   try {
     const canvas = await html2canvas(el, {
-      scale: 2, // 2x 清晰度
+      scale: renderScaleOf(el), // 高清渲染（自适应防超 iOS 画布上限）
       useCORS: true,
       backgroundColor: '#F7F8FA',
       logging: false,
@@ -64,7 +78,7 @@ export async function exportElementAsPDF(
     const imgHeight = (canvas.height / canvas.width) * imgWidth;
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
     if (imgHeight <= pageHeight) {
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
