@@ -473,7 +473,7 @@ const submitAddressEdit = () => {
             <span class="text-2xl font-light text-gray-900">{{ w.weight }} <span class="text-xs font-normal text-gray-500">kg</span></span>
           </div>
           <div v-if="w.photos && w.photos.length > 0" class="flex gap-2 mt-2 overflow-x-auto pb-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <img
+            <img loading="lazy" decoding="async"
               v-for="(url, idx) in w.photos"
               :key="idx"
               :src="url"
@@ -509,7 +509,7 @@ const submitAddressEdit = () => {
             <div class="text-xs text-yellow-500 mb-1">强度: {{ '★'.repeat(ex.intensity) }}</div>
             <p v-if="ex.notes" class="text-xs text-gray-500 mt-1">{{ ex.notes }}</p>
             <div v-if="ex.photos && ex.photos.length > 0" class="flex gap-2 mt-2 overflow-x-auto pb-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <img
+              <img loading="lazy" decoding="async"
                 v-for="(url, idx) in ex.photos"
                 :key="idx"
                 :src="url"
@@ -556,7 +556,7 @@ const submitAddressEdit = () => {
             </div>
             <p class="text-sm text-gray-900 mb-2">{{ diet.description }}</p>
             <div v-if="diet.photos && diet.photos.length > 0" class="flex gap-2 mt-2 overflow-x-auto pb-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <img
+              <img loading="lazy" decoding="async"
                 v-for="(url, idx) in diet.photos"
                 :key="idx"
                 :src="url"
@@ -588,7 +588,7 @@ const submitAddressEdit = () => {
                        getRewardState(selectedRewardTier) === 'claimable' ? 'border-orange-200 shadow-md' :
                        getRewardState(selectedRewardTier) === 'outOfStock' ? 'border-gray-200' :
                        'border-gray-200'">
-            <img :src="selectedRewardTier.imageUrl" :alt="selectedRewardTier.name" class="w-full h-full object-cover"
+            <img loading="lazy" decoding="async" :src="selectedRewardTier.imageUrl" :alt="selectedRewardTier.name" class="w-full h-full object-cover"
                  :class="getRewardState(selectedRewardTier) === 'locked' ? 'opacity-50' : ''" />
             <div v-if="getRewardState(selectedRewardTier) === 'locked'" class="absolute inset-0 bg-gray-900/20 flex items-center justify-center">
               <Lock class="w-6 h-6 text-white/80" />
@@ -700,7 +700,7 @@ const submitAddressEdit = () => {
         <div v-else>
           <h3 class="text-lg font-bold text-gray-900 mb-4">填写收货信息</h3>
           <div class="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 rounded-xl mb-4 flex gap-3 items-center border border-orange-100">
-            <img :src="selectedRewardTier.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
+            <img loading="lazy" decoding="async" :src="selectedRewardTier.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
             <div>
               <div class="text-sm font-bold text-gray-900">{{ selectedRewardTier.name }}</div>
               <div class="text-xs text-orange-600 mt-0.5 flex items-center gap-1">

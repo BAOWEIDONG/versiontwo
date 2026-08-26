@@ -240,17 +240,17 @@ const typeConfig: Record<ItemType, { label: string; bg: string; text: string; ic
               <!-- 缩略图 -->
               <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
                 <template v-if="item.type === 'diet'">
-                  <img v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="食物" class="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="食物" class="w-full h-full object-cover" />
                   <Coffee v-else class="w-5 h-5 text-gray-400" />
                 </template>
                 <template v-else-if="item.type === 'weight'">
-                  <img v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="体重打卡" class="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="体重打卡" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full bg-[#07C160]/8 flex items-center justify-center">
                     <Scale class="w-5 h-5 text-[#07C160]" />
                   </div>
                 </template>
                 <template v-else>
-                  <img v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="运动" class="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" v-if="item.photos && item.photos.length > 0" :src="item.photos[0]" alt="运动" class="w-full h-full object-cover" />
                   <div v-else-if="item.videoUrls && item.videoUrls.length > 0" class="w-full h-full bg-black flex items-center justify-center">
                     <Video class="w-5 h-5 text-white" />
                   </div>

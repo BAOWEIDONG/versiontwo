@@ -84,7 +84,7 @@ const handleMediaClick = (item: { url: string; type: 'video' | 'image' }) => {
             webkit-playsinline
           />
           <!-- Image -->
-          <img
+          <img loading="lazy" decoding="async"
             v-else
             :src="item.url"
             :alt="`media ${idx + 1}`"

@@ -233,7 +233,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
               <FileText class="w-6 h-6 mb-1" />
               <span class="text-[9px] text-gray-500 truncate px-1">{{ r.name || 'PDF' }}</span>
             </div>
-            <img v-else :src="r.url" alt="预览" class="w-full min-h-full object-cover" />
+            <img loading="lazy" decoding="async" v-else :src="r.url" alt="预览" class="w-full min-h-full object-cover" />
             <button @click="removePendingReport(idx)" class="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"><X class="w-3 h-3" /></button>
           </div>
         </div>
@@ -507,7 +507,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
               <FileText class="w-8 h-8 mb-1" />
               <span class="text-[10px] text-gray-500 truncate px-1">{{ r.name || 'PDF报告' }}</span>
             </div>
-            <img v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
+            <img loading="lazy" decoding="async" v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
             <div class="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm text-white text-[10px] p-1.5 text-center truncate">
               {{ r.type === 'pdf' ? (r.name || `报告 ${idx + 1}`) : `报告 ${idx + 1}` }}
             </div>

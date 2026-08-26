@@ -222,7 +222,7 @@ const copied = ref(false);
         <div v-if="getTierState(tier) === 'locked'" class="bg-white rounded-2xl p-4 flex gap-4 border border-gray-100 shadow-sm relative overflow-hidden transition-transform hover:-translate-y-0.5">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-full blur-2xl transform translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
           <div class="w-20 h-20 rounded-2xl bg-gray-100 shrink-0 overflow-hidden relative border border-gray-100 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
-            <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover opacity-50" />
+            <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover opacity-50" />
             <div class="absolute inset-0 bg-gray-900/30 flex items-center justify-center">
               <Lock class="w-6 h-6 text-white/80" />
             </div>
@@ -248,7 +248,7 @@ const copied = ref(false);
             </div>
           </div>
           <div class="w-20 h-20 rounded-2xl bg-gray-100 shrink-0 overflow-hidden relative border border-orange-100 cursor-pointer shadow-sm transition-transform hover:scale-105" @click="store.openImagePreview([tier.imageUrl], 0)">
-            <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0 relative">
             <h3 class="font-bold text-gray-900 text-base mb-1 truncate">{{ tier.name }}</h3>
@@ -264,7 +264,7 @@ const copied = ref(false);
         <!-- Out of stock card -->
         <div v-else-if="getTierState(tier) === 'outOfStock'" class="bg-white rounded-2xl p-4 flex gap-4 border border-gray-100 shadow-sm relative overflow-hidden opacity-70">
           <div class="w-20 h-20 rounded-2xl bg-gray-100 shrink-0 overflow-hidden relative border border-gray-100 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
-            <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0">
             <h3 class="font-bold text-gray-500 text-base mb-1 truncate">{{ tier.name }}</h3>
@@ -277,7 +277,7 @@ const copied = ref(false);
         <div v-else class="bg-white rounded-2xl p-4 flex gap-4 border border-green-100 shadow-sm relative overflow-hidden">
           <div class="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-2xl transform translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
           <div class="w-20 h-20 rounded-2xl bg-gray-100 shrink-0 overflow-hidden relative border border-green-100 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
-            <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
             <div class="absolute top-1 right-1 w-5 h-5 bg-[#07C160] rounded-full flex items-center justify-center">
               <CheckCircle2 class="w-3.5 h-3.5 text-white" />
             </div>
@@ -328,7 +328,7 @@ const copied = ref(false);
       <div class="p-5" v-if="selectedTier">
         <h3 class="text-lg font-bold text-gray-900 mb-4">{{ selectedDeliveryMethod === 'shipped' ? '填写收货信息' : '确认领取信息' }}</h3>
         <div class="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 rounded-xl mb-4 flex gap-3 items-center border border-orange-100">
-          <img :src="selectedTier.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
+          <img loading="lazy" decoding="async" :src="selectedTier.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
           <div>
             <div class="text-sm font-bold text-gray-900">{{ selectedTier.name }}</div>
             <div class="text-xs text-orange-600 mt-0.5 flex items-center gap-1">

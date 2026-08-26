@@ -65,7 +65,7 @@ const handleSubmit = () => {
 
           <div class="grid grid-cols-3 gap-3">
             <div v-for="(img, idx) in images" :key="idx" class="relative aspect-square rounded-lg border border-gray-100 overflow-hidden">
-              <img :src="img" alt="Report" class="w-full min-h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="img" alt="Report" class="w-full min-h-full object-cover" />
               <button
                 @click="removeImage(idx)"
                 class="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white"

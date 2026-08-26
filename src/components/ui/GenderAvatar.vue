@@ -12,6 +12,6 @@ defineProps<{
 </script>
 
 <template>
-  <img v-if="gender === 'male'" :src="avatarMale" alt="头像" class="w-full h-full object-cover rounded-full" />
-  <img v-else :src="avatarFemale" alt="头像" class="w-full h-full object-cover rounded-full" />
+  <img loading="lazy" decoding="async" v-if="gender === 'male'" :src="avatarMale" alt="头像" class="w-full h-full object-cover rounded-full" />
+  <img loading="lazy" decoding="async" v-else :src="avatarFemale" alt="头像" class="w-full h-full object-cover rounded-full" />
 </template>

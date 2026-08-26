@@ -918,7 +918,7 @@ onActivated(() => {
             </p>
             <div class="space-y-3 mb-5">
               <div v-for="rw in newRewards" :key="rw.id" class="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-3 text-left">
-                <img :src="rw.imageUrl" class="w-11 h-11 rounded-xl object-cover shrink-0" :alt="rw.name" />
+                <img loading="lazy" decoding="async" :src="rw.imageUrl" class="w-11 h-11 rounded-xl object-cover shrink-0" :alt="rw.name" />
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-bold text-gray-900 truncate">{{ rw.name }}</div>
                   <div class="text-[10px] text-orange-600">连续打卡 {{ rw.requiredDays }} 天解锁，可前往领取</div>

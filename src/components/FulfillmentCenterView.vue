@@ -690,7 +690,7 @@ function switchModule(m: Module) {
           <Card v-for="claim in confirmedClaims" :key="claim.id" class="p-4">
             <div class="flex items-start gap-3">
               <div class="w-14 h-14 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
-                <img :src="allRewardTiers.find(t => t.id === claim.tierId)?.imageUrl" class="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" :src="allRewardTiers.find(t => t.id === claim.tierId)?.imageUrl" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
@@ -769,7 +769,7 @@ function switchModule(m: Module) {
             <!-- 商品明细行：发什么（营期名+营期时间分行完整展示，批次标识） -->
             <div class="flex items-center gap-2.5 mt-3 bg-gray-50 rounded-lg p-2">
               <div class="w-9 h-9 rounded-lg bg-white shrink-0 overflow-hidden">
-                <img :src="item.productImage" class="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" :src="item.productImage" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0">
                 <div class="text-xs font-bold text-gray-800 truncate">{{ item.productName }}</div>
@@ -823,7 +823,7 @@ function switchModule(m: Module) {
           <Card v-for="item in shippedItems" :key="item.id" class="p-3.5">
             <div class="flex items-start gap-3">
               <div class="w-11 h-11 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
-                <img :src="item.productImage" class="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" :src="item.productImage" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
@@ -906,7 +906,7 @@ function switchModule(m: Module) {
                 <Card v-for="record in group.items" :key="record.id" class="px-3 py-2.5">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
-                      <img :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
+                      <img loading="lazy" decoding="async" :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center justify-between gap-2">
@@ -962,7 +962,7 @@ function switchModule(m: Module) {
             @click="selectedTierId = tier.id; auditError = ''"
           >
             <div class="w-10 h-10 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
-              <img :src="tier.imageUrl" class="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="tier.imageUrl" class="w-full h-full object-cover" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-bold text-gray-900 truncate">{{ tier.name }}</div>

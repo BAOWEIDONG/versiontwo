@@ -195,7 +195,7 @@ const handleSubmit = () => {
 
               <template v-else>
                 <div v-for="(url, index) in imageFiles" :key="index" class="aspect-square rounded-xl bg-gray-100 overflow-hidden relative">
-                  <img :src="url" :alt="`Preview ${index}`" class="w-full min-h-full object-cover cursor-pointer" @click="store.openImagePreview(imageFiles, index)" />
+                  <img loading="lazy" decoding="async" :src="url" :alt="`Preview ${index}`" class="w-full min-h-full object-cover cursor-pointer" @click="store.openImagePreview(imageFiles, index)" />
                   <button @click="removeImage(index)" class="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1">
                     <X class="w-3 h-3" />
                   </button>

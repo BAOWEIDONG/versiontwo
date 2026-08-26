@@ -353,7 +353,7 @@ const unreadCount = computed(() => {
             <div class="flex items-center gap-1.5">
               <div v-for="p in store.getPointProducts(activeCampId).slice(0, 3)" :key="p.id"
                 class="w-10 h-10 rounded-lg overflow-hidden bg-white/20 border border-white/20 shrink-0">
-                <img :src="p.imageUrl" class="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" :src="p.imageUrl" class="w-full h-full object-cover" />
               </div>
             </div>
           </div>
@@ -399,7 +399,7 @@ const unreadCount = computed(() => {
             <div class="flex items-center gap-1.5">
               <div v-for="tier in rewardTiers.slice(0, 3)" :key="tier.id"
                 class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-white/60">
-                <img :src="tier.imageUrl" class="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" :src="tier.imageUrl" class="w-full h-full object-cover" />
               </div>
             </div>
           </div>

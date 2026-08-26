@@ -316,7 +316,7 @@ const openReport = (r: any) => {
                 </div>
 
                 <div v-if="record.photos && record.photos.length > 0" class="flex gap-2 overflow-x-auto pb-1">
-                  <img
+                  <img loading="lazy" decoding="async"
                     v-for="(url, idx) in record.photos"
                     :key="idx"
                     :src="url"
@@ -496,7 +496,7 @@ const openReport = (r: any) => {
                   </div>
 
                   <div v-if="rec.photos && rec.photos.length > 0" class="mt-2 ml-11 flex gap-2 overflow-x-auto pb-1">
-                    <img
+                    <img loading="lazy" decoding="async"
                       v-for="(url, pIdx) in rec.photos"
                       :key="pIdx"
                       :src="url"
@@ -594,7 +594,7 @@ const openReport = (r: any) => {
                   <FileText class="w-8 h-8 mb-1" />
                   <span class="text-[10px] text-gray-500 truncate px-1">{{ r.name || 'PDF报告' }}</span>
                 </div>
-                <img v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
+                <img loading="lazy" decoding="async" v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
                 <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-2 truncate">
                   {{ r.type === 'pdf' ? (r.name || `体检报告_第${idx + 1}页`) : `体检报告_第${idx + 1}页` }}
                 </div>

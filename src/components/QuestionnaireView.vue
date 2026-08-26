@@ -659,7 +659,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
                 <FileText class="w-8 h-8 mb-1" />
                 <span class="text-[10px] text-gray-500 truncate px-1">{{ r.name || 'PDF报告' }}</span>
               </div>
-              <img v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
+              <img loading="lazy" decoding="async" v-else :src="r.url" :alt="`报告 ${idx + 1}`" class="w-full min-h-full object-cover" />
               <button @click.stop="removeReport(idx)" class="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white hover:bg-black/70">
                 <X class="w-3 h-3" />
               </button>

@@ -292,7 +292,7 @@ const activityTypeLabel = (type?: string) => {
               <span class="text-[9px] font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-0.5 rounded-full animate-pulse">可领取</span>
             </div>
             <div class="flex gap-3 items-start">
-              <img v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100" />
+              <img loading="lazy" decoding="async" v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100" />
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-bold text-gray-900">{{ item.tier?.name || '活动奖品' }}</div>
                 <div class="text-[10px] text-gray-500 mt-0.5">{{ activityTypeLabel(item.claim.activityType) }} · 审核已通过</div>
@@ -311,7 +311,7 @@ const activityTypeLabel = (type?: string) => {
         <div v-for="item in pendingShip" :key="item.claim.id" class="mb-3">
           <div class="rounded-xl p-4 border border-blue-100 bg-blue-50/50">
             <div class="flex gap-3 items-start">
-              <img v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100 opacity-80" />
+              <img loading="lazy" decoding="async" v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100 opacity-80" />
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-bold text-gray-900">{{ item.tier?.name || '活动奖品' }}</div>
                 <div class="text-[10px] text-gray-500 mt-0.5">{{ activityTypeLabel(item.claim.activityType) }}</div>
@@ -333,7 +333,7 @@ const activityTypeLabel = (type?: string) => {
         <div v-for="item in fulfilled" :key="item.claim.id" class="mb-3 last:mb-0">
           <div class="rounded-xl p-4 border border-green-100 bg-green-50/30">
             <div class="flex gap-3 items-start">
-              <img v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100" />
+              <img loading="lazy" decoding="async" v-if="item.tier?.imageUrl" :src="item.tier.imageUrl" class="w-16 h-16 rounded-xl object-cover bg-gray-100" />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <div class="text-sm font-bold text-gray-900">{{ item.tier?.name || '活动奖品' }}</div>
@@ -546,7 +546,7 @@ const activityTypeLabel = (type?: string) => {
 
         <!-- 奖品信息 -->
         <div class="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 rounded-xl mb-4 flex gap-3 items-center border border-orange-100">
-          <img v-if="claimTarget.tierId && campRewardTiers.find(t => t.id === claimTarget.tierId)?.imageUrl" :src="campRewardTiers.find(t => t.id === claimTarget.tierId)!.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
+          <img loading="lazy" decoding="async" v-if="claimTarget.tierId && campRewardTiers.find(t => t.id === claimTarget.tierId)?.imageUrl" :src="campRewardTiers.find(t => t.id === claimTarget.tierId)!.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
           <div>
             <div class="text-sm font-bold text-gray-900">{{ campRewardTiers.find(t => t.id === claimTarget.tierId)?.name || '活动奖品' }}</div>
             <div class="text-xs text-orange-600 mt-0.5">营养师已审核通过</div>

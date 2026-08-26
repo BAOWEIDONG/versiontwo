@@ -311,7 +311,7 @@ onActivated(processPendingDeepLink);
 
           <div class="grid grid-cols-3 gap-2">
             <div v-for="(url, idx) in photos" :key="idx" class="relative aspect-square rounded-lg overflow-hidden border border-gray-100 animate-pop-in">
-              <img :src="url" :alt="`上传的照片 ${idx + 1}`" class="w-full min-h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="url" :alt="`上传的照片 ${idx + 1}`" class="w-full min-h-full object-cover" />
               <button
                 @click="removePhoto(idx)"
                 class="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"

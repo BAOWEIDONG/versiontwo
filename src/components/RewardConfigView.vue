@@ -262,7 +262,7 @@ function formatExchangeDate(dateStr: string) {
         <div class="space-y-3">
           <Card v-for="tier in streakTiers" :key="tier.id" class="p-4 flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 shrink-0 overflow-hidden border border-gray-50 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
-              <img :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
             </div>
             <div class="flex-1 flex flex-col justify-between min-w-0">
               <div>
@@ -301,7 +301,7 @@ function formatExchangeDate(dateStr: string) {
         <div class="space-y-3">
           <Card v-for="product in allMallProducts" :key="product.id" class="p-4 flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 shrink-0 overflow-hidden border border-gray-50 cursor-pointer" @click="store.openImagePreview([product.imageUrl], 0)">
-              <img :src="product.imageUrl" :alt="product.name" class="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="product.imageUrl" :alt="product.name" class="w-full h-full object-cover" />
             </div>
             <div class="flex-1 flex flex-col justify-between min-w-0">
               <div>
@@ -367,7 +367,7 @@ function formatExchangeDate(dateStr: string) {
             <label class="text-sm font-medium text-gray-700 block mb-2">礼品图片 <span class="text-red-500">*</span></label>
             <input ref="photoInputRef" type="file" accept="image/*" class="hidden" @change="handlePhotoSelect" />
             <div class="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 overflow-hidden" @click="photoInputRef?.click()">
-              <img v-if="editingTier.imageUrl" :src="editingTier.imageUrl" class="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" v-if="editingTier.imageUrl" :src="editingTier.imageUrl" class="w-full h-full object-cover" />
               <template v-else><Camera class="w-6 h-6 text-gray-400 mb-1" /><span class="text-[10px] text-gray-400">上传图片</span></template>
             </div>
           </div>
@@ -413,7 +413,7 @@ function formatExchangeDate(dateStr: string) {
             <label class="text-sm font-medium text-gray-700 block mb-2">商品图片 <span class="text-red-500">*</span></label>
             <input ref="productPhotoInputRef" type="file" accept="image/*" class="hidden" @change="handleProductPhotoSelect" />
             <div class="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 overflow-hidden" @click="productPhotoInputRef?.click()">
-              <img v-if="editingProduct.imageUrl" :src="editingProduct.imageUrl" class="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" v-if="editingProduct.imageUrl" :src="editingProduct.imageUrl" class="w-full h-full object-cover" />
               <template v-else><Camera class="w-6 h-6 text-gray-400 mb-1" /><span class="text-[10px] text-gray-400">上传图片</span></template>
             </div>
           </div>

@@ -624,7 +624,7 @@ const handleSubmit = () => {
           <input ref="photoInputRef" type="file" accept="image/*" multiple class="hidden" @change="handlePhotoSelect" />
           <div class="grid grid-cols-3 gap-2">
             <div v-for="(url, idx) in photos" :key="idx" class="aspect-square rounded-xl bg-gray-100 overflow-hidden relative animate-pop-in">
-              <img :src="url" alt="运动打卡" class="w-full min-h-full object-cover" />
+              <img loading="lazy" decoding="async" :src="url" alt="运动打卡" class="w-full min-h-full object-cover" />
               <button
                 @click="removePhoto(idx)"
                 class="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"

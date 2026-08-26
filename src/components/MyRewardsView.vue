@@ -297,7 +297,7 @@ const unreadCount = computed(() => {
           <div class="flex p-3 gap-3">
             <!-- 商品图 -->
             <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 shrink-0">
-              <img :src="record.productImage" class="w-full h-full object-cover" :alt="record.productName" />
+              <img loading="lazy" decoding="async" :src="record.productImage" class="w-full h-full object-cover" :alt="record.productName" />
             </div>
 
             <div class="flex-1 min-w-0">
@@ -390,7 +390,7 @@ const unreadCount = computed(() => {
               </p>
               <div class="mt-3 bg-gray-50 rounded-xl p-2.5 flex items-center gap-2 text-left">
                 <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                  <img :src="cancelTarget.productImage" class="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" :src="cancelTarget.productImage" class="w-full h-full object-cover" />
                 </div>
                 <div class="min-w-0">
                   <div class="text-xs font-bold text-gray-900 truncate">{{ cancelTarget.productName }}</div>
