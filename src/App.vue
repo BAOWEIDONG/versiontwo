@@ -2,48 +2,91 @@
 import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick, defineAsyncComponent, type Component } from 'vue';
 import { useAppStore } from './store/app';
 import VideoPreview from './components/VideoPreview.vue';
+import ViewSkeleton from './components/ui/ViewSkeleton.vue';
 
-// 视图 → 异步组件映射（三端全局按需加载）：每个视图各自懒加载成独立 chunk，
-// 首屏只加载 vue/vant/pinia 共享核心 + 首个视图，进入某端页面时才拉取该页代码，
-// 显著降低启动包体积与首次渲染负担，与 KeepAlive 缓存叠加使用。
-const viewMap: Record<string, Component> = {
-  login: defineAsyncComponent(() => import('./components/LoginView.vue')),
-  register: defineAsyncComponent(() => import('./components/RegisterView.vue')),
-  questionnaire: defineAsyncComponent(() => import('./components/QuestionnaireView.vue')),
-  upload: defineAsyncComponent(() => import('./components/UploadView.vue')),
-  dashboard: defineAsyncComponent(() => import('./components/StudentDashboardView.vue')),
-  'health-profile': defineAsyncComponent(() => import('./components/HealthProfileView.vue')),
-  exercise: defineAsyncComponent(() => import('./components/ExerciseView.vue')),
-  diet: defineAsyncComponent(() => import('./components/DietView.vue')),
-  'weight-checkin': defineAsyncComponent(() => import('./components/WeightCheckinView.vue')),
-  calendar: defineAsyncComponent(() => import('./components/CalendarView.vue')),
-  'coach-dashboard': defineAsyncComponent(() => import('./components/CoachDashboardView.vue')),
-  'coach-student-detail': defineAsyncComponent(() => import('./components/CoachStudentDetailView.vue')),
-  'activity-upload': defineAsyncComponent(() => import('./components/ActivityUploadView.vue')),
-  'activities-list': defineAsyncComponent(() => import('./components/ActivitiesListView.vue')),
-  'dietitian-dashboard': defineAsyncComponent(() => import('./components/DietitianDashboardView.vue')),
-  'dietitian-student-detail': defineAsyncComponent(() => import('./components/DietitianStudentDetailView.vue')),
-  'dietitian-unannotated-list': defineAsyncComponent(() => import('./components/DietitianUnannotatedListView.vue')),
-  ranking: defineAsyncComponent(() => import('./components/RankingView.vue')),
-  pointsDetail: defineAsyncComponent(() => import('./components/PointsDetailView.vue')),
-  reward: defineAsyncComponent(() => import('./components/RewardView.vue')),
-  'reward-config': defineAsyncComponent(() => import('./components/RewardConfigView.vue')),
-  'meal-time-config': defineAsyncComponent(() => import('./components/MealTimeConfigView.vue')),
-  'metric-config': defineAsyncComponent(() => import('./components/MetricConfigView.vue')),
-  'camp-summary': defineAsyncComponent(() => import('./components/DietitianCampSummaryView.vue')),
-  'enterprise-report': defineAsyncComponent(() => import('./components/EnterpriseReportView.vue')),
-  'camp-report': defineAsyncComponent(() => import('./components/CampReportView.vue')),
-  'camp-activities': defineAsyncComponent(() => import('./components/CampActivitiesView.vue')),
-  'activity-admin': defineAsyncComponent(() => import('./components/ActivityAdminView.vue')),
-  'personal-journey': defineAsyncComponent(() => import('./components/PersonalJourneyView.vue')),
-  messages: defineAsyncComponent(() => import('./components/MessagesView.vue')),
-  'account-manage': defineAsyncComponent(() => import('./components/AccountManageView.vue')),
-  'dietitian-config': defineAsyncComponent(() => import('./components/DietitianConfigView.vue')),
-  'activity-hub': defineAsyncComponent(() => import('./components/ActivityHubView.vue')),
-  'points-mall': defineAsyncComponent(() => import('./components/PointsMallView.vue')),
-  'fulfillment-center': defineAsyncComponent(() => import('./components/FulfillmentCenterView.vue')),
-  'my-rewards': defineAsyncComponent(() => import('./components/MyRewardsView.vue')),
+// 异步视图统一包装：加载 chunk 期间立即显示共享骨架屏，避免白屏"等好久"
+function lazyView(loader: () => Promise<{ default: Component }>): Component {
+  return defineAsyncComponent({ loader, loadingComponent: ViewSkeleton, delay: 0 });
+}
+
+// 视图文件路径（供按角色预取 tab 页 chunk）
+const VIEW_PATH: Record<string, string> = {
+  login: 'LoginView', register: 'RegisterView', questionnaire: 'QuestionnaireView', upload: 'UploadView',
+  dashboard: 'StudentDashboardView', 'health-profile': 'HealthProfileView', exercise: 'ExerciseView',
+  diet: 'DietView', 'weight-checkin': 'WeightCheckinView', calendar: 'CalendarView',
+  'coach-dashboard': 'CoachDashboardView', 'coach-student-detail': 'CoachStudentDetailView',
+  'activity-upload': 'ActivityUploadView', 'activities-list': 'ActivitiesListView',
+  'dietitian-dashboard': 'DietitianDashboardView', 'dietitian-student-detail': 'DietitianStudentDetailView',
+  'dietitian-unannotated-list': 'DietitianUnannotatedListView', ranking: 'RankingView',
+  pointsDetail: 'PointsDetailView', reward: 'RewardView', 'reward-config': 'RewardConfigView',
+  'meal-time-config': 'MealTimeConfigView', 'metric-config': 'MetricConfigView',
+  'camp-summary': 'DietitianCampSummaryView', 'enterprise-report': 'EnterpriseReportView',
+  'camp-report': 'CampReportView', 'camp-activities': 'CampActivitiesView', 'activity-admin': 'ActivityAdminView',
+  'personal-journey': 'PersonalJourneyView', messages: 'MessagesView', 'account-manage': 'AccountManageView',
+  'dietitian-config': 'DietitianConfigView', 'activity-hub': 'ActivityHubView', 'points-mall': 'PointsMallView',
+  'fulfillment-center': 'FulfillmentCenterView', 'my-rewards': 'MyRewardsView',
 };
+
+const VIEW_IMPORTERS: Record<string, () => Promise<{ default: Component }>> = {
+  login: () => import('./components/LoginView.vue'),
+  register: () => import('./components/RegisterView.vue'),
+  questionnaire: () => import('./components/QuestionnaireView.vue'),
+  upload: () => import('./components/UploadView.vue'),
+  dashboard: () => import('./components/StudentDashboardView.vue'),
+  'health-profile': () => import('./components/HealthProfileView.vue'),
+  exercise: () => import('./components/ExerciseView.vue'),
+  diet: () => import('./components/DietView.vue'),
+  'weight-checkin': () => import('./components/WeightCheckinView.vue'),
+  calendar: () => import('./components/CalendarView.vue'),
+  'coach-dashboard': () => import('./components/CoachDashboardView.vue'),
+  'coach-student-detail': () => import('./components/CoachStudentDetailView.vue'),
+  'activity-upload': () => import('./components/ActivityUploadView.vue'),
+  'activities-list': () => import('./components/ActivitiesListView.vue'),
+  'dietitian-dashboard': () => import('./components/DietitianDashboardView.vue'),
+  'dietitian-student-detail': () => import('./components/DietitianStudentDetailView.vue'),
+  'dietitian-unannotated-list': () => import('./components/DietitianUnannotatedListView.vue'),
+  ranking: () => import('./components/RankingView.vue'),
+  pointsDetail: () => import('./components/PointsDetailView.vue'),
+  reward: () => import('./components/RewardView.vue'),
+  'reward-config': () => import('./components/RewardConfigView.vue'),
+  'meal-time-config': () => import('./components/MealTimeConfigView.vue'),
+  'metric-config': () => import('./components/MetricConfigView.vue'),
+  'camp-summary': () => import('./components/DietitianCampSummaryView.vue'),
+  'enterprise-report': () => import('./components/EnterpriseReportView.vue'),
+  'camp-report': () => import('./components/CampReportView.vue'),
+  'camp-activities': () => import('./components/CampActivitiesView.vue'),
+  'activity-admin': () => import('./components/ActivityAdminView.vue'),
+  'personal-journey': () => import('./components/PersonalJourneyView.vue'),
+  messages: () => import('./components/MessagesView.vue'),
+  'account-manage': () => import('./components/AccountManageView.vue'),
+  'dietitian-config': () => import('./components/DietitianConfigView.vue'),
+  'activity-hub': () => import('./components/ActivityHubView.vue'),
+  'points-mall': () => import('./components/PointsMallView.vue'),
+  'fulfillment-center': () => import('./components/FulfillmentCenterView.vue'),
+  'my-rewards': () => import('./components/MyRewardsView.vue'),
+};
+
+// 各角色最高频的底部 tab 页 + 常用子页：登录后空闲预取，首次点击命中已缓存 chunk，避免等网络
+const ROLE_TABS: Record<string, string[]> = {
+  student: ['dashboard', 'activity-hub', 'messages', 'health-profile', 'exercise', 'diet', 'weight-checkin', 'points-mall', 'calendar', 'reward'],
+  dietitian: ['dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config', 'fulfillment-center', 'reward-config', 'dietitian-student-detail'],
+  coach: ['coach-dashboard', 'coach-student-detail', 'activity-upload', 'activities-list'],
+};
+let prefetched = false;
+function prefetchTabs(role: string) {
+  if (prefetched) return;
+  prefetched = true;
+  const keys = ROLE_TABS[role] || [];
+  const ric = (window as any).requestIdleCallback;
+  const go = () => { keys.forEach((k) => { const imp = VIEW_IMPORTERS[k]; if (imp) imp().catch(() => { /* 预取失败忽略 */ }); }); };
+  if (ric) ric(go, { timeout: 2000 });
+  else setTimeout(go, 300);
+}
+
+// 视图映射：全部按需 + 骨架屏
+const viewMap: Record<string, Component> = Object.fromEntries(
+  Object.keys(VIEW_IMPORTERS).map((k) => [k, lazyView(VIEW_IMPORTERS[k])]),
+);
 
 const store = useAppStore();
 
@@ -84,18 +127,8 @@ onMounted(() => {
   store.init();
   syncRoleClass(store.user?.role);
 
-  // 首屏渲染稳定后，按空闲预加载高频页面 chunk，避免首次进入该页时再等网络拉代码
-  const preloadPaths = [
-    () => import('./components/StudentDashboardView.vue'),
-    () => import('./components/ExerciseView.vue'),
-    () => import('./components/DietView.vue'),
-    () => import('./components/WeightCheckinView.vue'),
-    () => import('./components/CalendarView.vue'),
-    () => import('./components/PointsMallView.vue'),
-    () => import('./components/MessagesView.vue'),
-  ];
-  const idleCb = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1500));
-  idleCb(() => { preloadPaths.forEach((p) => p().catch(() => { /* 预加载失败不影响 */ })); });
+  // 等登录角色确定后再按角色空闲预取底部 tab 页 chunk（登录页不预取，避免误拉）
+  watch(() => store.user?.role, (r) => { if (r) prefetchTabs(r); }, { immediate: true });
 });
 </script>
 
