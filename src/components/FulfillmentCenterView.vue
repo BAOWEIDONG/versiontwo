@@ -5,7 +5,7 @@ import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
 import {
   Truck, Coins, Clock, CheckCircle2,
-  AlertCircle, ClipboardCheck, Eye,
+  AlertCircle, ClipboardCheck, Eye, Search,
 } from 'lucide-vue-next';
 import type { RewardClaim, PointExchangeRecord, Camp } from '../types';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
@@ -212,6 +212,7 @@ interface ShipItem {
   trackingNumber?: string;
   shipDate?: string;
   deliveredAt?: string;
+  camp?: Camp;
   rawClaim?: RewardClaim;
   rawExchange?: PointExchangeRecord;
 }
@@ -231,6 +232,7 @@ const pendingShipItems = computed<ShipItem[]>(() => {
         recipientName: c.recipientName,
         recipientPhone: c.recipientPhone,
         recipientAddress: c.recipientAddress,
+        camp: campOf(c.campId),
         rawClaim: c,
       };
     });
@@ -247,6 +249,7 @@ const pendingShipItems = computed<ShipItem[]>(() => {
       recipientName: e.recipientName,
       recipientPhone: e.recipientPhone,
       recipientAddress: e.recipientAddress,
+      camp: campOf(e.campId),
       rawExchange: e,
     }));
 
@@ -269,6 +272,7 @@ const shippedItems = computed<ShipItem[]>(() => {
         recipientName: c.recipientName,
         recipientPhone: c.recipientPhone,
         recipientAddress: c.recipientAddress,
+        camp: campOf(c.campId),
         trackingNumber: c.trackingNumber,
         shipDate: c.shipDate,
         deliveredAt: c.deliveredAt,
@@ -288,6 +292,7 @@ const shippedItems = computed<ShipItem[]>(() => {
       recipientName: e.recipientName,
       recipientPhone: e.recipientPhone,
       recipientAddress: e.recipientAddress,
+      camp: campOf(e.campId),
       trackingNumber: e.trackingNumber,
       shipDate: e.shipDate,
       deliveredAt: e.deliveredAt,
@@ -297,6 +302,65 @@ const shippedItems = computed<ShipItem[]>(() => {
   return [...claimItems, ...exchangeItems]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 });
+
+// ─── 发货：来源筛选（全部 / 活动 / 兑换） ───
+const shipSource = ref<'all' | 'claim' | 'exchange'>('all');
+const filteredPendingShip = computed(() =>
+  shipSource.value === 'all'
+    ? pendingShipItems.value
+    : pendingShipItems.value.filter((i) => i.type === shipSource.value)
+);
+const filteredShipped = computed(() =>
+  shipSource.value === 'all'
+    ? shippedItems.value
+    : shippedItems.value.filter((i) => i.type === shipSource.value)
+);
+
+// ─── 兑换记录：筛选条 + 按状态分组 ───
+const exSource = ref<'all' | 'exchange' | 'checkin'>('all');
+const exStatus = ref<'all' | 'pending' | 'shipped' | 'cancelled'>('all');
+const exCamp = ref<string>('all'); // 'all' 或 campId
+const exKeyword = ref('');
+
+type ExGroupKey = 'pending' | 'shipped' | 'cancelled';
+const statusGroupOf = (r: ExchangeRecordItem): ExGroupKey =>
+  r.status === 'cancelled' ? 'cancelled' : r.status === 'pending' ? 'pending' : 'shipped';
+
+const filteredExchangeRecords = computed(() => {
+  const kw = exKeyword.value.trim().toLowerCase();
+  return allExchangeRecords.value.filter((r) => {
+    if (exSource.value !== 'all' && r.type !== exSource.value) return false;
+    if (exStatus.value !== 'all' && statusGroupOf(r) !== exStatus.value) return false;
+    if (exCamp.value !== 'all' && r.campId !== exCamp.value) return false;
+    if (kw && !r.studentName.toLowerCase().includes(kw)) return false;
+    return true;
+  });
+});
+
+const EX_GROUP_META: Record<ExGroupKey, { label: string; color: string; bg: string }> = {
+  pending: { label: '待发货', color: '#1677FF', bg: '#EBF5FF' },
+  shipped: { label: '已发货', color: '#07C160', bg: '#E8F8EE' },
+  cancelled: { label: '已取消', color: '#969799', bg: '#F2F3F5' },
+};
+
+const exchangeGroups = computed(() => {
+  const order: ExGroupKey[] = ['pending', 'shipped', 'cancelled'];
+  return order
+    .map((key) => ({
+      key,
+      meta: EX_GROUP_META[key],
+      items: filteredExchangeRecords.value.filter((r) => statusGroupOf(r) === key),
+    }))
+    .filter((g) => g.items.length > 0);
+});
+
+const exchangeCamps = computed(() => store.camps);
+function resetExchangeFilter() {
+  exSource.value = 'all';
+  exStatus.value = 'all';
+  exCamp.value = 'all';
+  exKeyword.value = '';
+}
 
 // ─── 审核弹窗 ───
 const showAuditModal = ref(false);
@@ -668,15 +732,31 @@ function switchModule(m: Module) {
               <div v-if="shipTab === 'shipped'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1677FF] rounded-full"></div>
             </button>
           </div>
-        </div>
+      </div>
 
-        <!-- 待发货 -->
+      <!-- 来源筛选：全部 / 活动 / 兑换 -->
+      <div class="bg-white px-4 pb-3 border-b border-gray-50 -mt-px">
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'claim', l: '活动' }, { v: 'exchange', l: '兑换' }] as const)"
+            :key="opt.v"
+            @click="shipSource = opt.v"
+            :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', shipSource === opt.v ? 'bg-[#1677FF] text-white' : 'bg-gray-50 text-gray-500']"
+          >{{ opt.l }}</button>
+        </div>
+      </div>
+
+      <!-- 待发货 -->
         <div v-if="shipTab === 'pending'" class="p-4 space-y-3">
           <div v-if="pendingShipItems.length === 0" class="flex flex-col items-center py-16">
             <Truck class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">暂无待发货订单</p>
           </div>
-          <Card v-for="item in pendingShipItems" :key="item.id" class="p-4">
+          <div v-else-if="filteredPendingShip.length === 0" class="flex flex-col items-center py-16">
+            <Search class="w-10 h-10 text-gray-200 mb-2" />
+            <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
+          </div>
+          <Card v-for="item in filteredPendingShip" :key="item.id" class="p-4">
             <div class="flex items-start gap-3">
               <div class="w-14 h-14 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
@@ -695,6 +775,11 @@ function switchModule(m: Module) {
                   <span v-if="item.deliveryMethod">{{ item.deliveryMethod === 'shipped' ? '邮寄' : '线下领取' }}</span>
                   <span>·</span>
                   <span>{{ formatDate(item.date) }}</span>
+                </div>
+                <!-- 营期名称 + 营期时间（上下两行，超长省略号截断） -->
+                <div v-if="item.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
+                  <div class="font-bold text-gray-500 truncate">{{ item.camp.name }}</div>
+                  <div class="text-gray-400 truncate">{{ campDateRange(item.camp) }}</div>
                 </div>
                 <!-- 收件信息（邮寄类，claim和exchange通用） -->
                 <div v-if="item.recipientName && item.recipientAddress && item.recipientAddress !== '线下领取'" class="mt-2 bg-gray-50 rounded-lg p-2 text-[10px] text-gray-600 leading-relaxed">
@@ -733,7 +818,11 @@ function switchModule(m: Module) {
             <CheckCircle2 class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">暂无发货记录</p>
           </div>
-          <Card v-for="item in shippedItems" :key="item.id" class="p-4">
+          <div v-else-if="filteredShipped.length === 0" class="flex flex-col items-center py-16">
+            <Search class="w-10 h-10 text-gray-200 mb-2" />
+            <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
+          </div>
+          <Card v-for="item in filteredShipped" :key="item.id" class="p-4">
             <div class="flex items-start gap-3">
               <div class="w-14 h-14 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
@@ -753,6 +842,11 @@ function switchModule(m: Module) {
                   <span>{{ item.studentName }}</span>
                   <span>·</span>
                   <span>{{ formatDate(item.date) }}</span>
+                </div>
+                <!-- 营期名称 + 营期时间（上下两行，超长省略号截断） -->
+                <div v-if="item.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
+                  <div class="font-bold text-gray-500 truncate">{{ item.camp.name }}</div>
+                  <div class="text-gray-400 truncate">{{ campDateRange(item.camp) }}</div>
                 </div>
                 <!-- 收件信息（邮寄类） -->
                 <div v-if="item.recipientName && item.recipientAddress && item.recipientAddress !== '线下领取'" class="mt-2 bg-gray-50 rounded-lg p-2 text-[10px] text-gray-600 leading-relaxed">
@@ -777,52 +871,106 @@ function switchModule(m: Module) {
       </div>
 
       <!-- ═══ 兑换记录（纯查看：积分兑换 + 连续打卡奖励） ═══ -->
-      <div v-if="activeModule === 'exchange'" class="p-4 space-y-3">
-        <div v-if="allExchangeRecords.length === 0" class="flex flex-col items-center py-16">
-          <Coins class="w-10 h-10 text-gray-200 mb-2" />
-          <p class="text-sm text-gray-400">暂无兑换记录</p>
-        </div>
-        <Card v-for="record in allExchangeRecords" :key="record.id" class="p-3">
-          <div class="flex items-start gap-3">
-            <div class="w-12 h-12 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
-              <img :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between gap-2">
-                <h4 class="text-sm font-bold text-gray-900 truncate">{{ record.productName }}</h4>
-                <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
-                  {{ statusMeta(record.type, record.status).label }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400 flex-wrap">
-                <!-- 来源标签：连续打卡奖励 / 积分兑换 -->
-                <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full',
-                  record.type === 'checkin' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#FFF4ED] text-[#FF6B35]']">
-                  {{ record.typeLabel }}
-                </span>
-                <span>{{ record.studentName }}</span>
-                <template v-if="record.type === 'exchange' && record.pointsSpent">
-                  <span>·</span>
-                  <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>
-                </template>
-                <span>·</span>
-                <span>{{ formatDateTime(record.date) }}</span>
-              </div>
-              <!-- 营期名称 + 营期时间（上下两行，营期名超长时省略号截断） -->
-              <div v-if="record.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
-                <div class="font-bold text-gray-500 truncate">{{ record.camp.name }}</div>
-                <div class="text-gray-400 truncate">{{ campDateRange(record.camp) }}</div>
-              </div>
-              <div v-if="record.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
-                <div class="text-[10px] text-gray-600">
-                  <span class="text-gray-400">单号：</span>
-                  <span class="font-mono font-bold">{{ record.trackingNumber }}</span>
-                </div>
-                <button class="text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(record.trackingNumber!)">复制</button>
-              </div>
+      <div v-if="activeModule === 'exchange'">
+        <!-- 筛选条 -->
+        <div class="bg-white px-4 py-3 border-b border-gray-50 space-y-2.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] text-gray-400 mr-0.5">来源</span>
+            <button
+              v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'exchange', l: '积分兑换' }, { v: 'checkin', l: '连续打卡' }] as const)"
+              :key="opt.v" @click="exSource = opt.v"
+              :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', exSource === opt.v ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']"
+            >{{ opt.l }}</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] text-gray-400 mr-0.5">状态</span>
+            <button
+              v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'pending', l: '待发货' }, { v: 'shipped', l: '已发货' }, { v: 'cancelled', l: '已取消' }] as const)"
+              :key="opt.v" @click="exStatus = opt.v"
+              :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', exStatus === opt.v ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']"
+            >{{ opt.l }}</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] text-gray-400 mr-0.5">营期</span>
+            <button @click="exCamp = 'all'"
+              :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', exCamp === 'all' ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']">全部</button>
+            <button v-for="c in exchangeCamps" :key="c.id" @click="exCamp = c.id"
+              :class="['text-[10px] px-2.5 py-1 rounded-full font-bold max-w-[7rem] truncate transition-colors', exCamp === c.id ? 'bg-[#FF976A] text-white' : 'bg-gray-50 text-gray-500']">{{ c.name }}</button>
+          </div>
+          <div>
+            <div class="relative">
+              <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input v-model="exKeyword" type="text" placeholder="搜索学员姓名"
+                class="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-100 rounded-full text-xs focus:outline-none focus:border-[#FF976A]/40 placeholder:text-gray-300" />
             </div>
           </div>
-        </Card>
+        </div>
+
+        <!-- 按状态分组的记录列表 -->
+        <div class="p-4 space-y-5">
+          <div v-if="allExchangeRecords.length === 0" class="flex flex-col items-center py-16">
+            <Coins class="w-10 h-10 text-gray-200 mb-2" />
+            <p class="text-sm text-gray-400">暂无兑换记录</p>
+          </div>
+          <template v-else-if="exchangeGroups.length === 0">
+            <div class="flex flex-col items-center py-16">
+              <Search class="w-10 h-10 text-gray-200 mb-2" />
+              <p class="text-sm text-gray-400">没有符合筛选的记录</p>
+              <button class="mt-3 text-xs text-[#FF976A] font-bold active:scale-95" @click="resetExchangeFilter">清空筛选</button>
+            </div>
+          </template>
+          <template v-else>
+            <div v-for="group in exchangeGroups" :key="group.key">
+              <div class="flex items-center gap-2 mb-2.5">
+                <span class="text-[11px] font-bold px-2 py-1 rounded-full" :style="{ color: group.meta.color, backgroundColor: group.meta.bg }">{{ group.meta.label }}</span>
+                <span class="text-[10px] text-gray-400">{{ group.items.length }} 条</span>
+              </div>
+              <div class="space-y-3">
+                <Card v-for="record in group.items" :key="record.id" class="p-3">
+                  <div class="flex items-start gap-3">
+                    <div class="w-12 h-12 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
+                      <img :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-2">
+                        <h4 class="text-sm font-bold text-gray-900 truncate">{{ record.productName }}</h4>
+                        <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
+                          {{ statusMeta(record.type, record.status).label }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400 flex-wrap">
+                        <!-- 来源标签：连续打卡奖励 / 积分兑换 -->
+                        <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full',
+                          record.type === 'checkin' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#FFF4ED] text-[#FF6B35]']">
+                          {{ record.typeLabel }}
+                        </span>
+                        <span>{{ record.studentName }}</span>
+                        <template v-if="record.type === 'exchange' && record.pointsSpent">
+                          <span>·</span>
+                          <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>
+                        </template>
+                        <span>·</span>
+                        <span>{{ formatDateTime(record.date) }}</span>
+                      </div>
+                      <!-- 营期名称 + 营期时间（上下两行，营期名超长时省略号截断） -->
+                      <div v-if="record.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
+                        <div class="font-bold text-gray-500 truncate">{{ record.camp.name }}</div>
+                        <div class="text-gray-400 truncate">{{ campDateRange(record.camp) }}</div>
+                      </div>
+                      <div v-if="record.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
+                        <div class="text-[10px] text-gray-600">
+                          <span class="text-gray-400">单号：</span>
+                          <span class="font-mono font-bold">{{ record.trackingNumber }}</span>
+                        </div>
+                        <button class="text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(record.trackingNumber!)">复制</button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
 
