@@ -480,7 +480,7 @@ const submitAddressEdit = () => {
             />
           </div>
           <div v-if="w.dietitianComment" class="mt-2 p-2.5 bg-[#1677FF]/5 rounded-lg border border-[#1677FF]/10">
-            <span class="text-xs font-bold text-[#1677FF]">批注</span>
+            <span class="text-xs font-bold text-[#1677FF]">{{ w.dietitianName || '营养师' }}批注</span>
             <p class="text-sm text-gray-700 mt-0.5">{{ w.dietitianComment }}</p>
           </div>
         </div>
@@ -529,7 +529,7 @@ const submitAddressEdit = () => {
               </div>
             </div>
             <div v-if="ex.coachComment" class="mt-2 p-2.5 bg-[#07C160]/5 rounded-lg border border-[#07C160]/10">
-              <span class="text-xs font-bold text-[#07C160]">批注</span>
+              <span class="text-xs font-bold text-[#07C160]">{{ ex.coachName || '教练' }}批注</span>
               <p class="text-sm text-gray-700 mt-0.5">{{ ex.coachComment }}</p>
             </div>
           </div>
@@ -564,7 +564,7 @@ const submitAddressEdit = () => {
             </div>
             <div v-if="diet.dietitianComment || typeof diet.dietitianScore === 'number'" class="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-bold text-[#FF976A]">批注</span>
+                <span class="text-xs font-bold text-[#FF976A]">{{ diet.dietitianName || '营养师' }}批注</span>
                 <span v-if="diet.dietitianScore === 2" class="text-[10px] font-bold text-white bg-[#07C160] px-1.5 py-0.5 rounded">+2</span>
                 <span v-else-if="diet.dietitianScore === 1" class="text-[10px] font-bold text-white bg-[#FF976A] px-1.5 py-0.5 rounded">+1</span>
                 <span v-else-if="diet.dietitianScore === 0" class="text-[10px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded">0</span>

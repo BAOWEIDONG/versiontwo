@@ -149,7 +149,7 @@ const exercisePoints = (record: ExerciseRecord): number => {
           <div class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.isFasted ? '未进食' : record.description }}</div>
 
           <div v-if="record.dietitianComment" class="mt-3 bg-gray-50 p-2 rounded text-xs text-gray-600">
-            <span class="font-bold text-[#FF976A] mr-1">批注:</span>
+            <span class="font-bold text-[#FF976A] mr-1">{{ record.dietitianName || '营养师' }}批注:</span>
             {{ record.dietitianComment }}
           </div>
         </Card>
@@ -178,7 +178,7 @@ const exercisePoints = (record: ExerciseRecord): number => {
             教练评分: +{{ record.coachScore }} 加成
           </div>
           <div v-if="record.coachComment" class="mt-3 bg-gray-50 p-2 rounded text-xs text-gray-600">
-            <span class="font-bold text-[#07C160] mr-1">教练批注:</span>
+            <span class="font-bold text-[#07C160] mr-1">{{ record.coachName || '教练' }}批注:</span>
             {{ record.coachComment }}
           </div>
         </Card>

@@ -725,7 +725,7 @@ function handleChartTouchMove(e: TouchEvent) {
                   <div v-if="w.dietitianComment" class="mt-2 ml-11 bg-[#1677FF]/5 rounded-lg p-3 border border-[#1677FF]/10">
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-xs font-bold text-[#1677FF] flex items-center gap-1.5">
-                        批注
+                        {{ w.dietitianName || '营养师' }}批注
                         <span v-if="!w.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       </span>
                       <span v-if="w.dietitianCommentDate" class="text-[10px] text-gray-400">{{ w.dietitianCommentDate }}</span>

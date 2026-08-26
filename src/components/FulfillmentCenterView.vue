@@ -808,11 +808,10 @@ function switchModule(m: Module) {
                 <span>·</span>
                 <span>{{ formatDateTime(record.date) }}</span>
               </div>
-              <!-- 营期名称 + 营期时间 -->
-              <div v-if="record.camp" class="mt-1 text-[10px] text-gray-400">
-                <span class="font-bold text-gray-500">{{ record.camp.name }}</span>
-                <span class="mx-1 text-gray-300">·</span>
-                <span>{{ campDateRange(record.camp) }}</span>
+              <!-- 营期名称 + 营期时间（上下两行，营期名超长时省略号截断） -->
+              <div v-if="record.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
+                <div class="font-bold text-gray-500 truncate">{{ record.camp.name }}</div>
+                <div class="text-gray-400 truncate">{{ campDateRange(record.camp) }}</div>
               </div>
               <div v-if="record.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
                 <div class="text-[10px] text-gray-600">

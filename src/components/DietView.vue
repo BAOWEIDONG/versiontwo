@@ -6,9 +6,8 @@ import { celebrateCheckin, celebrateReward } from '../lib/confetti';
 import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
 import { Checkbox as VanCheckbox } from 'vant';
-import { NavBar, Card, Button, ChartRulePopup } from './ui';
-import { Camera, X, ChevronDown, UtensilsCrossed, Salad } from 'lucide-vue-next';
-import { computeDietScoreTrends } from '../lib/journey';
+import { NavBar, Card, Button } from './ui';
+import { Camera, X, ChevronDown, UtensilsCrossed } from 'lucide-vue-next';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
@@ -22,10 +21,10 @@ const MEAL_TYPES = [
 
 const store = useAppStore();
 
-// ─── Tab 结构：打卡 / 趋势 / 记录 ────────────────────────
-const activeTab = ref<'checkin' | 'trend' | 'records'>('checkin');
+// ─── Tab 结构：打卡 / 记录 ────────────────────────
+const activeTab = ref<'checkin' | 'records'>('checkin');
 const sheetRoot = ref<HTMLElement | null>(null);
-useTabSwipe(sheetRoot, activeTab, ['checkin', 'trend', 'records']);
+useTabSwipe(sheetRoot, activeTab, ['checkin', 'records']);
 
 // ─── 营期切换（多期时显示） ──────────────────────────────
 const availableCamps = computed(() => store.user ? store.getStudentCamps(store.user.id) : []);
@@ -195,20 +194,6 @@ const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allH
 
 const mealLabel = (meal: string) => MEAL_TYPES.find((m) => m.id === meal)?.label;
 
-// 饮食健康指数周趋势（规则见 journey.ts computeDietScoreTrends 头部文档注释）
-const dietTrends = computed(() => computeDietScoreTrends(campDiet.value, campEx.value, campWt.value, store.user?.id));
-const dietTrendMax = computed(() => Math.max(...dietTrends.value.map((t) => t.score), 100));
-const dietTrendColor = (score: number): string =>
-  score >= 80 ? '#07C160' : score >= 60 ? '#FF976A' : '#EF4444';
-const dietTrendDirection = computed(() => {
-  const trends = dietTrends.value;
-  if (trends.length < 2) return null;
-  const diff = trends[trends.length - 1].score - trends[trends.length - 2].score;
-  if (diff > 3) return 'up';
-  if (diff < -3) return 'down';
-  return 'flat';
-});
-
 // 学员对批注的反馈（点按钮同时视为已读）
 const markDietFeedback = (recordId: string, feedback: 'received' | 'helpful') => {
   store.updateDietRecord(recordId, { studentFeedback: feedback, commentRead: true });
@@ -256,11 +241,11 @@ onMounted(() => {
   <div ref="sheetRoot" class="flex min-h-full flex-col bg-[#F7F8FA] pb-8">
     <NavBar title="饮食打卡" :on-back="store.goBack" />
 
-    <!-- Tab 切换：打卡 / 趋势 / 记录（液态玻璃胶囊） -->
+    <!-- Tab 切换：打卡 / 记录（液态玻璃胶囊） -->
     <div class="sticky top-14 z-20 px-4 pt-3 pb-1">
       <div class="seg-tabs">
         <button
-          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'trend', label: '趋势' }, { id: 'records', label: '记录' }] as const)"
+          v-for="tab in ([{ id: 'checkin', label: '打卡' }, { id: 'records', label: '记录' }] as const)"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="['seg-tab seg-tab-orange', activeTab === tab.id ? 'active' : '']"
@@ -357,80 +342,7 @@ onMounted(() => {
       </Card>
     </div>
 
-    <!-- ══════════ Tab 2: 趋势 ══════════ -->
-    <div v-show="activeTab === 'trend'" class="p-4 space-y-4">
-      <!-- 饮食健康指数 -->
-      <Card v-if="dietTrends.length > 0" class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="font-bold text-gray-900 flex items-center gap-1.5 text-sm">
-            <Salad class="h-4 w-4 text-[#FF976A]" />
-            饮食健康指数
-          </h3>
-          <div class="flex items-center gap-2">
-            <span v-if="dietTrendDirection" class="text-[10px] font-bold" :class="dietTrendDirection === 'up' ? 'text-[#07C160]' : dietTrendDirection === 'down' ? 'text-red-500' : 'text-gray-400'">
-            {{ dietTrendDirection === 'up' ? '↑ 在变好' : dietTrendDirection === 'down' ? '↓ 有波动' : '→ 平稳' }}
-          </span>
-            <ChartRulePopup title="饮食健康指数计算规则">
-              <p><span class="font-bold text-gray-900">综合公式：</span>每周指数 = 三餐规律 × 30% + 结构均衡 × 40% + 营养师评分 × 30%，满分100分。</p>
-              <p><span class="font-bold text-gray-900">动态加权：</span>某项指标当周无数据时（如营养师尚未评分），其权重按比例分配给其他指标，不会因"未评分"直接不及格。</p>
-              <p><span class="font-bold text-gray-900">三餐规律率（30%）：</span>三餐齐全天数 ÷ 有打卡天数。"三餐齐全"指同一天早、中、晚三餐都有打卡记录。仅统计有打卡的日子，不惩罚完全没打卡的天。</p>
-              <p><span class="font-bold text-gray-900">结构均衡率（40%）：</span>在营养师已评定的记录中，食物类别（主食/蛋白/蔬菜）至少包含2项的记录占比。减脂餐不吃主食、只要蛋白+蔬菜也算均衡。</p>
-              <p><span class="font-bold text-gray-900">营养师评分分（30%）：</span>该周营养师已评分记录的平均分（0~2分）÷ 2，映射到0~1。未批注的记录不计分。</p>
-              <p><span class="font-bold text-gray-900">颜色分级：</span>≥80 绿色（优秀）、60-79 橙色（良好）、&lt;60 红色（需改善）。</p>
-              <p><span class="font-bold text-gray-900">趋势箭头：</span>比较最近两周分数差值，差&gt;3显示"↑在变好"、差&lt;-3显示"↓有波动"、否则"->平稳"。</p>
-            </ChartRulePopup>
-          </div>
-        </div>
-        <!-- 柱状图：每周健康指数得分 -->
-        <div class="flex items-end justify-between gap-1.5 h-24">
-          <div v-for="t in dietTrends" :key="t.weekLabel" class="flex-1 flex flex-col items-center justify-end h-full">
-            <div class="text-[10px] font-bold mb-0.5" :style="{ color: dietTrendColor(t.score) }">{{ t.score }}</div>
-            <div class="w-full rounded-t transition-all min-h-[3px]" :style="{ height: `${Math.max((t.score / dietTrendMax) * 100, 3)}%`, backgroundColor: dietTrendColor(t.score) }"></div>
-            <div class="text-[9px] text-gray-400 mt-1">{{ t.weekLabel }}</div>
-          </div>
-        </div>
-        <!-- 图例 -->
-        <div class="flex items-center gap-3 text-[9px] text-gray-400">
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#07C160]"></span>≥80 优秀</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#FF976A]"></span>60-79 良好</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-red-400"></span>&lt;60 需改善</span>
-        </div>
-        <!-- 最近一周分解 -->
-        <div v-if="dietTrends.length > 0" class="pt-2 border-t border-gray-50 space-y-2">
-          <div class="text-[10px] text-gray-400">最近一周 {{ dietTrends[dietTrends.length - 1].weekLabel }} 分解：</div>
-          <div class="flex items-center gap-2 text-[10px]">
-            <span class="text-gray-500 w-16 shrink-0">三餐规律</span>
-            <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div class="h-full rounded-full bg-[#1677FF]" :style="{ width: `${dietTrends[dietTrends.length - 1].regularityRate * 100}%` }"></div>
-            </div>
-            <span class="text-gray-500 w-16 text-right">{{ Math.round(dietTrends[dietTrends.length - 1].regularityRate * 100) }}% ({{ dietTrends[dietTrends.length - 1].fullMealDays }}/{{ dietTrends[dietTrends.length - 1].checkinDays }}天)</span>
-          </div>
-          <div class="flex items-center gap-2 text-[10px]">
-            <span class="text-gray-500 w-16 shrink-0">结构均衡</span>
-            <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div class="h-full rounded-full bg-[#07C160]" :style="{ width: `${dietTrends[dietTrends.length - 1].balanceRate * 100}%` }"></div>
-            </div>
-            <span class="text-gray-500 w-16 text-right">{{ dietTrends[dietTrends.length - 1].taggedRecords > 0 ? Math.round(dietTrends[dietTrends.length - 1].balanceRate * 100) + '%' : '待评定' }} ({{ dietTrends[dietTrends.length - 1].taggedRecords }}条)</span>
-          </div>
-          <div class="flex items-center gap-2 text-[10px]">
-            <span class="text-gray-500 w-16 shrink-0">营养师评分</span>
-            <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div class="h-full rounded-full bg-[#FF976A]" :style="{ width: `${dietTrends[dietTrends.length - 1].avgDietitianScore !== null ? (dietTrends[dietTrends.length - 1].avgDietitianScore! / 2) * 100 : 0}%` }"></div>
-            </div>
-            <span class="text-gray-500 w-16 text-right">{{ dietTrends[dietTrends.length - 1].avgDietitianScore !== null ? dietTrends[dietTrends.length - 1].avgDietitianScore!.toFixed(1) + '/2.0' : '待评分' }}</span>
-          </div>
-        </div>
-      </Card>
-      <div v-else class="text-center py-10 bg-white rounded-2xl border border-gray-100">
-        <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-[#FF976A]/10 flex items-center justify-center">
-          <Salad class="w-8 h-8 text-[#FF976A]" />
-        </div>
-        <div class="text-sm font-bold text-gray-700 mb-1">还没有饮食数据</div>
-        <div class="text-xs text-gray-400">完成打卡后生成健康指数趋势</div>
-      </div>
-    </div>
-
-    <!-- ══════════ Tab 3: 记录 ══════════ -->
+    <!-- ══════════ Tab 2: 记录 ══════════ -->
     <div v-show="activeTab === 'records'" class="p-4 space-y-3">
       <div v-if="groupedHistory.length === 0" class="text-center py-10 bg-white rounded-2xl border border-gray-100 animate-pop-in">
         <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-[#FF976A]/10 flex items-center justify-center">
@@ -494,7 +406,7 @@ onMounted(() => {
                 <div class="absolute top-0 left-0 w-1 min-h-full bg-[#07C160]"></div>
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-[#07C160]">批注</span>
+                    <span class="text-xs font-bold text-[#07C160]">{{ record.dietitianName || '营养师' }}批注</span>
                     <span v-if="record.dietitianScore === 2" class="text-[10px] font-bold text-white bg-[#07C160] px-1.5 py-0.5 rounded">+2</span>
                     <span v-else-if="record.dietitianScore === 1" class="text-[10px] font-bold text-white bg-[#FF976A] px-1.5 py-0.5 rounded">+1</span>
                     <span v-else-if="record.dietitianScore === 0" class="text-[10px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded">0</span>
