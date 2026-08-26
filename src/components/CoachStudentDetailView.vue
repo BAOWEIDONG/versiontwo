@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
@@ -174,6 +174,18 @@ const openReport = (r: any) => {
   if (r.type === 'pdf') window.open(r.url, '_blank');
   else store.openImagePreview([r.url], 0);
 };
+// 教练批注深链：进入/返回时滚动定位到指定运动记录
+const focusRecord = () => {
+  const id = store.coachFocusRecordId;
+  if (!id) return;
+  store.coachFocusRecordId = null;
+  nextTick(() => {
+    const el = document.getElementById(`record-${id}`);
+    if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+};
+onMounted(focusRecord);
+onActivated(focusRecord);
 
 </script>
 

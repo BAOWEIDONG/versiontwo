@@ -173,6 +173,8 @@ export const useAppStore = defineStore('app', () => {
 
   const selectedStudentId = ref<string | null>(null);
   const selectedDateStr = ref<string | null>(null);
+  // 教练批注深链：跳转到某条运动记录（教练学员详情页滚动定位到该条后清空）
+  const coachFocusRecordId = ref<string | null>(null);
 
 
   /** 学员端当前选中的营期 ID（多期学员可切换；null 时自动取第一个 active 营期） */
@@ -939,6 +941,7 @@ export const useAppStore = defineStore('app', () => {
     getCampCoachActivities,
     selectedStudentId,
     selectedDateStr,
+    coachFocusRecordId,
     selectedCampId,
     detailSelectedCampId,
     justCheckedIn,

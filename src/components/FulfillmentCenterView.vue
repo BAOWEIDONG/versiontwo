@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, type Component } from 'vue';
+import { ref, reactive, computed, type Component } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
@@ -335,15 +335,26 @@ const EX_GROUP_META: Record<ExGroupKey, { label: string; color: string; bg: stri
   cancelled: { label: '已取消', color: '#969799', bg: '#F2F3F5' },
 };
 
+// 每组各自分页：待发货/已发货/已取消 独立「加载更多」
+const groupLimits = reactive<Record<ExGroupKey, number>>({ pending: 10, shipped: 10, cancelled: 10 });
+const GROUP_PAGE = 10;
+function loadMoreGroup(key: ExGroupKey) { groupLimits[key] += GROUP_PAGE; }
+
 const exchangeGroups = computed(() => {
   const order: ExGroupKey[] = ['pending', 'shipped', 'cancelled'];
   return order
-    .map((key) => ({
-      key,
-      meta: EX_GROUP_META[key],
-      items: filteredExchangeRecords.value.filter((r) => statusGroupOf(r) === key),
-    }))
-    .filter((g) => g.items.length > 0);
+    .map((key) => {
+      const all = filteredExchangeRecords.value.filter((r) => statusGroupOf(r) === key);
+      return {
+        key,
+        meta: EX_GROUP_META[key],
+        total: all.length,
+        items: all.slice(0, groupLimits[key]),
+        hasMore: groupLimits[key] < all.length,
+        remaining: Math.max(0, all.length - groupLimits[key]),
+      };
+    })
+    .filter((g) => g.total > 0);
 });
 
 const exchangeCamps = computed(() => store.camps);
@@ -900,7 +911,7 @@ function switchModule(m: Module) {
             <div v-for="group in exchangeGroups" :key="group.key">
               <div class="flex items-center gap-2 mb-2.5">
                 <span class="text-[11px] font-bold px-2 py-1 rounded-full" :style="{ color: group.meta.color, backgroundColor: group.meta.bg }">{{ group.meta.label }}</span>
-                <span class="text-[10px] text-gray-400">{{ group.items.length }} 条</span>
+                <span class="text-[10px] text-gray-400">{{ group.total }} 条</span>
               </div>
               <div class="space-y-3">
                 <Card v-for="record in group.items" :key="record.id" class="px-3 py-2.5">
@@ -938,6 +949,9 @@ function switchModule(m: Module) {
                     <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95 ml-2" @click="copyToClipboard(record.trackingNumber!, '单号')">复制</button>
                   </div>
                 </Card>
+                  <button v-if="group.hasMore" @click="loadMoreGroup(group.key)" class="w-full py-2.5 mt-1 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+                    加载更多{{ group.meta.label }}（还有 {{ group.remaining }} 条）
+                  </button>
               </div>
             </div>
           </template>

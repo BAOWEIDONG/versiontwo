@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { usePaged } from '../composables/usePaged';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card } from './ui';
@@ -106,10 +107,12 @@ const streakTiers = computed(() =>
   [...campRewardTiers.value]
     .sort((a, b) => a.requiredDays - b.requiredDays)
 );
+const { items: pagedStreakTiers, hasMore: hasMoreTiers, remaining: remainingTiers, loadMore: loadMoreTiers } = usePaged(streakTiers, 10);
 
 // ─── 积分商城商品管理 ───
 /** 积分商城商品：按当前营期过滤（未绑定 campId 视为全局共享，与连续打卡档口径一致） */
 const allMallProducts = computed(() => store.pointProducts.filter((p) => !p.campId || p.campId === selectedCampId.value));
+const { items: pagedMallProducts, hasMore: hasMoreProducts, remaining: remainingProducts, loadMore: loadMoreProducts } = usePaged(allMallProducts, 10);
 const allExchanges = computed(() =>
   [...store.pointExchanges].sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate))
 );
@@ -260,7 +263,7 @@ function formatExchangeDate(dateStr: string) {
         </div>
         <div v-if="streakTiers.length === 0" class="text-center py-8 text-gray-400 text-xs bg-white rounded-xl border border-gray-100">暂无打卡奖励，请添加</div>
         <div class="space-y-3">
-          <Card v-for="tier in streakTiers" :key="tier.id" class="p-4 flex gap-4">
+          <Card v-for="tier in pagedStreakTiers" :key="tier.id" class="p-4 flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 shrink-0 overflow-hidden border border-gray-50 cursor-pointer" @click="store.openImagePreview([tier.imageUrl], 0)">
               <img loading="lazy" decoding="async" :src="tier.imageUrl" :alt="tier.name" class="w-full h-full object-cover" />
             </div>
@@ -283,6 +286,9 @@ function formatExchangeDate(dateStr: string) {
             </div>
           </Card>
         </div>
+        <button v-if="hasMoreTiers" @click="loadMoreTiers" class="w-full py-2.5 mt-1 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+          加载更多打卡奖励（还有 {{ remainingTiers }} 档）
+        </button>
       </div>
 
       <!-- 积分商城商品（按当前营期过滤；未绑定营期视为全局共享） -->
@@ -299,7 +305,7 @@ function formatExchangeDate(dateStr: string) {
         <p class="text-[10px] text-gray-400 mb-3">商品随当前营期展示，各营期可配置不同商品。新增商品绑定当前营期。学员通过打卡累积积分兑换当前营期商品。</p>
         <div v-if="allMallProducts.length === 0" class="text-center py-8 text-gray-400 text-xs bg-white rounded-xl border border-gray-100">暂无商品，请添加</div>
         <div class="space-y-3">
-          <Card v-for="product in allMallProducts" :key="product.id" class="p-4 flex gap-4">
+          <Card v-for="product in pagedMallProducts" :key="product.id" class="p-4 flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 shrink-0 overflow-hidden border border-gray-50 cursor-pointer" @click="store.openImagePreview([product.imageUrl], 0)">
               <img loading="lazy" decoding="async" :src="product.imageUrl" :alt="product.name" class="w-full h-full object-cover" />
             </div>
@@ -333,6 +339,9 @@ function formatExchangeDate(dateStr: string) {
             </div>
           </Card>
         </div>
+        <button v-if="hasMoreProducts" @click="loadMoreProducts" class="w-full py-2.5 mt-1 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+          加载更多商品（还有 {{ remainingProducts }} 个）
+        </button>
       </div>
 
       <!-- 兑换记录入口 -->
