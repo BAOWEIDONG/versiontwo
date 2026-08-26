@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { thumbUrl } from '../lib/imageThumb';
 import { NavBar as VanNavBar, showSuccessToast, showFailToast } from 'vant';
 import { StudentTabbar } from './ui';
 import { Activity, FileText, Bell, Coins, Gift, CheckCircle, Truck, MapPin, User, Phone } from 'lucide-vue-next';
@@ -178,7 +179,7 @@ const unreadCount = computed(() => {
           @click="openExchange(product)"
         >
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
-            <img :src="product.imageUrl" class="w-full h-full object-cover" :alt="product.name" loading="lazy" decoding="async" />
+            <img :src="thumbUrl(product.imageUrl, 200)" class="w-full h-full object-cover" :alt="product.name" loading="lazy" decoding="async" />
             <div v-if="product.stock <= 5 && product.stock > 0"
               class="absolute top-2 right-2 bg-[#FF4444] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
               仅剩{{ product.stock }}件

@@ -12,6 +12,7 @@ import { showToast } from 'vant';
 import { computeExerciseTrends } from '../lib/journey';
 import DailyExerciseTrend from './DailyExerciseTrend.vue';
 import { formatDateTime } from '../lib/utils';
+import { thumbUrl } from '../lib/imageThumb';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
 
@@ -813,7 +814,7 @@ const handleSubmit = () => {
                   <img
                     v-for="(url, idx) in record.photos"
                     :key="idx"
-                    :src="url"
+                    :src="thumbUrl(url)"
                     alt="运动"
                     class="h-20 w-20 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
                     loading="lazy"

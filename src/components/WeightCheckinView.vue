@@ -9,6 +9,7 @@ import { NavBar, Button, Card, ChartRulePopup } from './ui';
 import { Scale, TrendingUp, TrendingDown, Minus, Camera, X, ChevronDown, Target, Pencil } from 'lucide-vue-next';
 import { showToast } from 'vant';
 import { formatDateTime } from '../lib/utils';
+import { thumbUrl } from '../lib/imageThumb';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
 
@@ -735,7 +736,7 @@ function handleChartTouchMove(e: TouchEvent) {
                     <img
                       v-for="(url, idx) in w.photos"
                       :key="idx"
-                      :src="url"
+                      :src="thumbUrl(url)"
                       alt="体重打卡"
                       class="h-16 w-16 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
                       loading="lazy"

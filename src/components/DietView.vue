@@ -9,6 +9,7 @@ import { Checkbox as VanCheckbox, showToast } from 'vant';
 import { NavBar, Card, Button } from './ui';
 import { Camera, X, ChevronDown, UtensilsCrossed } from 'lucide-vue-next';
 import { formatDateTime } from '../lib/utils';
+import { thumbUrl } from '../lib/imageThumb';
 import type { DietRecord } from '../types';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
@@ -386,7 +387,7 @@ onActivated(processPendingDeepLink);
                   <img
                     v-for="(url, idx) in record.photos"
                     :key="idx"
-                    :src="url"
+                    :src="thumbUrl(url)"
                     alt="食物"
                     class="h-20 w-20 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
                     loading="lazy"
