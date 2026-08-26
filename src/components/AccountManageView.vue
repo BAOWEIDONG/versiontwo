@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useAppStore } from '../store/app';
+import { usePaged } from '../composables/usePaged';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast, showConfirmDialog, Switch as VanSwitch } from 'vant';
 import {
@@ -53,6 +54,9 @@ const filteredAccounts = computed(() => {
   }
   return list;
 });
+// 账户列表分页：默认前 20，更多点「加载更多」；切 tab/营期/搜索时重置
+const { items: pagedAccounts, hasMore, remaining, loadMore, reset: resetPagedAccounts } = usePaged(filteredAccounts, 20);
+watch([activeTab, filterCampId, searchKeyword], () => resetPagedAccounts());
 
 const roleCount = computed(() => ({
   student: store.accounts.filter((a) => a.role === 'student').length,
@@ -390,7 +394,7 @@ const switchTab = (role: Role) => {
       <div class="space-y-3">
         <template v-if="filteredAccounts.length > 0">
           <Card
-            v-for="account in filteredAccounts"
+            v-for="account in pagedAccounts"
             :key="account.id"
             class="p-4 flex items-center justify-between border-0 shadow-sm"
           >
@@ -444,6 +448,9 @@ const switchTab = (role: Role) => {
               </button>
             </div>
           </Card>
+          <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-1 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+            加载更多（还有 {{ remaining }} 个账户）
+          </button>
         </template>
         <div v-else class="text-center text-xs text-gray-400 py-8 bg-white rounded-xl border border-gray-100">
           {{ searchKeyword ? `未找到匹配的${activeTab === 'student' ? '学员' : activeTab === 'coach' ? '教练' : '营养师'}` : '暂无账户，请添加' }}

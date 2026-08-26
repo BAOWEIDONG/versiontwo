@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { useCoachCounts } from '../lib/coachCounts';
+import { usePaged } from '../composables/usePaged';
 import { campDateRange } from '../lib/camps';
 import { rankStudents } from '../lib/scoring';
 import { Card } from './ui';
@@ -98,6 +99,10 @@ const filteredIncomplete = computed(() => {
   if (!searchKeyword.value) return incompleteStudents.value;
   return incompleteStudents.value.filter(matchStudent);
 });
+// 首页学员列表分页：默认前 20，更多点「加载更多」（切 tab 重置）
+const displayedStudents = computed(() => (activeTab.value === 'incomplete' ? filteredIncomplete.value : filteredComplete.value));
+const { items: pagedStudents, hasMore, remaining, loadMore, reset: resetPagedStudents } = usePaged(displayedStudents, 20);
+watch(activeTab, () => resetPagedStudents());
 
 const sortedActivities = computed(() =>
   [...store.coachActivities].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)),
@@ -208,9 +213,9 @@ const selectCamp = (campId: string | null) => {
         </div>
 
         <div class="space-y-3">
-          <template v-if="(activeTab === 'incomplete' ? filteredIncomplete : filteredComplete).length > 0">
+          <template v-if="displayedStudents.length > 0">
             <div
-              v-for="student in (activeTab === 'incomplete' ? filteredIncomplete : filteredComplete)"
+              v-for="student in pagedStudents"
               :key="student.id"
               class="flex items-center justify-between p-4 rounded-2xl bg-white/55 backdrop-blur-md border border-white/60 cursor-pointer hover:border-[#07C160] transition-colors shadow-sm mb-3"
               @click="openStudent(student.id)"
@@ -241,6 +246,9 @@ const selectCamp = (campId: string | null) => {
               </div>
               <div class="text-[#07C160] font-bold">›</div>
             </div>
+            <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mb-1 text-xs font-bold text-[#07C160] bg-white/55 backdrop-blur-md border border-[#07C160]/30 rounded-xl active:bg-green-50">
+              加载更多（还有 {{ remaining }} 名学员）
+            </button>
           </template>
           <div v-else class="text-center text-xs text-gray-400 py-4 rounded-2xl bg-white/55 backdrop-blur-md border border-white/60">
             {{ activeTab === 'incomplete' ? '所有学员已完成今日运动' : '暂无学员完成今日运动' }}

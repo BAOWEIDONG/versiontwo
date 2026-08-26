@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { usePaged } from '../composables/usePaged';
 import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange } from '../lib/camps';
@@ -100,6 +101,9 @@ const filteredIncomplete = computed(() => {
 });
 
 const displayedStudents = computed(() => (activeTab.value === 'incomplete' ? filteredIncomplete.value : filteredComplete.value));
+// 首页学员列表分页：默认前 20，更多点「加载更多」（切 tab 重置）
+const { items: pagedStudents, hasMore, remaining, loadMore, reset: resetPagedStudents } = usePaged(displayedStudents, 20);
+watch(activeTab, () => resetPagedStudents());
 const emptyText = computed(() => {
   if (searchKeyword.value) return `未找到姓名包含「${searchQuery.value.trim()}」的学员`;
   return activeTab.value === 'incomplete' ? '所有学员已完成今日打卡' : '暂无学员完成全部打卡';
@@ -189,7 +193,7 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
         <div class="space-y-3">
           <template v-if="displayedStudents.length > 0">
             <div
-              v-for="student in displayedStudents"
+              v-for="student in pagedStudents"
               :key="student.id"
               class="flex items-center justify-between p-4 rounded-2xl bg-white/55 backdrop-blur-md border border-white/60 cursor-pointer hover:border-[#FF976A] transition-colors shadow-sm mb-3"
               @click="openStudent(student.id)"
@@ -218,6 +222,9 @@ const maskPhone = (phone: string) => phone.replace(/(\d{3})\d{4}(\d{4})/, '$1***
 
               <div class="text-[#FF976A] font-bold">›</div>
             </div>
+            <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mb-1 text-xs font-bold text-[#FF976A] bg-white/55 backdrop-blur-md border border-[#FF976A]/30 rounded-xl active:bg-orange-50">
+              加载更多（还有 {{ remaining }} 名学员）
+            </button>
           </template>
           <div v-else class="text-center text-xs text-gray-400 py-4 rounded-2xl bg-white/55 backdrop-blur-md border border-white/60">{{ emptyText }}</div>
         </div>
