@@ -8,7 +8,7 @@ import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Downloa
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary } from '../lib/campReport';
-import { exportElementAsPDF } from '../lib/exportPDF';
+import { exportReport } from '../lib/exportPDF';
 import type { DietitianCampSummary } from '../types';
 
 const store = useAppStore();
@@ -56,11 +56,11 @@ const openStudent = (id: string) => {
   store.setCurrentView('dietitian-student-detail');
 };
 
-// PDF 导出（A4 分页，微信可用）
+// 导出（普通浏览器=PDF，微信=长图长按保存）
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
   if (exportRef.value) {
-    exportElementAsPDF(exportRef.value, `结营统计_${new Date().toISOString().split('T')[0]}`);
+    exportReport(exportRef.value, `结营统计_${new Date().toISOString().split('T')[0]}`);
   }
 };
 

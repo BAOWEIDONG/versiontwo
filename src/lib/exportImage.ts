@@ -1,16 +1,14 @@
 /**
- * 报告导出工具
+ * 长图导出工具
  *
- * 首选：html2canvas 把报告 DOM 截成 PNG 长图（微信内置浏览器可用，长按即可保存/分享）。
- * 降级：html2canvas 渲染失败时回退到 window.print()（PC 浏览器可另存为 PDF）。
- *
- * html2canvas 为静态依赖（package.json dependencies），随构建打包。
+ * html2canvas-pro 渲染 DOM 成 PNG 长图（支持 Tailwind v4 oklch 颜色；
+ * 原版 html2canvas 不支持会抛错）。失败时仅提示，不调用打印。
  */
 import { showToast } from 'vant';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 
-/** 导出结果：'image' 长图 | 'print' 打印降级 */
-export type ExportMode = 'image' | 'print';
+/** 导出结果：'image' 长图 | 'failed' 失败 */
+export type ExportMode = 'image' | 'failed';
 
 /**
  * 把指定元素导出为 PNG 长图并触发下载。
@@ -35,9 +33,8 @@ export async function exportElementAsImage(
     showToast({ message: '长图已生成，可长按保存或分享', duration: 2500 });
     return 'image';
   } catch (e) {
-    console.error('长图导出失败，回退打印', e);
-    showToast({ message: '长图生成失败，已切换为打印导出', duration: 2000 });
-    setTimeout(() => window.print(), 400);
-    return 'print';
+    console.error('长图导出失败', e);
+    showToast({ message: '长图生成失败，请重试', duration: 2500 });
+    return 'failed';
   }
 }

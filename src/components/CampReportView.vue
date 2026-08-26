@@ -7,7 +7,7 @@ import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Downl
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';
-import { exportElementAsImage } from '../lib/exportImage';
+import { exportReport } from '../lib/exportPDF';
 import type { StudentCampReport, MetricChange } from '../types';
 
 const store = useAppStore();
@@ -213,11 +213,11 @@ const encouragement = computed(() => {
   return `${name}，你已获得了这份结营报告。请继续保持打卡习惯，每一次记录都会在积累中看到回响。`;
 });
 
-// ─── 长图导出（微信可用；未装 html2canvas 时自动降级为打印）───
+// ─── 导出（普通浏览器=PDF，微信=长图长按保存）───
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
   if (exportRef.value) {
-    exportElementAsImage(exportRef.value, `个人营期报告_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
+    exportReport(exportRef.value, `个人营期报告_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
   }
 };
 </script>

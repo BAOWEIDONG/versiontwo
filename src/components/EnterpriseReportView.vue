@@ -7,7 +7,7 @@ import { Building2, Users, Trophy, Flame, Sparkles, Download, ShieldCheck, Heart
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary, generateEnterpriseReport } from '../lib/campReport';
-import { exportElementAsPDF } from '../lib/exportPDF';
+import { exportReport } from '../lib/exportPDF';
 
 const store = useAppStore();
 
@@ -41,11 +41,11 @@ const report = computed(() => generateEnterpriseReport(summary.value));
 const fmt = (v: number | null, digits = 1): string => (v === null ? '--' : v.toFixed(digits));
 const fmtPct = (v: number | null): string => (v === null ? '--' : `${Math.round(v * 100)}%`);
 
-// 导出 PDF（A4 分页）
+// 导出（普通浏览器=PDF，微信=长图长按保存）
 const exportRef = ref<HTMLElement | null>(null);
 const handleExport = () => {
   if (exportRef.value) {
-    exportElementAsPDF(exportRef.value, `企业汇报_健康训练营_${new Date().toISOString().split('T')[0]}`);
+    exportReport(exportRef.value, `企业汇报_健康训练营_${new Date().toISOString().split('T')[0]}`);
   }
 };
 </script>
