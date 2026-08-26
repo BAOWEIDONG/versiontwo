@@ -1,86 +1,53 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick, type Component } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick, defineAsyncComponent, type Component } from 'vue';
 import { useAppStore } from './store/app';
-import LoginView from './components/LoginView.vue';
-import RegisterView from './components/RegisterView.vue';
-import QuestionnaireView from './components/QuestionnaireView.vue';
-import UploadView from './components/UploadView.vue';
-import StudentDashboardView from './components/StudentDashboardView.vue';
-import HealthProfileView from './components/HealthProfileView.vue';
-import ExerciseView from './components/ExerciseView.vue';
-import DietView from './components/DietView.vue';
-import CalendarView from './components/CalendarView.vue';
-import CoachDashboardView from './components/CoachDashboardView.vue';
-import CoachStudentDetailView from './components/CoachStudentDetailView.vue';
-import WeightCheckinView from './components/WeightCheckinView.vue';
-import ActivitiesListView from './components/ActivitiesListView.vue';
-import ActivityUploadView from './components/ActivityUploadView.vue';
-import DietitianDashboardView from './components/DietitianDashboardView.vue';
-import DietitianStudentDetailView from './components/DietitianStudentDetailView.vue';
-import DietitianUnannotatedListView from './components/DietitianUnannotatedListView.vue';
-import RankingView from './components/RankingView.vue';
-import PointsDetailView from './components/PointsDetailView.vue';
-import RewardView from './components/RewardView.vue';
-import RewardConfigView from './components/RewardConfigView.vue';
-import MealTimeConfigView from './components/MealTimeConfigView.vue';
-import MetricConfigView from './components/MetricConfigView.vue';
-import DietitianCampSummaryView from './components/DietitianCampSummaryView.vue';
-import EnterpriseReportView from './components/EnterpriseReportView.vue';
-import CampReportView from './components/CampReportView.vue';
-import CampActivitiesView from './components/CampActivitiesView.vue';
-import ActivityAdminView from './components/ActivityAdminView.vue';
-import PersonalJourneyView from './components/PersonalJourneyView.vue';
-import MessagesView from './components/MessagesView.vue';
-import AccountManageView from './components/AccountManageView.vue';
-import DietitianConfigView from './components/DietitianConfigView.vue';
 import VideoPreview from './components/VideoPreview.vue';
-import ActivityHubView from './components/ActivityHubView.vue';
-import PointsMallView from './components/PointsMallView.vue';
-import FulfillmentCenterView from './components/FulfillmentCenterView.vue';
-import MyRewardsView from './components/MyRewardsView.vue';
+
+// 视图 → 异步组件映射（三端全局按需加载）：每个视图各自懒加载成独立 chunk，
+// 首屏只加载 vue/vant/pinia 共享核心 + 首个视图，进入某端页面时才拉取该页代码，
+// 显著降低启动包体积与首次渲染负担，与 KeepAlive 缓存叠加使用。
+const viewMap: Record<string, Component> = {
+  login: defineAsyncComponent(() => import('./components/LoginView.vue')),
+  register: defineAsyncComponent(() => import('./components/RegisterView.vue')),
+  questionnaire: defineAsyncComponent(() => import('./components/QuestionnaireView.vue')),
+  upload: defineAsyncComponent(() => import('./components/UploadView.vue')),
+  dashboard: defineAsyncComponent(() => import('./components/StudentDashboardView.vue')),
+  'health-profile': defineAsyncComponent(() => import('./components/HealthProfileView.vue')),
+  exercise: defineAsyncComponent(() => import('./components/ExerciseView.vue')),
+  diet: defineAsyncComponent(() => import('./components/DietView.vue')),
+  'weight-checkin': defineAsyncComponent(() => import('./components/WeightCheckinView.vue')),
+  calendar: defineAsyncComponent(() => import('./components/CalendarView.vue')),
+  'coach-dashboard': defineAsyncComponent(() => import('./components/CoachDashboardView.vue')),
+  'coach-student-detail': defineAsyncComponent(() => import('./components/CoachStudentDetailView.vue')),
+  'activity-upload': defineAsyncComponent(() => import('./components/ActivityUploadView.vue')),
+  'activities-list': defineAsyncComponent(() => import('./components/ActivitiesListView.vue')),
+  'dietitian-dashboard': defineAsyncComponent(() => import('./components/DietitianDashboardView.vue')),
+  'dietitian-student-detail': defineAsyncComponent(() => import('./components/DietitianStudentDetailView.vue')),
+  'dietitian-unannotated-list': defineAsyncComponent(() => import('./components/DietitianUnannotatedListView.vue')),
+  ranking: defineAsyncComponent(() => import('./components/RankingView.vue')),
+  pointsDetail: defineAsyncComponent(() => import('./components/PointsDetailView.vue')),
+  reward: defineAsyncComponent(() => import('./components/RewardView.vue')),
+  'reward-config': defineAsyncComponent(() => import('./components/RewardConfigView.vue')),
+  'meal-time-config': defineAsyncComponent(() => import('./components/MealTimeConfigView.vue')),
+  'metric-config': defineAsyncComponent(() => import('./components/MetricConfigView.vue')),
+  'camp-summary': defineAsyncComponent(() => import('./components/DietitianCampSummaryView.vue')),
+  'enterprise-report': defineAsyncComponent(() => import('./components/EnterpriseReportView.vue')),
+  'camp-report': defineAsyncComponent(() => import('./components/CampReportView.vue')),
+  'camp-activities': defineAsyncComponent(() => import('./components/CampActivitiesView.vue')),
+  'activity-admin': defineAsyncComponent(() => import('./components/ActivityAdminView.vue')),
+  'personal-journey': defineAsyncComponent(() => import('./components/PersonalJourneyView.vue')),
+  messages: defineAsyncComponent(() => import('./components/MessagesView.vue')),
+  'account-manage': defineAsyncComponent(() => import('./components/AccountManageView.vue')),
+  'dietitian-config': defineAsyncComponent(() => import('./components/DietitianConfigView.vue')),
+  'activity-hub': defineAsyncComponent(() => import('./components/ActivityHubView.vue')),
+  'points-mall': defineAsyncComponent(() => import('./components/PointsMallView.vue')),
+  'fulfillment-center': defineAsyncComponent(() => import('./components/FulfillmentCenterView.vue')),
+  'my-rewards': defineAsyncComponent(() => import('./components/MyRewardsView.vue')),
+};
 
 const store = useAppStore();
 
-const viewMap: Record<string, Component> = {
-  login: LoginView,
-  register: RegisterView,
-  questionnaire: QuestionnaireView,
-  upload: UploadView,
-  dashboard: StudentDashboardView,
-  'health-profile': HealthProfileView,
-  exercise: ExerciseView,
-  diet: DietView,
-  'weight-checkin': WeightCheckinView,
-  calendar: CalendarView,
-  'coach-dashboard': CoachDashboardView,
-  'coach-student-detail': CoachStudentDetailView,
-  'activity-upload': ActivityUploadView,
-  'activities-list': ActivitiesListView,
-  'dietitian-dashboard': DietitianDashboardView,
-  'dietitian-student-detail': DietitianStudentDetailView,
-  'dietitian-unannotated-list': DietitianUnannotatedListView,
-  ranking: RankingView,
-  pointsDetail: PointsDetailView,
-  reward: RewardView,
-  'reward-config': RewardConfigView,
-  'meal-time-config': MealTimeConfigView,
-  'metric-config': MetricConfigView,
-  'camp-summary': DietitianCampSummaryView,
-  'enterprise-report': EnterpriseReportView,
-  'camp-report': CampReportView,
-  'camp-activities': CampActivitiesView,
-  'activity-admin': ActivityAdminView,
-  'personal-journey': PersonalJourneyView,
-  messages: MessagesView,
-  'account-manage': AccountManageView,
-  'dietitian-config': DietitianConfigView,
-  'activity-hub': ActivityHubView,
-  'points-mall': PointsMallView,
-  'fulfillment-center': FulfillmentCenterView,
-  'my-rewards': MyRewardsView,
-};
-
-const currentComponent = computed<Component>(() => viewMap[store.currentView] || LoginView);
+const currentComponent = computed<Component>(() => viewMap[store.currentView] || viewMap.login);
 
 // 同步营养师/教练角色到 <body>，用于全局复用首页浅渐变背景（学员端不挂该类）
 function syncRoleClass(role?: string | null) {
