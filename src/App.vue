@@ -3,10 +3,13 @@ import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick, defineAsync
 import { useAppStore } from './store/app';
 import VideoPreview from './components/VideoPreview.vue';
 import ViewSkeleton from './components/ui/ViewSkeleton.vue';
-// 三端「首页」是登录落地与最常返回的目标：常驻(不懒加载)，进入/返回零等待、不闪骨架屏
+// 登录落地 / 入职必走页：常驻(不懒加载)，进入零等待、不闪骨架屏。
+// 登录页(App 启动首个画面) + 三端首页 + 学员问卷(登录后必经)
+import Login from './components/LoginView.vue';
 import StudentDashboard from './components/StudentDashboardView.vue';
 import DietitianDashboard from './components/DietitianDashboardView.vue';
 import CoachDashboard from './components/CoachDashboardView.vue';
+import Questionnaire from './components/QuestionnaireView.vue';
 
 // 异步视图统一包装：加载 chunk 期间立即显示共享骨架屏，避免白屏"等好久"
 function lazyView(loader: () => Promise<{ default: Component }>): Component {
@@ -91,10 +94,12 @@ function prefetchTabs(role: string) {
 const viewMap: Record<string, Component> = Object.fromEntries(
   Object.keys(VIEW_IMPORTERS).map((k) => [k, lazyView(VIEW_IMPORTERS[k])]),
 );
-// 覆盖：三端首页改为常驻组件
+// 覆盖：登录落地/入职必走页改为常驻组件（登录页 + 三端首页 + 学员问卷）
+viewMap.login = Login;
 viewMap.dashboard = StudentDashboard;
 viewMap['dietitian-dashboard'] = DietitianDashboard;
 viewMap['coach-dashboard'] = CoachDashboard;
+viewMap.questionnaire = Questionnaire;
 
 const store = useAppStore();
 
