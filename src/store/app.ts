@@ -42,6 +42,7 @@ export type View =
   | 'calendar'
   | 'coach-dashboard'
   | 'coach-student-detail'
+  | 'coach-unannotated-list'
   | 'activity-upload'
   | 'dietitian-dashboard'
   | 'dietitian-student-detail'

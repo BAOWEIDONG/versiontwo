@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
+import { useCoachCounts } from '../lib/coachCounts';
 import { campDateRange } from '../lib/camps';
 import { rankStudents } from '../lib/scoring';
 import { Card } from './ui';
@@ -10,6 +11,7 @@ import { UserCircle, LogOut, Clock, FileText, Users, CheckCircle, XCircle, Searc
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showConfirmDialog } from 'vant';
 
 const store = useAppStore();
+const { unannotatedCount: coachUnannotatedCount } = useCoachCounts();
 
 const activeTab = computed<'incomplete' | 'completed' | 'activities'>({
   get: () => store.coachDashboardTab,
@@ -289,6 +291,10 @@ const selectCamp = (campId: string | null) => {
       <VanTabbarItem>
         <template #icon><Users class="h-6 w-6" /></template>
         首页
+      </VanTabbarItem>
+      <VanTabbarItem @click="store.setCurrentView('coach-unannotated-list')" :badge="coachUnannotatedCount > 0 ? coachUnannotatedCount : undefined">
+        <template #icon><FileText class="h-6 w-6" /></template>
+        批注
       </VanTabbarItem>
       <VanTabbarItem @click="store.setCurrentView('activity-upload')">
         <template #icon><Dumbbell class="h-6 w-6" /></template>

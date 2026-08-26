@@ -21,7 +21,7 @@ const VIEW_PATH: Record<string, string> = {
   login: 'LoginView', register: 'RegisterView', questionnaire: 'QuestionnaireView', upload: 'UploadView',
   dashboard: 'StudentDashboardView', 'health-profile': 'HealthProfileView', exercise: 'ExerciseView',
   diet: 'DietView', 'weight-checkin': 'WeightCheckinView', calendar: 'CalendarView',
-  'coach-dashboard': 'CoachDashboardView', 'coach-student-detail': 'CoachStudentDetailView',
+  'coach-dashboard': 'CoachDashboardView', 'coach-student-detail': 'CoachStudentDetailView', 'coach-unannotated-list': 'CoachUnannotatedListView',
   'activity-upload': 'ActivityUploadView', 'activities-list': 'ActivitiesListView',
   'dietitian-dashboard': 'DietitianDashboardView', 'dietitian-student-detail': 'DietitianStudentDetailView',
   'dietitian-unannotated-list': 'DietitianUnannotatedListView', ranking: 'RankingView',
@@ -47,6 +47,7 @@ const VIEW_IMPORTERS: Record<string, () => Promise<{ default: Component }>> = {
   calendar: () => import('./components/CalendarView.vue'),
   'coach-dashboard': () => import('./components/CoachDashboardView.vue'),
   'coach-student-detail': () => import('./components/CoachStudentDetailView.vue'),
+  'coach-unannotated-list': () => import('./components/CoachUnannotatedListView.vue'),
   'activity-upload': () => import('./components/ActivityUploadView.vue'),
   'activities-list': () => import('./components/ActivitiesListView.vue'),
   'dietitian-dashboard': () => import('./components/DietitianDashboardView.vue'),
@@ -77,7 +78,7 @@ const VIEW_IMPORTERS: Record<string, () => Promise<{ default: Component }>> = {
 const ROLE_TABS: Record<string, string[]> = {
   student: ['dashboard', 'activity-hub', 'messages', 'health-profile', 'exercise', 'diet', 'weight-checkin', 'points-mall', 'calendar', 'reward'],
   dietitian: ['dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config', 'fulfillment-center', 'reward-config', 'dietitian-student-detail'],
-  coach: ['coach-dashboard', 'coach-student-detail', 'activity-upload', 'activities-list'],
+  coach: ['coach-dashboard', 'coach-student-detail', 'coach-unannotated-list', 'activity-upload', 'activities-list'],
 };
 let prefetched = false;
 function prefetchTabs(role: string) {
