@@ -305,19 +305,6 @@ const shippedItems = computed<ShipItem[]>(() => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 });
 
-// ─── 发货：来源筛选（全部 / 活动 / 兑换） ───
-const shipSource = ref<'all' | 'claim' | 'exchange'>('all');
-const filteredPendingShip = computed(() =>
-  shipSource.value === 'all'
-    ? pendingShipItems.value
-    : pendingShipItems.value.filter((i) => i.type === shipSource.value)
-);
-const filteredShipped = computed(() =>
-  shipSource.value === 'all'
-    ? shippedItems.value
-    : shippedItems.value.filter((i) => i.type === shipSource.value)
-);
-
 // ─── 兑换记录：筛选条 + 按状态分组 ───
 const exSource = ref<'all' | 'exchange' | 'checkin'>('all');
 const exStatus = ref<'all' | 'pending' | 'shipped' | 'cancelled'>('all');
@@ -736,30 +723,14 @@ function switchModule(m: Module) {
           </div>
       </div>
 
-      <!-- 来源筛选：全部 / 活动 / 兑换 -->
-      <div class="bg-white px-4 pb-3 border-b border-gray-50 -mt-px">
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="opt in ([{ v: 'all', l: '全部' }, { v: 'claim', l: '活动' }, { v: 'exchange', l: '兑换' }] as const)"
-            :key="opt.v"
-            @click="shipSource = opt.v"
-            :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-colors', shipSource === opt.v ? 'bg-[#1677FF] text-white' : 'bg-gray-50 text-gray-500']"
-          >{{ opt.l }}</button>
-        </div>
-      </div>
-
       <!-- 待发货 -->
         <div v-if="shipTab === 'pending'" class="p-4 space-y-3">
           <div v-if="pendingShipItems.length === 0" class="flex flex-col items-center py-16">
             <Truck class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">暂无待发货订单</p>
           </div>
-          <div v-else-if="filteredPendingShip.length === 0" class="flex flex-col items-center py-16">
-            <Search class="w-10 h-10 text-gray-200 mb-2" />
-            <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
-          </div>
           <!-- 待发货 · 收件人面单式：给谁 → 发什么 → 寄哪 → 动作 -->
-          <Card v-for="item in filteredPendingShip" :key="item.id" class="p-4">
+          <Card v-for="item in pendingShipItems" :key="item.id" class="p-4">
             <!-- 面单头：给谁 / 怎么发 / 电话 -->
             <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-full bg-[#1677FF]/10 text-[#1677FF] flex items-center justify-center text-sm font-bold shrink-0">
@@ -836,12 +807,8 @@ function switchModule(m: Module) {
             <CheckCircle2 class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">暂无发货记录</p>
           </div>
-          <div v-else-if="filteredShipped.length === 0" class="flex flex-col items-center py-16">
-            <Search class="w-10 h-10 text-gray-200 mb-2" />
-            <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
-          </div>
           <!-- 已发货 · 收尾确认式中性行（无动作） -->
-          <Card v-for="item in filteredShipped" :key="item.id" class="p-3.5">
+          <Card v-for="item in shippedItems" :key="item.id" class="p-3.5">
             <div class="flex items-start gap-3">
               <div class="w-11 h-11 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
