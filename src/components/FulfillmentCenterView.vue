@@ -756,58 +756,74 @@ function switchModule(m: Module) {
             <Search class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
           </div>
+          <!-- 待发货 · 收件人面单式：给谁 → 发什么 → 寄哪 → 动作 -->
           <Card v-for="item in filteredPendingShip" :key="item.id" class="p-4">
-            <div class="flex items-start gap-3">
-              <div class="w-14 h-14 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
+            <!-- 面单头：给谁 / 怎么发 / 电话 -->
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-[#1677FF]/10 text-[#1677FF] flex items-center justify-center text-sm font-bold shrink-0">
+                {{ item.studentName.slice(0, 1) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-[15px] font-bold text-gray-900 truncate">{{ item.studentName }}</h3>
+                  <span v-if="item.deliveryMethod" class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    :class="item.deliveryMethod === 'in-person' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#EBF5FF] text-[#1677FF]'">
+                    {{ item.deliveryMethod === 'in-person' ? '线下领取' : '邮寄' }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-gray-500 mt-0.5">
+                  <span v-if="item.recipientPhone">{{ item.recipientPhone }}</span>
+                  <template v-if="item.recipientPhone"><span class="mx-1 text-gray-300">·</span></template>
+                  <span>{{ formatDate(item.date) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 商品明细行：发什么（含营期名+营期时间，批次标识） -->
+            <div class="flex items-center gap-2.5 mt-3 bg-gray-50 rounded-lg p-2">
+              <div class="w-9 h-9 rounded-lg bg-white shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-sm font-bold text-gray-900 truncate">{{ item.productName }}</h3>
-                  <div class="flex items-center gap-1 shrink-0">
-                    <span v-if="item.type === 'exchange'" class="text-[9px] text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full font-bold">兑换</span>
-                    <span v-else class="text-[9px] text-[#1677FF] bg-[#EBF5FF] px-1.5 py-0.5 rounded-full font-bold">活动</span>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                  <span>{{ item.studentName }}</span>
-                  <span v-if="item.deliveryMethod">·</span>
-                  <span v-if="item.deliveryMethod">{{ item.deliveryMethod === 'shipped' ? '邮寄' : '线下领取' }}</span>
-                  <span>·</span>
-                  <span>{{ formatDate(item.date) }}</span>
-                </div>
-                <!-- 营期名称 + 营期时间（上下两行，超长省略号截断） -->
-                <div v-if="item.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
-                  <div class="font-bold text-gray-500 truncate">{{ item.camp.name }}</div>
-                  <div class="text-gray-400 truncate">{{ campDateRange(item.camp) }}</div>
-                </div>
-                <!-- 收件信息（邮寄类，claim和exchange通用） -->
-                <div v-if="item.recipientName && item.recipientAddress && item.recipientAddress !== '线下领取'" class="mt-2 bg-gray-50 rounded-lg p-2 text-[10px] text-gray-600 leading-relaxed">
-                  <div>收件人：{{ item.recipientName }} {{ item.recipientPhone }}</div>
-                  <div class="mt-0.5">地址：{{ item.recipientAddress }}</div>
-                  <button class="mt-1 text-[#1677FF] font-bold active:scale-95" @click="copyShippingInfo(item)">复制全部信息</button>
-                </div>
-                <div v-if="(!item.recipientName || !item.recipientAddress || item.recipientAddress === '线下领取') && item.deliveryMethod !== 'in-person'" class="mt-1 text-[10px] text-orange-500">
-                  {{ item.type === 'exchange' ? '积分兑换商品' : '活动奖励' }} · 待补充收货信息
-                </div>
-                <!-- 操作按钮：根据学员选择的领取方式显示 -->
-                <div class="flex gap-2 mt-3">
-                  <button
-                    v-if="item.deliveryMethod !== 'in-person'"
-                    class="text-[11px] font-bold text-white bg-[#1677FF] px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1"
-                    @click="handleShipClick(item)"
-                  >
-                    <Truck class="w-3 h-3" /> 填单发货
-                  </button>
-                  <button
-                    v-if="item.deliveryMethod === 'in-person'"
-                    class="text-[11px] font-bold text-white bg-[#07C160] px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1"
-                    @click="handleInPersonClick(item)"
-                  >
-                    <CheckCircle2 class="w-3 h-3" /> 确认线下发放
-                  </button>
-                </div>
+                <div class="text-xs font-bold text-gray-800 truncate">{{ item.productName }}</div>
+                <div v-if="item.camp" class="text-[10px] text-gray-400 truncate">{{ item.camp.name }}</div>
               </div>
+              <div v-if="item.camp" class="shrink-0 text-[10px] text-gray-400 max-w-[5rem] text-right leading-tight">
+                {{ campDateRange(item.camp) }}
+              </div>
+              <span v-if="item.type === 'exchange'" class="shrink-0 text-[9px] text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full font-bold">兑换</span>
+              <span v-else class="shrink-0 text-[9px] text-[#1677FF] bg-[#EBF5FF] px-1.5 py-0.5 rounded-full font-bold">活动</span>
+            </div>
+
+            <!-- 收货信息（邮寄）：面单主体 -->
+            <div v-if="item.deliveryMethod !== 'in-person' && item.recipientName && item.recipientAddress && item.recipientAddress !== '线下领取'" class="mt-2.5 border border-[#1677FF]/20 bg-[#EBF5FF]/40 rounded-lg p-2.5 text-[11px] text-gray-700 leading-relaxed">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-gray-900">收件人：{{ item.recipientName }}</span>
+                <button class="text-[#1677FF] font-bold text-[10px] active:scale-95" @click="copyShippingInfo(item)">复制收货信息</button>
+              </div>
+              <div class="mt-0.5">电话：{{ item.recipientPhone }}</div>
+              <div class="mt-0.5">地址：{{ item.recipientAddress }}</div>
+            </div>
+            <div v-else-if="item.deliveryMethod !== 'in-person'" class="mt-2.5 border border-dashed border-orange-300 bg-orange-50 rounded-lg p-2.5 text-[10px] text-orange-500 leading-relaxed">
+              {{ item.type === 'exchange' ? '积分兑换商品' : '活动奖励' }} · 待补充收货信息
+            </div>
+
+            <!-- 动作 -->
+            <div class="mt-3">
+              <button
+                v-if="item.deliveryMethod !== 'in-person'"
+                class="w-full text-[12px] font-bold text-white bg-[#1677FF] py-2 rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5"
+                @click="handleShipClick(item)"
+              >
+                <Truck class="w-4 h-4" /> 填单发货
+              </button>
+              <button
+                v-else
+                class="w-full text-[12px] font-bold text-white bg-[#07C160] py-2 rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5"
+                @click="handleInPersonClick(item)"
+              >
+                <CheckCircle2 class="w-4 h-4" /> 确认线下发放
+              </button>
             </div>
           </Card>
         </div>
@@ -822,46 +838,34 @@ function switchModule(m: Module) {
             <Search class="w-10 h-10 text-gray-200 mb-2" />
             <p class="text-sm text-gray-400">没有匹配当前来源的记录</p>
           </div>
-          <Card v-for="item in filteredShipped" :key="item.id" class="p-4">
+          <!-- 已发货 · 收尾确认式中性行（无动作） -->
+          <Card v-for="item in filteredShipped" :key="item.id" class="p-3.5">
             <div class="flex items-start gap-3">
-              <div class="w-14 h-14 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
+              <div class="w-11 h-11 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
                 <img :src="item.productImage" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-sm font-bold text-gray-900 truncate">{{ item.productName }}</h3>
-                  <div class="flex items-center gap-1 shrink-0">
-                    <span v-if="item.type === 'exchange'" class="text-[9px] text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full font-bold">兑换</span>
-                    <span v-else class="text-[9px] text-[#1677FF] bg-[#EBF5FF] px-1.5 py-0.5 rounded-full font-bold">活动</span>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F8EE] text-[#07C160]">
-                      {{ item.deliveryMethod === 'in-person' ? '线下' : '已发货' }}
-                    </span>
-                  </div>
+                  <h4 class="text-[13px] font-bold text-gray-900 truncate">{{ item.studentName }}</h4>
+                  <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F8EE] text-[#07C160]">
+                    {{ item.deliveryMethod === 'in-person' ? '已线下发放' : '已发货' }}
+                  </span>
                 </div>
-                <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                  <span>{{ item.studentName }}</span>
-                  <span>·</span>
-                  <span>{{ formatDate(item.date) }}</span>
+                <div class="mt-0.5 text-[10px] text-gray-400 flex items-center gap-2 flex-wrap">
+                  <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full', item.type === 'exchange' ? 'bg-[#FFF4ED] text-[#FF6B35]' : 'bg-[#EBF5FF] text-[#1677FF]']">
+                    {{ item.type === 'exchange' ? '兑换' : '活动' }}
+                  </span>
+                  <span class="truncate">{{ item.productName }}</span>
                 </div>
-                <!-- 营期名称 + 营期时间（上下两行，超长省略号截断） -->
-                <div v-if="item.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
-                  <div class="font-bold text-gray-500 truncate">{{ item.camp.name }}</div>
-                  <div class="text-gray-400 truncate">{{ campDateRange(item.camp) }}</div>
+                <div class="mt-1 text-[10px] text-gray-400">{{ formatDate(item.date) }}</div>
+                <div v-if="item.camp" class="mt-1 text-[10px] text-gray-400 truncate">
+                  {{ item.camp.name }} · {{ campDateRange(item.camp) }}
                 </div>
-                <!-- 收件信息（邮寄类） -->
-                <div v-if="item.recipientName && item.recipientAddress && item.recipientAddress !== '线下领取'" class="mt-2 bg-gray-50 rounded-lg p-2 text-[10px] text-gray-600 leading-relaxed">
-                  <div>收件人：{{ item.recipientName }} {{ item.recipientPhone }}</div>
-                  <div class="mt-0.5">地址：{{ item.recipientAddress }}</div>
-                  <button class="mt-1 text-[#1677FF] font-bold active:scale-95" @click="copyShippingInfo(item)">复制全部信息</button>
+                <div v-if="item.trackingNumber" class="mt-1.5 bg-green-50 rounded-lg px-2 py-1 flex items-center justify-between">
+                  <span class="text-[10px] text-gray-500 font-mono font-bold truncate">单号 {{ item.trackingNumber }}</span>
+                  <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(item.trackingNumber!, '单号')">复制</button>
                 </div>
-                <div v-if="item.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
-                  <div class="text-[10px] text-gray-600">
-                    <span class="text-gray-400">单号：</span>
-                    <span class="font-mono font-bold">{{ item.trackingNumber }}</span>
-                  </div>
-                  <button class="text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(item.trackingNumber!)">复制</button>
-                </div>
-                <div v-if="item.deliveryMethod === 'in-person' && item.deliveredAt" class="mt-2 text-[10px] text-gray-500">
+                <div v-if="item.deliveryMethod === 'in-person' && item.deliveredAt" class="mt-1 text-[10px] text-gray-400">
                   线下发放于 {{ formatDate(item.deliveredAt) }}
                 </div>
               </div>
@@ -926,45 +930,37 @@ function switchModule(m: Module) {
                 <span class="text-[10px] text-gray-400">{{ group.items.length }} 条</span>
               </div>
               <div class="space-y-3">
-                <Card v-for="record in group.items" :key="record.id" class="p-3">
-                  <div class="flex items-start gap-3">
-                    <div class="w-12 h-12 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
+                <Card v-for="record in group.items" :key="record.id" class="px-3 py-2.5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 shrink-0 overflow-hidden">
                       <img :src="record.productImage" :alt="record.productName" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center justify-between gap-2">
-                        <h4 class="text-sm font-bold text-gray-900 truncate">{{ record.productName }}</h4>
-                        <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
+                        <span class="text-[13px] font-bold text-gray-900 truncate">{{ record.productName }}</span>
+                        <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
                           {{ statusMeta(record.type, record.status).label }}
                         </span>
                       </div>
-                      <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-400 flex-wrap">
-                        <!-- 来源标签：连续打卡奖励 / 积分兑换 -->
-                        <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full',
-                          record.type === 'checkin' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#FFF4ED] text-[#FF6B35]']">
+                      <div class="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400 flex-wrap">
+                        <span :class="['text-[9px] font-bold px-1.5 py-0.5 rounded-full', record.type === 'checkin' ? 'bg-[#E8F8EE] text-[#07C160]' : 'bg-[#FFF4ED] text-[#FF6B35]']">
                           {{ record.typeLabel }}
                         </span>
-                        <span>{{ record.studentName }}</span>
+                        <span class="font-bold text-gray-600">{{ record.studentName }}</span>
                         <template v-if="record.type === 'exchange' && record.pointsSpent">
                           <span>·</span>
                           <span class="text-[#FF6B35] font-bold">-{{ record.pointsSpent }} 积分</span>
                         </template>
-                        <span>·</span>
-                        <span>{{ formatDateTime(record.date) }}</span>
                       </div>
-                      <!-- 营期名称 + 营期时间（上下两行，营期名超长时省略号截断） -->
-                      <div v-if="record.camp" class="mt-1.5 space-y-0.5 text-[10px] min-w-0">
-                        <div class="font-bold text-gray-500 truncate">{{ record.camp.name }}</div>
-                        <div class="text-gray-400 truncate">{{ campDateRange(record.camp) }}</div>
-                      </div>
-                      <div v-if="record.trackingNumber" class="mt-2 bg-green-50 rounded-lg p-2 flex items-center justify-between">
-                        <div class="text-[10px] text-gray-600">
-                          <span class="text-gray-400">单号：</span>
-                          <span class="font-mono font-bold">{{ record.trackingNumber }}</span>
-                        </div>
-                        <button class="text-[10px] text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(record.trackingNumber!)">复制</button>
-                      </div>
+                      <div class="mt-0.5 text-[10px] text-gray-400 truncate">{{ formatDateTime(record.date) }}</div>
                     </div>
+                  </div>
+                  <div v-if="record.camp || record.trackingNumber" class="mt-2 flex items-center gap-2 text-[10px] text-gray-400">
+                    <span v-if="record.camp" class="truncate">{{ record.camp.name }} · {{ campDateRange(record.camp) }}</span>
+                    <template v-if="record.trackingNumber">
+                      <span class="shrink-0 font-mono font-bold text-gray-500">单号 {{ record.trackingNumber }}</span>
+                      <button class="shrink-0 text-[#07C160] font-bold active:scale-95" @click="copyToClipboard(record.trackingNumber!, '单号')">复制</button>
+                    </template>
                   </div>
                 </Card>
               </div>
