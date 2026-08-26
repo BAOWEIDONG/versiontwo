@@ -798,7 +798,7 @@ export const MOCK_ACCOUNTS: Account[] = [
 export const MOCK_POINT_PRODUCTS: PointProduct[] = [
   // 按营期分流：camp1 = 水杯/瑜伽垫/筋膜枪；camp2 = 跳绳/体脂秤/蛋白粉（camp3 新营期默认空，营养师可自行新增）
   { id: 'pp1', name: '运动水杯', imageUrl: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), description: '便携运动水杯 500ml，BPA-free 材质，健康饮水好搭档', pointsRequired: 30, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'], maxExchange: 2, campId: 'camp1' },
-  { id: 'pp2', name: '跳绳', imageUrl: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), description: '专业计数跳绳，防滑手柄，轴承顺滑，燃脂利器', pointsRequired: 50, stock: 30, active: true, deliveryOptions: ['shipped', 'in-person'], campId: 'camp2' },
+  { id: 'pp2', name: '跳绳', imageUrl: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), description: '专业计数跳绳，防滑手柄，轴承顺滑，燃脂利器', pointsRequired: 50, stock: 29, active: true, deliveryOptions: ['shipped', 'in-person'], campId: 'camp2' },
   { id: 'pp3', name: '瑜伽垫', imageUrl: rewardImg('瑜伽垫', '🧘', '#07C160', '#04A551'), description: '加厚防滑瑜伽垫 6mm，TPE 环保材质，运动更舒适', pointsRequired: 80, stock: 20, active: true, deliveryOptions: ['shipped'], campId: 'camp1' },
   { id: 'pp4', name: '电子体脂秤', imageUrl: rewardImg('体脂秤', '⚖️', '#8B5CF6', '#6D28D9'), description: '智能体脂秤，13项身体数据监测，蓝牙连接APP', pointsRequired: 120, stock: 10, active: true, deliveryOptions: ['shipped'], campId: 'camp2' },
   { id: 'pp5', name: '蛋白粉', imageUrl: rewardImg('蛋白粉', '💪', '#F59E0B', '#D97706'), description: '乳清蛋白粉 500g，运动后补充蛋白质，助力恢复', pointsRequired: 100, stock: 15, active: true, deliveryOptions: ['shipped', 'in-person'], campId: 'camp2' },
@@ -809,9 +809,9 @@ export const MOCK_POINT_PRODUCTS: PointProduct[] = [
 export const MOCK_POINT_EXCHANGES: PointExchangeRecord[] = [
   // campId 与对应商品 pp1(camp1)/pp2(camp2)/pp3(camp1) 一致，避免无归属导致营期视图口径不一致
   { id: 'pe1', studentId: 's1', studentName: '李明', productId: 'pp1', productName: '运动水杯', productImage: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), pointsSpent: 30, exchangeDate: iso(-3, '14:30:00'), status: 'fulfilled', deliveryMethod: 'shipped', trackingNumber: 'SF1024567890', shipDate: iso(-2, '10:00:00'), recipientName: '李明', recipientPhone: '13800001111', recipientAddress: '北京市海淀区中关村大街1号', campId: 'camp1' },
-  { id: 'pe2', studentId: 's2', studentName: '王芳', productId: 'pp2', productName: '跳绳', productImage: rewardImg('蛋白粉', '💪', '#07C160', '#04A551'), pointsSpent: 50, exchangeDate: iso(-1, '09:15:00'), status: 'pending', deliveryMethod: 'shipped', recipientName: '王芳', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', campId: 'camp2' },
+  { id: 'pe2', studentId: 's2', studentName: '王丽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '09:15:00'), status: 'pending', deliveryMethod: 'shipped', recipientName: '王丽', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', campId: 'camp2' },
   { id: 'pe3', studentId: 's3', studentName: '张伟', productId: 'pp3', productName: '瑜伽垫', productImage: rewardImg('体脂秤', '⚖️', '#FF976A', '#FF6B35'), pointsSpent: 80, exchangeDate: iso(-5, '16:20:00'), status: 'fulfilled', deliveryMethod: 'in-person', deliveredAt: iso(-4, '14:00:00'), campId: 'camp1' },
-  { id: 'pe4', studentId: 's2', studentName: '王芳', productId: 'pp2', productName: '跳绳', productImage: rewardImg('蛋白粉', '💪', '#07C160', '#04A551'), pointsSpent: 50, exchangeDate: iso(-1, '11:00:00'), status: 'cancelled', deliveryMethod: 'shipped', recipientName: '王芳', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', cancelledAt: iso(-1, '12:34:00'), campId: 'camp2' },
+  { id: 'pe4', studentId: 's2', studentName: '王丽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '11:00:00'), status: 'cancelled', deliveryMethod: 'shipped', recipientName: '王丽', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', cancelledAt: iso(-1, '12:34:00'), campId: 'camp2' },
 ];
 
 /** 营养师手动加减分记录（补录线下打卡积分等） */

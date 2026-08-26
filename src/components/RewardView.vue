@@ -29,6 +29,7 @@ const campRewardTiers = computed(() => activeCampId.value ? store.getCampRewardT
 const campRewardClaims = computed(() => activeCampId.value ? store.getCampRewardClaims(activeCampId.value) : store.rewardClaims);
 
 const showClaimModal = ref(false);
+const submitting = ref(false); // 领取防连点：请求期间忽略重复提交
 const selectedTier = ref<RewardTier | null>(null);
 const selectedDeliveryMethod = ref<'shipped' | 'in-person'>('shipped');
 const formData = ref({ name: store.user?.name || '', phone: store.user?.phone || '', address: '' });
@@ -88,6 +89,7 @@ const submitClaim = () => {
     if (!formData.value.address.trim()) { formError.value = '请输入详细收货地址'; return; }
   }
   if (selectedTier.value && store.user) {
+    if (submitting.value) return; // 防连点：提交期间忽略重复提交（重复领取/重复扣库存）
     // 二次校验：必须真的满足连续打卡天数（五项全部完成才算一天）才能领取
     if (getTierState(selectedTier.value) !== 'unlocked') {
       formError.value = '还未达成连续打卡要求，暂不能领取';
@@ -97,17 +99,25 @@ const submitClaim = () => {
       formError.value = '该礼品库存不足';
       return;
     }
-    store.addRewardClaim({
-      id: `claim_${Date.now()}`, tierId: selectedTier.value.id, studentId: store.user.id,
-      studentName: store.user.name,
-      recipientName: method === 'shipped' ? formData.value.name.trim() : store.user.name,
-      recipientPhone: method === 'shipped' ? formData.value.phone.trim() : store.user.phone,
-      recipientAddress: method === 'shipped' ? formData.value.address.trim() : '线下领取',
-      claimDate: (() => { const d = new Date(); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; })(), status: 'pending',
-      deliveryMethod: method,
-      campId: activeCampId.value || undefined,
-    });
-    store.updateRewardTier(selectedTier.value.id, { stock: Math.max(0, selectedTier.value.stock - 1) });
+    submitting.value = true;
+    // 走 store 单一咽喉：实时校验库存/营期/once-per-tier 判重后写记录并扣库存
+    const result = store.claimRewardTier(
+      selectedTier.value.id,
+      store.user.id,
+      store.user.name,
+      {
+        recipientName: method === 'shipped' ? formData.value.name.trim() : store.user.name,
+        recipientPhone: method === 'shipped' ? formData.value.phone.trim() : store.user.phone,
+        recipientAddress: method === 'shipped' ? formData.value.address.trim() : '线下领取',
+        deliveryMethod: method,
+        campId: activeCampId.value || undefined,
+      },
+    );
+    submitting.value = false;
+    if (!result.ok) {
+      formError.value = result.reason || '领取失败，请稍后重试';
+      return;
+    }
     showClaimModal.value = false;
     formData.value.address = '';
   }

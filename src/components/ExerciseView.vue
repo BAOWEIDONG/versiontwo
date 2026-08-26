@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
@@ -256,6 +256,43 @@ const handleTouchEnd = (activityId: string) => {
   isSwiping.value = false;
 };
 
+// 手势改命令式绑定（Vue 压缩器会错绑模板 passive touch 事件致滑动失灵，见 feedback-tab-swipe-prod-build）
+// 强度滑块在 v-for 内，用函数 ref 在元素挂载时逐个绑定；元素以 activity.id 为 key，不会跨活动复用
+const sliderCleanups = new Map<HTMLElement, () => void>();
+const setSliderRef = (el: unknown, activityId: string) => {
+  if (el instanceof HTMLElement && !sliderCleanups.has(el)) {
+    const onTouchStart = (e: TouchEvent) => {
+      e.stopPropagation(); // 原模板 @touchstart.stop：阻隔冒泡，避免触发 useTabSwipe 换 tab
+      handleTouchStart(e);
+    };
+    const onTouchMove = (e: TouchEvent) => handleTouchMove(e, activityId);
+    const onTouchEnd = (e: TouchEvent) => {
+      e.stopPropagation(); // 原模板 @touchend.stop
+      handleTouchEnd(activityId);
+    };
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    // handleTouchMove 内调用 preventDefault，必须显式 passive:false
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    sliderCleanups.set(el, () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    });
+  }
+  // 清理已从 DOM 移除的滑块元素（活动删除时）
+  for (const [node, cleanup] of sliderCleanups) {
+    if (!node.isConnected) {
+      cleanup();
+      sliderCleanups.delete(node);
+    }
+  }
+};
+onUnmounted(() => {
+  sliderCleanups.forEach((cleanup) => cleanup());
+  sliderCleanups.clear();
+});
+
 // 学员对运动批注的反馈（点按钮同时视为已读）
 const markExerciseFeedback = (recordId: string, feedback: 'received' | 'helpful') => {
   store.updateExerciseRecord(recordId, { studentFeedback: feedback, commentRead: true });
@@ -473,9 +510,7 @@ const handleSubmit = () => {
             <div
               class="relative mx-3 py-3 cursor-pointer touch-pan-y"
               @click="handleSliderClick($event, activity.id)"
-              @touchstart.stop="handleTouchStart"
-              @touchmove="(e) => handleTouchMove(e, activity.id)"
-              @touchend.stop="() => handleTouchEnd(activity.id)"
+              :ref="(el) => setSliderRef(el, activity.id)"
             >
               <!-- 渐变轨道 -->
               <div

@@ -384,24 +384,36 @@ function submitAudit() {
   if (!tier) { auditError.value = '奖品不存在'; return; }
   if (tier.stock <= 0) { auditError.value = '该奖品库存不足'; return; }
 
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  // 判重：同一学员同一活动（同营期）已审核通过过则拦截，防止重复审核重复发奖
+  const duplicated = store.rewardClaims.some((c) =>
+    c.studentId === auditTarget.value!.studentId &&
+    c.activityType === auditTarget.value!.activityType &&
+    c.campId === auditTarget.value!.campId
+  );
+  if (duplicated) {
+    auditError.value = '该学员该活动已审核，请勿重复审核';
+    return;
+  }
 
-  const claim: RewardClaim = {
-    id: `rc_${Date.now()}`,
-    tierId: tier.id,
-    studentId: auditTarget.value.studentId,
-    studentName: auditTarget.value.studentName,
-    recipientName: '', recipientPhone: '', recipientAddress: '',
-    claimDate: dateStr,
-    status: 'confirmed',
-    activityType: auditTarget.value.activityType,
-    campId: auditTarget.value.campId,
-    deliveryMethod: tier.deliveryMethods?.[0] || 'shipped',
-  };
-  store.addRewardClaim(claim);
-  store.updateRewardTier(tier.id, { stock: tier.stock - 1 });
+  // 走 store 单一咽喉：实时校验库存/营期/once-per-tier 判重后写记录并扣库存
+  const result = store.claimRewardTier(
+    tier.id,
+    auditTarget.value.studentId,
+    auditTarget.value.studentName,
+    {
+      recipientName: '',
+      recipientPhone: '',
+      recipientAddress: '',
+      deliveryMethod: tier.deliveryMethods?.[0] || 'shipped',
+      campId: auditTarget.value.campId,
+      activityType: auditTarget.value.activityType,
+      status: 'confirmed',
+    },
+  );
+  if (!result.ok) {
+    auditError.value = result.reason || '审核失败，请稍后重试';
+    return;
+  }
   showAuditModal.value = false;
   showToast(`已审核通过：${auditTarget.value.studentName} - ${tier.name}`);
 }
@@ -409,7 +421,7 @@ function submitAudit() {
 // ─── 查看学员体重打卡（跳转到学员详情页体重Tab） ───
 function viewStudentWeight(studentId: string, campId?: string) {
   store.setSelectedStudentId(studentId);
-  if (campId) store.selectedCampId = campId;
+  if (campId) store.detailSelectedCampId = campId; // 详情流营期，勿污染全局 selectedCampId
   store.setPendingAnnotation('weight', null);
   store.setCurrentView('dietitian-student-detail');
 }

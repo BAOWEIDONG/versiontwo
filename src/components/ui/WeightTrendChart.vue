@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { Scale, TrendingUp, TrendingDown, Minus } from 'lucide-vue-next';
 import { Card } from './index';
@@ -148,6 +148,24 @@ function handleChartTouchMove(e: TouchEvent) {
 
 // 暴露常量给模板
 const consts = { CW, CH, PL, PR, PT, PB, PH };
+
+// 手势改命令式绑定（Vue 压缩器会错绑模板 passive touch 事件致滑动失灵，见 feedback-tab-swipe-prod-build）
+const chartSvgRef = ref<SVGSVGElement | null>(null);
+const onChartTouchStart = (e: TouchEvent) => handleChartTouchStart(e);
+const onChartTouchMove = (e: TouchEvent) => handleChartTouchMove(e);
+onMounted(() => {
+  const svg = chartSvgRef.value;
+  if (!svg) return;
+  // 处理函数内调用 preventDefault，必须显式 passive:false
+  svg.addEventListener('touchstart', onChartTouchStart, { passive: false });
+  svg.addEventListener('touchmove', onChartTouchMove, { passive: false });
+});
+onUnmounted(() => {
+  const svg = chartSvgRef.value;
+  if (!svg) return;
+  svg.removeEventListener('touchstart', onChartTouchStart);
+  svg.removeEventListener('touchmove', onChartTouchMove);
+});
 </script>
 
 <template>
@@ -173,8 +191,7 @@ const consts = { CW, CH, PL, PR, PT, PB, PH };
       <svg :viewBox="`0 0 ${consts.CW} ${consts.CH}`" class="w-full touch-none select-none"
            style="min-width: 280px;" preserveAspectRatio="xMidYMid meet"
            @click="handleChartClick"
-           @touchstart="handleChartTouchStart"
-           @touchmove="handleChartTouchMove">
+           ref="chartSvgRef">
         <defs>
           <linearGradient :id="gradientId" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#07C160" stop-opacity="0.2" />

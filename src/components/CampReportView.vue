@@ -77,7 +77,7 @@ const report = computed<StudentCampReport>(() =>
   generateStudentReport(
     { id: studentId.value, name: studentName.value, gender: studentGender.value },
     store.metricConfigs,
-    MOCK_STUDENT_METRIC_VALUES[studentId.value] || MOCK_STUDENT_METRIC_VALUES['s1'] || {},
+    MOCK_STUDENT_METRIC_VALUES[studentId.value] || {},
     studentDiets.value,
     studentExercises.value,
     studentWeights.value,
@@ -345,7 +345,7 @@ const exportPDF = () => {
           <Activity class="h-4 w-4 text-[#1677FF]" />
           体成分检测变化
         </h3>
-        <div class="space-y-3">
+        <div v-if="bodyCompositionMetrics.some((m) => m.beforeValue !== null || m.afterValue !== null)" class="space-y-3">
           <div
             v-for="m in bodyCompositionMetrics.filter(m => m.beforeValue !== null || m.afterValue !== null)"
             :key="m.configId"
@@ -364,6 +364,7 @@ const exportPDF = () => {
             </div>
           </div>
         </div>
+        <div v-else class="text-center text-sm text-gray-400 py-6">本营期暂无体成分检测数据</div>
       </Card>
 
       <!-- 核心数据摘要 -->

@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { NavBar, Card, Button, Input } from './ui';
-import { Popup as VanPopup } from 'vant';
+import { Popup as VanPopup, showToast } from 'vant';
 import { Camera, Video, X, ChevronDown, Check } from 'lucide-vue-next';
 
 const store = useAppStore();
@@ -74,8 +74,12 @@ const handlePhotoSelect = async (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
   if (files.length === 0) return;
   const remaining = 5 - imageFiles.value.length;
-  const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
-  imageFiles.value = [...imageFiles.value, ...urls];
+  try {
+    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    imageFiles.value = [...imageFiles.value, ...urls];
+  } catch {
+    showToast({ message: '图片上传失败，请重试', position: 'top', duration: 2500 });
+  }
   (e.target as HTMLInputElement).value = '';
 };
 
@@ -83,8 +87,12 @@ const handleVideoSelect = async (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
   if (files.length === 0) return;
   const remaining = 5 - videoUrls.value.length;
-  const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
-  videoUrls.value = [...videoUrls.value, ...urls];
+  try {
+    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    videoUrls.value = [...videoUrls.value, ...urls];
+  } catch {
+    showToast({ message: '视频上传失败，请重试', position: 'top', duration: 2500 });
+  }
   (e.target as HTMLInputElement).value = '';
 };
 

@@ -158,13 +158,13 @@ export function computeDailyCheckins(
   // 收集所有打卡日期
   const allDates = new Set<string>();
   dietRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   exerciseRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   weightRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
 
   if (allDates.size === 0) return [];
@@ -182,13 +182,13 @@ export function computeDailyCheckins(
     const dateStr = format(cursor, 'yyyy-MM-dd');
 
     const dayDiets = dietRecords.filter((r) =>
-      r.date.startsWith(dateStr) && (!userId || !r.studentId || r.studentId === userId),
+      r.date.startsWith(dateStr) && (!userId || r.studentId === userId),
     );
     const dayExercises = exerciseRecords.filter((r) =>
-      r.date.startsWith(dateStr) && (!userId || !r.studentId || r.studentId === userId),
+      r.date.startsWith(dateStr) && (!userId || r.studentId === userId),
     );
     const dayWeights = weightRecords.filter((r) =>
-      r.date.startsWith(dateStr) && (!userId || !r.studentId || r.studentId === userId),
+      r.date.startsWith(dateStr) && (!userId || r.studentId === userId),
     );
 
     const hasBreakfast = dayDiets.some((r) => r.meal === 'breakfast');
@@ -235,7 +235,7 @@ export function computeDailyDietScores(
   const dayMap: Record<string, DietRecord[]> = {};
 
   dietRecords.forEach((r) => {
-    if (userId && r.studentId && r.studentId !== userId) return;
+    if (userId && r.studentId !== userId) return;
     const day = r.date.substring(0, 10);
     if (!dayMap[day]) dayMap[day] = [];
     dayMap[day].push(r);
@@ -272,10 +272,10 @@ export function computeWeeklyStats(
   // 收集所有打卡日期确定起始点
   const allDates = new Set<string>();
   dietRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   exerciseRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
 
   if (allDates.size === 0) return [];
@@ -310,14 +310,14 @@ export function computeWeeklyStats(
 
       // 运动时长
       exerciseRecords.forEach((r) => {
-        if (r.date.startsWith(dateStr) && (!userId || !r.studentId || r.studentId === userId)) {
+        if (r.date.startsWith(dateStr) && (!userId || r.studentId === userId)) {
           exerciseDuration += r.duration;
         }
       });
 
       // 饮食记录
       weekDietRecords = weekDietRecords.concat(
-        dietRecords.filter((r) => r.date.startsWith(dateStr) && (!userId || !r.studentId || r.studentId === userId)),
+        dietRecords.filter((r) => r.date.startsWith(dateStr) && (!userId || r.studentId === userId)),
       );
 
       cursor = addDays(cursor, 1);
@@ -354,7 +354,7 @@ export function computeExerciseBreakdown(
   userId?: string,
 ): ExerciseTypeBreakdown[] {
   const filtered = userId
-    ? exerciseRecords.filter((r) => r.studentId === userId || !r.studentId)
+    ? exerciseRecords.filter((r) => r.studentId === userId)
     : exerciseRecords;
 
   const typeMap: Record<string, { count: number; totalDuration: number }> = {};
@@ -434,13 +434,13 @@ export function computeDietScoreTrends(
   // 收集所有打卡日期确定周划分
   const allDates = new Set<string>();
   dietRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   exerciseRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   weightRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
 
   if (allDates.size === 0) return [];
@@ -593,7 +593,7 @@ export function computeExerciseTrends(
 
   const allDates = new Set<string>();
   exerciseRecords.forEach((r) => {
-    if (!userId || !r.studentId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
+    if (!userId || r.studentId === userId) allDates.add(r.date.substring(0, 10));
   });
   if (allDates.size === 0) return [];
 
@@ -667,7 +667,7 @@ export function computeDailyExerciseTrends(
   records: ExerciseRecord[],
   userId?: string,
 ): ExerciseDayTrend[] {
-  const mine = records.filter((r) => !userId || !r.studentId || r.studentId === userId);
+  const mine = records.filter((r) => !userId || r.studentId === userId);
   if (mine.length === 0) return [];
 
   const dates = mine.map((r) => r.date.substring(0, 10)).sort();

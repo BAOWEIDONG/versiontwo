@@ -216,20 +216,23 @@ const submitClaim = () => {
       return;
     }
     if (selectedRewardTier.value.stock <= 0) { claimFormError.value = '该礼品库存不足'; return; }
-    store.addRewardClaim({
-      id: `claim_${Date.now()}`,
-      tierId: selectedRewardTier.value.id,
-      studentId: store.user.id,
-      studentName: store.user.name,
-      recipientName: claimFormData.value.name.trim(),
-      recipientPhone: claimFormData.value.phone.trim(),
-      recipientAddress: claimFormData.value.address.trim(),
-      claimDate: (() => { const d = new Date(); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; })(),
-      status: 'pending',
-      deliveryMethod: 'shipped',
-      campId: activeCampId.value || undefined,
-    });
-    store.updateRewardTier(selectedRewardTier.value.id, { stock: Math.max(0, selectedRewardTier.value.stock - 1) });
+    // 走 store 单一咽喉：实时校验库存/营期/once-per-tier 判重后写记录并扣库存
+    const result = store.claimRewardTier(
+      selectedRewardTier.value.id,
+      store.user.id,
+      store.user.name,
+      {
+        recipientName: claimFormData.value.name.trim(),
+        recipientPhone: claimFormData.value.phone.trim(),
+        recipientAddress: claimFormData.value.address.trim(),
+        deliveryMethod: 'shipped',
+        campId: activeCampId.value || undefined,
+      },
+    );
+    if (!result.ok) {
+      claimFormError.value = result.reason || '领取失败，请稍后重试';
+      return;
+    }
     showRewardInfo.value = false;
     showClaimForm.value = false;
   }

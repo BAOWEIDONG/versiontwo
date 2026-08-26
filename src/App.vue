@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, nextTick, type Component } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick, type Component } from 'vue';
 import { useAppStore } from './store/app';
 import LoginView from './components/LoginView.vue';
 import RegisterView from './components/RegisterView.vue';
@@ -98,11 +98,17 @@ watch(() => store.currentView, () => {
   });
 });
 
+// 启用 iOS 液态玻璃悬浮 Tabbar（打印时移除，回到普通 Tabbar 并遵循 print:hidden）
+const handleBeforePrint = () => document.body.classList.remove('liquid-glass');
+const handleAfterPrint = () => document.body.classList.add('liquid-glass');
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeprint', handleBeforePrint);
+  window.removeEventListener('afterprint', handleAfterPrint);
+});
+
 onMounted(() => {
-  // 启用 iOS 液态玻璃悬浮 Tabbar（打印时移除，回到普通 Tabbar 并遵循 print:hidden）
   document.body.classList.add('liquid-glass');
-  const handleBeforePrint = () => document.body.classList.remove('liquid-glass');
-  const handleAfterPrint = () => document.body.classList.add('liquid-glass');
   window.addEventListener('beforeprint', handleBeforePrint);
   window.addEventListener('afterprint', handleAfterPrint);
 

@@ -232,6 +232,7 @@ export const useAppStore = defineStore('app', () => {
             api.getMealTimeConfigByCamp(camp.id),
           ]);
           if (actCfg && Object.keys(actCfg).length > 0) {
+            // TODO(api): getActivityConfig 返回 Record<string, unknown>，待后端接口定型后改返回 ActivityConfig 类型以去除该断言
             activityConfigByCamp.value = { ...activityConfigByCamp.value, [camp.id]: actCfg as unknown as ActivityConfig };
           }
           if (mealCfg) {
@@ -346,8 +347,8 @@ export const useAppStore = defineStore('app', () => {
   }
 
   /** 底部 Tab 根页面（切换时去重，避免历史栈无限增长） */
-  // 首期上线版：学员端底部Tab为 首页/档案（移除活动/消息）
-  const TAB_ROOTS: View[] = ['dashboard', 'health-profile', 'coach-dashboard', 'dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config'];
+  // 学员端底部Tab：首页/消息/活动/档案（无活动配置时「活动」自动隐藏）；教练/营养师端各自的底部Tab根页
+  const TAB_ROOTS: View[] = ['dashboard', 'messages', 'activity-hub', 'health-profile', 'coach-dashboard', 'dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config'];
 
   /** 学员详情流视图：在此流内继承 detailSelectedCampId，离开则清空（不污染全局 selectedCampId） */
   const DETAIL_FLOW_VIEWS: View[] = ['dietitian-student-detail', 'coach-student-detail', 'pointsDetail'];
@@ -465,14 +466,73 @@ export const useAppStore = defineStore('app', () => {
     api.updateRewardTier(id, updates).catch(() => {});
   }
 
-  function deleteRewardTier(id: string) {
+  /** 删除奖励层级。存在未终态（confirmed=待领取 / pending=待发货）领取记录时拒绝删除。
+   *  返回 {ok, reason}，由调用方提示拦截原因与连带影响。 */
+  function deleteRewardTier(id: string): { ok: boolean; reason?: string } {
+    const open = rewardClaims.value.filter((c) => c.tierId === id && (c.status === 'confirmed' || c.status === 'pending'));
+    if (open.length > 0) {
+      return { ok: false, reason: `该奖励已有 ${open.length} 条未发货领取记录（待发货/待领取），无法删除` };
+    }
     rewardTiers.value = rewardTiers.value.filter((t) => t.id !== id);
     api.deleteRewardTier(id).catch(() => {});
+    return { ok: true };
   }
 
+  /** 仅种子/内部使用：不做任何校验直接写领取记录。生产路径必须走 claimRewardTier（校验+扣库存的单一咽喉）。 */
   function addRewardClaim(claim: RewardClaim) {
     rewardClaims.value.push(claim);
     api.createRewardClaim(claim).catch(() => {});
+  }
+
+  /** 领取奖励单一咽喉（连续打卡领取 / 活动审核发放统一入口，仿 exchangePointProduct 加固模式）：
+   *  ①按 id 实时重读 tier，校验存在与库存（剩余可发量语义）；②营期一致性（tier 绑定营期时须与领取营期一致，未绑定=全局共享）；
+   *  ③once-per-tier 判重（同一学员同一 tier 仅可领取一次）；④全部通过才写 claim 记录并用 fresh tier 扣库存。
+   *  真实上线须由服务端做权威校验（原子+幂等）。 */
+  function claimRewardTier(
+    tierId: string,
+    studentId: string,
+    studentName: string,
+    claimInfo: {
+      recipientName: string;
+      recipientPhone: string;
+      recipientAddress: string;
+      deliveryMethod?: 'shipped' | 'in-person';
+      campId?: string;
+      activityType?: 'milestone' | 'weekly' | 'lucky';
+      status?: 'confirmed' | 'pending';
+    },
+  ): { ok: boolean; reason?: string; claim?: RewardClaim } {
+    // ①实时重读 tier，避免调用方传入的快照过期（已被删除 / 库存已被其它领取占用）
+    const fresh = rewardTiers.value.find((t) => t.id === tierId);
+    if (!fresh) return { ok: false, reason: '该奖励不存在或已被删除' };
+    if (fresh.stock <= 0) return { ok: false, reason: '该礼品库存不足' };
+    // ②营期一致性
+    if (claimInfo.campId && fresh.campId && fresh.campId !== claimInfo.campId) {
+      return { ok: false, reason: '该奖励不属于当前营期' };
+    }
+    // ③once-per-tier 判重
+    if (rewardClaims.value.some((c) => c.studentId === studentId && c.tierId === tierId)) {
+      return { ok: false, reason: '您已领取过该奖励，请勿重复领取' };
+    }
+    const claim: RewardClaim = {
+      id: `claim_${Date.now()}`,
+      tierId,
+      studentId,
+      studentName,
+      recipientName: claimInfo.recipientName,
+      recipientPhone: claimInfo.recipientPhone,
+      recipientAddress: claimInfo.recipientAddress,
+      claimDate: formatDateTimeStr(),
+      status: claimInfo.status ?? 'pending',
+      deliveryMethod: claimInfo.deliveryMethod,
+      campId: claimInfo.campId,
+      activityType: claimInfo.activityType,
+    };
+    // ④写记录 + 用 fresh tier 扣库存
+    rewardClaims.value.push(claim);
+    api.createRewardClaim(claim).catch(() => {});
+    updateRewardTier(fresh.id, { stock: fresh.stock - 1 });
+    return { ok: true, claim };
   }
 
   function updateRewardClaim(id: string, updates: Partial<RewardClaim>) {
@@ -503,9 +563,16 @@ export const useAppStore = defineStore('app', () => {
     api.updatePointProduct(id, updates).catch(() => {});
   }
 
-  function deletePointProduct(id: string) {
+  /** 删除积分商品。存在非取消（pending/fulfilled）兑换记录时拒绝删除。
+   *  返回 {ok, reason}，由调用方提示拦截原因与连带影响。 */
+  function deletePointProduct(id: string): { ok: boolean; reason?: string } {
+    const open = pointExchanges.value.filter((e) => e.productId === id && e.status !== 'cancelled');
+    if (open.length > 0) {
+      return { ok: false, reason: `该商品已有 ${open.length} 条非取消兑换记录（待发货/已发货），无法删除` };
+    }
     pointProducts.value = pointProducts.value.filter((p) => p.id !== id);
     api.deletePointProduct(id).catch(() => {});
+    return { ok: true };
   }
 
   /** 计算学员的积分商城可用积分（排行榜总积分 - 已消耗积分，不可为负）
@@ -515,7 +582,7 @@ export const useAppStore = defineStore('app', () => {
     const earned = getStudentTotalEarnedPoints(studentId, campId);
     // 已消费也按营期过滤，与 earned 同口径：避免多营期学员在一营期的兑换侵蚀另一营期的可用积分/重复抵扣
     const spent = pointExchanges.value
-      .filter((e) => e.studentId === studentId && e.status !== 'cancelled' && (!campId || !e.campId || e.campId === campId))
+      .filter((e) => e.studentId === studentId && e.status !== 'cancelled' && (!campId || e.campId === campId))
       .reduce((sum, e) => sum + e.pointsSpent, 0);
     return Math.max(0, earned - spent);
   }
@@ -530,12 +597,14 @@ export const useAppStore = defineStore('app', () => {
     return calculateTotalScore(diet, exercise, manual);
   }
 
-  /** 营养师手动加减分 */
+  /** 营养师手动加减分（乐观更新 + fire-and-forget 持久化，同 addDietRecord 模式） */
   function addManualScoreRecord(record: ManualScoreRecord) {
     manualScoreRecords.value.push(record);
+    api.createManualScoreRecord(record).catch(() => {});
   }
   function deleteManualScoreRecord(id: string) {
     manualScoreRecords.value = manualScoreRecords.value.filter((r) => r.id !== id);
+    api.deleteManualScoreRecord(id).catch(() => {});
   }
 
   /** 兑换商品 */
@@ -903,6 +972,7 @@ export const useAppStore = defineStore('app', () => {
     updateRewardTier,
     deleteRewardTier,
     addRewardClaim,
+    claimRewardTier,
     updateRewardClaim,
     getPointProducts,
     addPointProduct,

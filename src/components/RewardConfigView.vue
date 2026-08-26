@@ -48,7 +48,10 @@ const handleDelete = (id: string) => {
     showToast(`该奖励已有 ${claimCount} 名学员领取，无法删除`);
     return;
   }
-  showConfirmDialog({ title: '提示', message: '确定删除此奖励？' }).then(() => store.deleteRewardTier(id));
+  showConfirmDialog({ title: '提示', message: '确定删除此奖励？' }).then(() => {
+    const res = store.deleteRewardTier(id);
+    if (!res.ok) showToast(res.reason || '删除失败');
+  });
 };
 
 const toggleDeliveryMethod = (method: 'shipped' | 'in-person') => {
@@ -141,7 +144,10 @@ const handleDeleteProduct = (id: string) => {
     showToast('该商品已有兑换记录，无法删除');
     return;
   }
-  showConfirmDialog({ title: '提示', message: '确定删除此商品？' }).then(() => store.deletePointProduct(id));
+  showConfirmDialog({ title: '提示', message: '确定删除此商品？' }).then(() => {
+    const res = store.deletePointProduct(id);
+    if (!res.ok) showToast(res.reason || '删除失败');
+  });
 };
 
 const saveProduct = () => {

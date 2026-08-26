@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
-import { MOCK_STUDENTS, MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
+import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, ThumbsUp, CheckCircle2, Salad, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
@@ -24,7 +24,7 @@ const MEAL_TYPES = [
 ];
 
 const store = useAppStore();
-const student = computed(() => MOCK_STUDENTS.find((s) => s.id === store.selectedStudentId));
+const student = computed(() => store.students.find((s) => s.id === store.selectedStudentId));
 
 // ─── 营期切换（学员可能在多个营期中） ───
 const studentCamps = computed(() => store.selectedStudentId ? store.getStudentCamps(store.selectedStudentId) : []);

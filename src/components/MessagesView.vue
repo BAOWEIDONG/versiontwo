@@ -179,7 +179,6 @@ const exchangeMessages = computed<MessageItem[]>(() => {
   return mine
     .map((e): MessageItem => {
       const fulfilled = e.status === 'fulfilled';
-      const shipped = e.status === 'pending';
       return {
         id: `exch-${e.id}`,
         type: 'reward',

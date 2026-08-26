@@ -7,7 +7,7 @@
  *  不需要修改任何计算逻辑。
  *
  *  核心概念:
- *    "完成当天" = 早餐 ✓ + 午餐 ✓ + 晚餐 ✓ + 运动 ✓（四项缺一不可）
+ *    "完成当天" = 早餐 ✓ + 午餐 ✓ + 晚餐 ✓ + 运动 ✓ + 体重 ✓（五项缺一不可，与 streak.ts isDayComplete 一致）
  *    "打卡天数" = 有任意打卡记录（饮食/运动/体重）的天数
  *    "营期"    = 28 天（可通过 campDays 参数自定义）
  *
@@ -182,7 +182,7 @@ export function computeMetricChanges(
  *   - currentStreak:     当前连续完成天数（从今天往前数）
  *   - longestStreak:     营期内最长连续完成天数
  *   - totalExerciseDuration: 所有运动记录时长之和
- *   - totalDietScore:    饮食总得分（每日封顶3分）
+ *   - totalDietScore:    饮食总得分（每日封顶6分，与 scoring.ts calculateDietScore 一致）
  *
  * @param dietRecords     学员的饮食记录
  * @param exerciseRecords 学员的运动记录

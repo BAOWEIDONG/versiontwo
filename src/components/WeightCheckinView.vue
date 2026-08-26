@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
@@ -172,6 +172,27 @@ const handleToggleDate = (date: string) => {
 
 // 默认展开的"今天"分组直接可见，其中的未读批注视为已读
 markGroupCommentsRead(format(new Date(), 'yyyy-MM-dd'));
+
+// 手势改命令式绑定（Vue 压缩器会错绑模板 passive touch 事件致滑动失灵，见 feedback-tab-swipe-prod-build）
+const chartSvgRef = ref<SVGSVGElement | null>(null);
+const onChartTouchStart = (e: TouchEvent) => {
+  e.stopPropagation(); // 原模板 @touchstart.stop：阻隔冒泡，避免触发 useTabSwipe 换 tab
+  handleChartTouchStart(e);
+};
+const onChartTouchMove = (e: TouchEvent) => handleChartTouchMove(e);
+onMounted(() => {
+  const svg = chartSvgRef.value;
+  if (!svg) return;
+  // 处理函数内调用 preventDefault，必须显式 passive:false
+  svg.addEventListener('touchstart', onChartTouchStart, { passive: false });
+  svg.addEventListener('touchmove', onChartTouchMove, { passive: false });
+});
+onUnmounted(() => {
+  const svg = chartSvgRef.value;
+  if (!svg) return;
+  svg.removeEventListener('touchstart', onChartTouchStart);
+  svg.removeEventListener('touchmove', onChartTouchMove);
+});
 
 // 消息中心跳转：切到记录Tab，自动展开目标日期并滚动到对应记录
 onMounted(() => {
@@ -522,8 +543,7 @@ function handleChartTouchMove(e: TouchEvent) {
           <svg :viewBox="`0 0 ${CW} ${CH}`" class="w-full touch-none select-none"
                preserveAspectRatio="xMidYMid meet"
                @click="handleChartClick"
-               @touchstart.stop="handleChartTouchStart"
-               @touchmove="handleChartTouchMove">
+               ref="chartSvgRef">
             <defs>
               <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#1677FF" stop-opacity="0.15" />

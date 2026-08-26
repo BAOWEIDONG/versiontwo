@@ -35,6 +35,7 @@ import type {
   Account,
   PointProduct,
   PointExchangeRecord,
+  ManualScoreRecord,
 } from '../types';
 import {
   MOCK_STUDENTS,
@@ -754,4 +755,30 @@ export async function updateMealTimeConfigByCamp(campId: string, config: MealTim
     method: 'PUT',
     body: JSON.stringify(config),
   });
+}
+
+// ============ 营养师手动加减分 ============
+
+/**
+ * 创建营养师手动加减分记录（补录线下打卡积分等）
+ * POST /manual-score-records
+ *
+ * @body  ManualScoreRecord - { studentId, points, reason, dietitianName, campId }
+ * @returns ManualScoreRecord
+ */
+export async function createManualScoreRecord(record: ManualScoreRecord): Promise<ManualScoreRecord> {
+  if (USE_MOCK) return record;
+  return request<ManualScoreRecord>('/manual-score-records', {
+    method: 'POST',
+    body: JSON.stringify(record),
+  });
+}
+
+/**
+ * 删除营养师手动加减分记录
+ * DELETE /manual-score-records/:id
+ */
+export async function deleteManualScoreRecord(id: string): Promise<void> {
+  if (USE_MOCK) return;
+  return request<void>(`/manual-score-records/${id}`, { method: 'DELETE' });
 }

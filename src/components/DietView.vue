@@ -5,10 +5,11 @@ import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
 import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
-import { Checkbox as VanCheckbox } from 'vant';
+import { Checkbox as VanCheckbox, showToast } from 'vant';
 import { NavBar, Card, Button } from './ui';
 import { Camera, X, ChevronDown, UtensilsCrossed } from 'lucide-vue-next';
 import { formatDateTime } from '../lib/utils';
+import type { DietRecord } from '../types';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
 
@@ -68,8 +69,12 @@ const handlePhotoSelect = async (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
   if (files.length === 0) return;
   const remaining = 3 - photos.value.length;
-  const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
-  photos.value = [...photos.value, ...urls];
+  try {
+    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    photos.value = [...photos.value, ...urls];
+  } catch {
+    showToast({ message: '照片上传失败，请重试', position: 'top', duration: 2500 });
+  }
   (e.target as HTMLInputElement).value = '';
 };
 
@@ -142,7 +147,7 @@ const handleSubmit = () => {
     studentId: store.user?.id || 's1',
     campId: activeCampId.value || undefined,
     date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-    meal: submittedMeal as any,
+    meal: submittedMeal as DietRecord['meal'],
     description: formData.value.isFasted ? '未进食' : formData.value.description,
     photos: formData.value.isFasted ? [] : photos.value,
     isFasted: formData.value.isFasted,

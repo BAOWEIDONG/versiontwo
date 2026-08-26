@@ -30,7 +30,7 @@ watch(() => store.selectedStudentId, (id) => {
       // 详情流已选营期 -> 继承（不影响全局）
       selectedCampId.value = store.detailSelectedCampId;
     } else if (!store.detailSelectedCampId) {
-      // 全部营期模式 -> 不选具体营期，展示全部数据
+      // 全部营期模式 -> 不选具体营期，展示全部数据（有意保留跨营合并视图，不默认回落最新一期）
       selectedCampId.value = '';
     } else {
       const campId = store.getStudentCampId(id);
