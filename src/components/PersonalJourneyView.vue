@@ -8,7 +8,7 @@ import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generatePersonalJourney } from '../lib/journey';
 import { campDaysOf } from '../lib/camps';
 import { generateStudentReport } from '../lib/campReport';
-import { exportElementAsImage } from '../lib/exportImage';
+import { exportReport } from '../lib/exportPDF';
 import type { Achievement } from '../types';
 
 const store = useAppStore();
@@ -149,11 +149,11 @@ const weeklyMax = computed(() => Math.max(...journey.value.weeklyStats.map((w) =
 // 格式化
 const fmt = (v: number | null, digits = 1): string => v === null ? '--' : v.toFixed(digits);
 
-// 长图导出
+// 导出（普通浏览器=PDF，微信=长图长按保存）
 const exportRef = ref<HTMLElement | null>(null);
 const exportPDF = () => {
   if (exportRef.value) {
-    exportElementAsImage(exportRef.value, `个人历程_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
+    exportReport(exportRef.value, `个人历程_${studentName.value}_${new Date().toISOString().split('T')[0]}`);
   }
 };
 </script>
