@@ -74,21 +74,33 @@ const VIEW_IMPORTERS: Record<string, () => Promise<{ default: Component }>> = {
   'my-rewards': () => import('./components/MyRewardsView.vue'),
 };
 
-// 各角色最高频的底部 tab 页 + 常用子页：登录后空闲预取，首次点击命中已缓存 chunk，避免等网络
+// 各角色底部 tab 与常用子页（角色预取，配合下方全量预取双保险）
 const ROLE_TABS: Record<string, string[]> = {
   student: ['dashboard', 'activity-hub', 'messages', 'health-profile', 'exercise', 'diet', 'weight-checkin', 'points-mall', 'calendar', 'reward'],
-  dietitian: ['dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config', 'fulfillment-center', 'reward-config', 'dietitian-student-detail'],
+  dietitian: ['dietitian-dashboard', 'dietitian-unannotated-list', 'dietitian-config', 'fulfillment-center', 'reward-config', 'dietitian-student-detail', 'account-manage'],
   coach: ['coach-dashboard', 'coach-student-detail', 'coach-unannotated-list', 'activity-upload', 'activities-list'],
 };
-let prefetched = false;
+let prefetchedRole = false;
+let prefetchedAll = false;
 function prefetchTabs(role: string) {
-  if (prefetched) return;
-  prefetched = true;
+  if (prefetchedRole) return;
+  prefetchedRole = true;
   const keys = ROLE_TABS[role] || [];
-  const ric = (window as any).requestIdleCallback;
   const go = () => { keys.forEach((k) => { const imp = VIEW_IMPORTERS[k]; if (imp) imp().catch(() => { /* 预取失败忽略 */ }); }); };
-  if (ric) ric(go, { timeout: 2000 });
-  else setTimeout(go, 300);
+  scheduleIdle(go);
+}
+// 首帧渲染稳定后，空闲预取「全部」视图 chunk：让后续任何页面点击都不再等网络，彻底消除“点页面转圈”
+function prefetchAll() {
+  if (prefetchedAll) return;
+  prefetchedAll = true;
+  const go = () => {
+    Object.values(VIEW_IMPORTERS).forEach((imp) => { try { imp().catch(() => { /* 忽略 */ }); } catch { /* 忽略 */ } });
+  };
+  scheduleIdle(go);
+}
+function scheduleIdle(fn: () => void) {
+  const ric = (window as any).requestIdleCallback;
+  if (ric) { ric(fn, { timeout: 3000 }); } else { setTimeout(fn, 500); }
 }
 
 // 视图映射：三端首页常驻(零等待)，其余全部按需 + 骨架屏
@@ -143,6 +155,8 @@ onMounted(() => {
 
   // 等登录角色确定后再按角色空闲预取底部 tab 页 chunk（登录页不预取，避免误拉）
   watch(() => store.user?.role, (r) => { if (r) prefetchTabs(r); }, { immediate: true });
+  // 首帧渲染 + 初始化完成后，空闲预取全部视图 chunk：后续任何页面点击都不再转圈
+  prefetchAll();
 });
 </script>
 
