@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
+import { useDeferred } from '../composables/useDeferred';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
@@ -28,7 +29,8 @@ const campExerciseRecords = computed(() => selectedCampId.value ? store.getCampE
 const campWeightRecords = computed(() => selectedCampId.value ? store.getCampWeightRecords(selectedCampId.value) : store.weightRecords);
 
 // 生成结营统计（使用营期过滤后的数据）
-const summary = computed<DietitianCampSummary>(() =>
+// 首次进入全校聚合较慢：用 useDeferred 延迟到首帧后空闲计算，先出骨架屏，避免阻塞首绘
+const { data: summary, done: summaryReady } = useDeferred<DietitianCampSummary>(() =>
   generateDietitianSummary(
     campStudents.value,
     store.metricConfigs,
@@ -40,8 +42,9 @@ const summary = computed<DietitianCampSummary>(() =>
   ),
 );
 
-// 按分类分组的指标聚合
+// 按分类分组的指标聚合（summary 未就绪时为空）
 const metricCategories = computed(() => {
+  if (!summary.value) return [];
   const cats = new Map<string, typeof summary.value.metricAggregates>();
   for (const m of summary.value.metricAggregates) {
     if (!cats.has(m.category)) cats.set(m.category, []);
@@ -105,7 +108,20 @@ const fmtChange = (v: number | null, unit = ''): string => {
       </button>
     </div>
 
-    <div ref="exportRef" class="p-4 space-y-4">
+    <!-- 首次聚合计算完成前的骨架屏，避免全校统计同步计算阻塞首帧 -->
+    <div v-if="!summaryReady" class="p-4 space-y-4 animate-pulse">
+      <div class="h-24 bg-gray-100 rounded-xl"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="h-28 bg-gray-100 rounded-xl"></div>
+        <div class="h-28 bg-gray-100 rounded-xl"></div>
+        <div class="h-28 bg-gray-100 rounded-xl"></div>
+        <div class="h-28 bg-gray-100 rounded-xl"></div>
+      </div>
+      <div class="h-40 bg-gray-100 rounded-xl"></div>
+      <div class="h-40 bg-gray-100 rounded-xl"></div>
+    </div>
+
+    <div v-if="summaryReady" ref="exportRef" class="p-4 space-y-4">
       <!-- 企业汇报版入口 -->
       <Card
         class="bg-gradient-to-r from-[#07C160]/10 to-[#07C160]/5 border-[#07C160]/20 cursor-pointer hover:shadow-md transition-shadow"

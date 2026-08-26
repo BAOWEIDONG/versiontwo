@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
+import { useDeferred } from '../composables/useDeferred';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Building2, Users, Trophy, Flame, Sparkles, Download, ShieldCheck, HeartPulse, Dumbbell } from 'lucide-vue-next';
@@ -23,7 +24,8 @@ const campDietRecords = computed(() => selectedCampId.value ? store.getCampDietR
 const campExerciseRecords = computed(() => selectedCampId.value ? store.getCampExerciseRecords(selectedCampId.value) : store.exerciseRecords);
 const campWeightRecords = computed(() => selectedCampId.value ? store.getCampWeightRecords(selectedCampId.value) : store.weightRecords);
 
-const summary = computed(() =>
+// 首次聚合计算较慢：用 useDeferred 延迟到首帧后空闲计算，先出骨架屏
+const { data: summary, done: summaryReady } = useDeferred(() =>
   generateDietitianSummary(
     campStudents.value,
     store.metricConfigs,
@@ -35,8 +37,8 @@ const summary = computed(() =>
   ),
 );
 
-// 企业汇报版（匿名聚合）
-const report = computed(() => generateEnterpriseReport(summary.value));
+// 企业汇报版（匿名聚合），summary 就绪后生成
+const report = computed(() => summary.value ? generateEnterpriseReport(summary.value) : null);
 
 const fmt = (v: number | null, digits = 1): string => (v === null ? '--' : v.toFixed(digits));
 const fmtPct = (v: number | null): string => (v === null ? '--' : `${Math.round(v * 100)}%`);
@@ -71,7 +73,15 @@ const handleExport = () => {
       </button>
     </div>
 
-    <div ref="exportRef" class="p-4 space-y-4">
+    <!-- 首次聚合计算完成前的骨架屏 -->
+    <div v-if="!summaryReady" class="p-4 space-y-4 animate-pulse">
+      <div class="h-32 bg-gray-100 rounded-xl"></div>
+      <div class="h-24 bg-gray-100 rounded-xl"></div>
+      <div class="h-40 bg-gray-100 rounded-xl"></div>
+      <div class="h-32 bg-gray-100 rounded-xl"></div>
+    </div>
+
+    <div v-if="summaryReady" ref="exportRef" class="p-4 space-y-4">
       <!-- 隐私提示（导出时隐藏） -->
       <div class="flex items-start gap-2 bg-[#07C160]/5 border border-[#07C160]/15 rounded-xl px-3 py-2.5" data-html2canvas-ignore>
         <ShieldCheck class="w-4 h-4 text-[#07C160] shrink-0 mt-0.5" />
