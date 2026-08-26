@@ -44,6 +44,7 @@ interface ExchangeRecordItem {
   date: string; // 领取时间，yyyy-MM-dd HH:mm:ss
   status: string;
   trackingNumber?: string;
+  cancelledAt?: string;
   campId?: string;
   camp?: Camp;
 }
@@ -61,6 +62,7 @@ const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
       pointsSpent: e.pointsSpent,
       date: e.exchangeDate, status: e.status,
       trackingNumber: e.trackingNumber,
+      cancelledAt: e.cancelledAt,
       campId: e.campId, camp: campOf(e.campId),
     });
   }
@@ -953,6 +955,9 @@ function switchModule(m: Module) {
                         </template>
                       </div>
                       <div class="mt-0.5 text-[10px] text-gray-400 truncate">{{ formatDateTime(record.date) }}</div>
+                      <div v-if="record.status === 'cancelled' && record.cancelledAt" class="mt-0.5 text-[10px] text-gray-400 truncate">
+                        <span class="text-[#FF6B35]">取消</span>于 {{ formatDateTime(record.cancelledAt) }}
+                      </div>
                     </div>
                   </div>
                   <div v-if="record.camp || record.trackingNumber" class="mt-2 flex items-center gap-2 text-[10px] text-gray-400">

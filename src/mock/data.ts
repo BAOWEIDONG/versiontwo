@@ -811,6 +811,7 @@ export const MOCK_POINT_EXCHANGES: PointExchangeRecord[] = [
   { id: 'pe1', studentId: 's1', studentName: '李明', productId: 'pp1', productName: '运动水杯', productImage: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), pointsSpent: 30, exchangeDate: iso(-3, '14:30:00'), status: 'fulfilled', deliveryMethod: 'shipped', trackingNumber: 'SF1024567890', shipDate: iso(-2, '10:00:00'), recipientName: '李明', recipientPhone: '13800001111', recipientAddress: '北京市海淀区中关村大街1号', campId: 'camp1' },
   { id: 'pe2', studentId: 's2', studentName: '王芳', productId: 'pp2', productName: '跳绳', productImage: rewardImg('蛋白粉', '💪', '#07C160', '#04A551'), pointsSpent: 50, exchangeDate: iso(-1, '09:15:00'), status: 'pending', deliveryMethod: 'shipped', recipientName: '王芳', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', campId: 'camp2' },
   { id: 'pe3', studentId: 's3', studentName: '张伟', productId: 'pp3', productName: '瑜伽垫', productImage: rewardImg('体脂秤', '⚖️', '#FF976A', '#FF6B35'), pointsSpent: 80, exchangeDate: iso(-5, '16:20:00'), status: 'fulfilled', deliveryMethod: 'in-person', deliveredAt: iso(-4, '14:00:00'), campId: 'camp1' },
+  { id: 'pe4', studentId: 's2', studentName: '王芳', productId: 'pp2', productName: '跳绳', productImage: rewardImg('蛋白粉', '💪', '#07C160', '#04A551'), pointsSpent: 50, exchangeDate: iso(-1, '11:00:00'), status: 'cancelled', deliveryMethod: 'shipped', recipientName: '王芳', recipientPhone: '13800002222', recipientAddress: '上海市浦东新区张江路100号', cancelledAt: iso(-1, '12:34:00'), campId: 'camp2' },
 ];
 
 /** 营养师手动加减分记录（补录线下打卡积分等） */

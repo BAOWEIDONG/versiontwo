@@ -238,6 +238,8 @@ export interface PointExchangeRecord {
   shipDate?: string;
   /** 线下发放时间 */
   deliveredAt?: string;
+  /** 取消时间 */
+  cancelledAt?: string;
   /** 营期ID */
   campId?: string;
   /** 收货人姓名 */

@@ -604,8 +604,10 @@ export const useAppStore = defineStore('app', () => {
         updatePointProduct(product.id, { stock: product.stock + 1 });
       }
     }
-    pointExchanges.value = pointExchanges.value.map((e) => (e.id === id ? { ...e, status } : e));
-    api.updatePointExchange(id, { status }).catch(() => {});
+    pointExchanges.value = pointExchanges.value.map((e) =>
+      (e.id === id ? { ...e, status, cancelledAt: status === 'cancelled' ? formatDateTimeStr() : undefined } : e)
+    );
+    api.updatePointExchange(id, status === 'cancelled' ? { status, cancelledAt: pointExchanges.value.find((x) => x.id === id)?.cancelledAt } : { status }).catch(() => {});
   }
 
   /** 学员取消兑换（发货前可取消，积分自动返还） */
