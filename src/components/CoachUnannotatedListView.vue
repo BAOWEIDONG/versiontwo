@@ -65,14 +65,19 @@ const intentLabel = (intensity: number) =>
 <template>
   <div class="flex min-h-full flex-col bg-[#F4F6F8] pb-24 font-sans">
     <div class="pt-[calc(env(safe-area-inset-top)+0.5rem)] px-6 pb-6 bg-gradient-to-br from-[#07C160] via-[#04a551] to-[#06a551] rounded-b-[28px]">
-      <div class="flex items-center justify-between">
-        <h1 class="text-lg font-bold text-white">教练批注</h1>
-        <button v-if="store.camps.length > 1" @click="showCampPicker = true"
-          class="text-xs font-bold text-white flex items-center gap-1 px-3 py-1.5 bg-white/15 rounded-full backdrop-blur-md active:opacity-80">
-          {{ selectedCamp?.name || '选择营期' }}
-        </button>
+      <h1 class="text-lg font-bold text-white">教练批注</h1>
+      <p class="text-xs text-white/80 mt-1">待批注运动记录 {{ unannotatedCount }} 条，点击可进入学员详情批注重</p>
+    </div>
+
+    <!-- 营期切换（与营养师端一致的白条样式，按钮用教练绿） -->
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <div class="text-xs text-gray-500">当前营期</div>
+        <div class="text-sm font-medium text-gray-800">{{ selectedCamp?.name || '未选择' }}</div>
       </div>
-      <p class="text-xs text-white/80 mt-2">待批注运动记录 {{ unannotatedCount }} 条，点击可进入学员详情批注重</p>
+      <button class="text-xs text-[#07C160] border border-[#07C160] px-3 py-1.5 rounded-full font-bold active:bg-green-50" @click="showCampPicker = true">
+        切换营期
+      </button>
     </div>
 
     <div class="px-4 mt-3">
@@ -121,7 +126,7 @@ const intentLabel = (intensity: number) =>
         <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
         <div class="space-y-2">
           <button v-for="camp in store.camps" :key="camp.id"
-            @click="selectedCampId = camp.id; showCampPicker = false"
+            @click="selectedCampId = camp.id; store.selectedCampId = camp.id; showCampPicker = false"
             :class="['w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all', selectedCampId === camp.id ? 'border-[#07C160] bg-green-50 text-[#07C160]' : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50']">
             <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
           </button>
