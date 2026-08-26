@@ -738,6 +738,8 @@ function handleChartTouchMove(e: TouchEvent) {
                       :src="url"
                       alt="体重打卡"
                       class="h-16 w-16 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
+                      loading="lazy"
+                      decoding="async"
                       @click="store.openImagePreview(w.photos || [], idx)"
                     />
                   </div>

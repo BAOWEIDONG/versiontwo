@@ -816,6 +816,8 @@ const handleSubmit = () => {
                     :src="url"
                     alt="运动"
                     class="h-20 w-20 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
+                    loading="lazy"
+                    decoding="async"
                     @click="store.openImagePreview(record.photos || [], idx)"
                   />
                 </div>

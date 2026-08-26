@@ -182,6 +182,17 @@ watch(
 const allHistory = computed(() => [...userDiets.value].sort((a, b) => b.date.localeCompare(a.date)));
 const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allHistory);
 
+// 首屏性能：历史记录按日期分组后只先渲染最近 N 组，滚动/点按钮再加载更早（减少首帧 DOM 与图片数量）
+const visibleGroupCount = ref(3); // 初始渲染最近 3 天分组（每组默认收起，数据量小）
+const historyVisible = computed(() => groupedHistory.value.slice(0, visibleGroupCount.value));
+const hasMoreHistory = computed(() => visibleGroupCount.value < groupedHistory.value.length);
+const loadMoreHistory = () => { visibleGroupCount.value += 5; };
+// 跨页深链：跳转到指定日期的记录时，需把渲染上限放开到包含目标日期
+function revealToDate(targetDate: string) {
+  const idx = groupedHistory.value.findIndex((g) => g.date === targetDate);
+  if (idx >= 0 && idx >= visibleGroupCount.value) visibleGroupCount.value = idx + 1;
+}
+
 const mealLabel = (meal: string) => MEAL_TYPES.find((m) => m.id === meal)?.label;
 
 // 学员对批注的反馈（点按钮同时视为已读）
@@ -217,6 +228,7 @@ const processPendingDeepLink = () => {
     const targetDate = store.selectedDateStr;
     store.setSelectedDateStr(null);
     activeTab.value = 'records';
+    revealToDate(targetDate); // 放开渲染上限，确保目标日期组已渲染
     if (!isExpanded(targetDate)) toggleDate(targetDate);
     markGroupCommentsRead(targetDate);
     nextTick(() => {
@@ -332,7 +344,7 @@ onActivated(processPendingDeepLink);
         <div class="text-xs text-gray-400">拍下今天的第一餐，让营养师帮你把关</div>
       </div>
       <div v-else class="space-y-4">
-        <div v-for="group in groupedHistory" :key="group.date" :id="`diet-group-${group.date}`">
+        <div v-for="group in historyVisible" :key="group.date" :id="`diet-group-${group.date}`">
           <!-- Date header -->
           <button
             @click="handleToggleDate(group.date)"
@@ -377,6 +389,8 @@ onActivated(processPendingDeepLink);
                     :src="url"
                     alt="食物"
                     class="h-20 w-20 object-cover rounded-lg shrink-0 snap-center border border-gray-100 cursor-pointer"
+                    loading="lazy"
+                    decoding="async"
                     @click="store.openImagePreview(record.photos || [], idx)"
                   />
                 </div>
@@ -414,6 +428,14 @@ onActivated(processPendingDeepLink);
             </Card>
           </div>
         </div>
+        <!-- 更早记录分片加载（首屏少渲染，减少图片/DOM；下滑加载更早） -->
+        <button
+          v-if="hasMoreHistory"
+          @click="loadMoreHistory"
+          class="w-full py-2.5 mt-3 text-xs font-bold text-[#FF976A] bg-white border border-[#FF976A]/30 rounded-xl active:bg-orange-50"
+        >
+          加载更早的记录（{{ groupedHistory.length - historyVisible.length }} 天未加载）
+        </button>
       </div>
     </div>
 

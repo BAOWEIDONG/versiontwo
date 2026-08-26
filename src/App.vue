@@ -83,6 +83,19 @@ onMounted(() => {
   store.restoreAuth();
   store.init();
   syncRoleClass(store.user?.role);
+
+  // 首屏渲染稳定后，按空闲预加载高频页面 chunk，避免首次进入该页时再等网络拉代码
+  const preloadPaths = [
+    () => import('./components/StudentDashboardView.vue'),
+    () => import('./components/ExerciseView.vue'),
+    () => import('./components/DietView.vue'),
+    () => import('./components/WeightCheckinView.vue'),
+    () => import('./components/CalendarView.vue'),
+    () => import('./components/PointsMallView.vue'),
+    () => import('./components/MessagesView.vue'),
+  ];
+  const idleCb = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1500));
+  idleCb(() => { preloadPaths.forEach((p) => p().catch(() => { /* 预加载失败不影响 */ })); });
 });
 </script>
 

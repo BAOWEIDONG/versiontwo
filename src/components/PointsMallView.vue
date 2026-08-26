@@ -178,7 +178,7 @@ const unreadCount = computed(() => {
           @click="openExchange(product)"
         >
           <div class="aspect-square bg-gray-50 relative overflow-hidden">
-            <img :src="product.imageUrl" class="w-full h-full object-cover" :alt="product.name" />
+            <img :src="product.imageUrl" class="w-full h-full object-cover" :alt="product.name" loading="lazy" decoding="async" />
             <div v-if="product.stock <= 5 && product.stock > 0"
               class="absolute top-2 right-2 bg-[#FF4444] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
               仅剩{{ product.stock }}件
@@ -236,7 +236,7 @@ const unreadCount = computed(() => {
           <div v-if="selectedProduct" class="bg-white rounded-3xl w-full max-w-[360px] overflow-hidden shadow-xl max-h-[90vh] overflow-y-auto" @click.stop>
             <!-- 商品图片 -->
             <div class="aspect-video bg-gray-50 relative">
-              <img :src="selectedProduct.imageUrl" class="w-full h-full object-cover" :alt="selectedProduct.name" />
+              <img :src="selectedProduct.imageUrl" class="w-full h-full object-cover" :alt="selectedProduct.name" loading="lazy" decoding="async" />
               <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1">
                 <Coins class="w-3.5 h-3.5 text-[#FF976A]" />
                 <span class="text-xs font-black text-[#FF6B35]">{{ selectedProduct.pointsRequired }}</span>
