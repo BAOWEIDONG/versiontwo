@@ -123,7 +123,11 @@ onMounted(() => {
   <div class="fixed inset-0 max-w-md mx-auto overflow-hidden font-sans text-gray-700 sm:shadow-2xl sm:border-x sm:border-gray-100">
     <div ref="scrollContainer" class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain" style="-webkit-overflow-scrolling: touch; touch-action: pan-y;">
       <div class="relative">
-        <component :is="currentComponent" :key="store.currentView" />
+        <!-- 视图缓存：去掉 :key 强制重建，改用 KeepAlive 缓存已访问视图。
+             返回/切底部 tab 不再整个销毁重建，大幅降低导航卡顿（性能优化） -->
+        <KeepAlive>
+          <component :is="currentComponent" />
+        </KeepAlive>
       </div>
     </div>
     <VideoPreview />

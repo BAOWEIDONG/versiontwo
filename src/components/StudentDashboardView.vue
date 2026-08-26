@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, onActivated, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
@@ -508,6 +508,33 @@ function flushPendingRewards() {
 const dismissRewardNotify = () => { showRewardNotify.value = false; persistShownRewards(); };
 const goClaimRewards = () => { showRewardNotify.value = false; persistShownRewards(); store.setCurrentView('reward'); };
 
+// 同步连续打卡奖励「已通知」基线，并在每次进入首页时重扫新解锁档位（弹通知提示领取）
+// 注：App.vue 已改为 KeepAlive 缓存（不再以 currentView 为 key 整体重挂载），
+// 故把重扫逻辑抽成函数，由 onMounted（首次）与 onActivated（返回再进）共同调用，
+// 保证「打卡页解锁 → 返回首页弹通知」行为与改造前一致。
+const scanRewardNotify = () => {
+  if (!store.user) return;
+  let seenRewards: string[] = [];
+  try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
+  if (seenRewards.length > 0) {
+    shownRewardTiers.value = new Set(seenRewards);
+    const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
+    if (fresh.length > 0) {
+      fresh.forEach((t) => shownRewardTiers.value.add(t.id));
+      persistShownRewards();
+      if (showDailySummary.value || showAchievementNotify.value) {
+        pendingRewards.value = fresh;
+      } else {
+        newRewards.value = fresh;
+        showRewardNotify.value = true;
+      }
+    }
+  } else {
+    shownRewardTiers.value = new Set(unlockedUnclaimedRewards().map((t) => t.id));
+    persistShownRewards();
+  }
+};
+
 onMounted(() => {
   const delays = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
   delays.forEach((delay, idx) => {
@@ -550,31 +577,8 @@ onMounted(() => {
       localStorage.setItem(mKey, JSON.stringify(ms));
     }
 
-    // 同步初始化连续打卡奖励「已通知」基线（首次使用不弹历史已解锁档位）
-    // 注：打卡页新增记录后返回首页，本组件会整体重新挂载（App.vue 以 currentView 为 key），
-    // 因此无法靠 watch 记录数量变化感知；改在每次进入首页时根据「已解锁未领取档位」对比历史已通知集合，
-    // 将新解锁的档位弹通知，提示用户可去领取。
-    let seenRewards: string[] = [];
-    try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
-    if (seenRewards.length > 0) {
-      shownRewardTiers.value = new Set(seenRewards);
-      // 有历史记录：本次尚未被记录的已解锁未领取档位，即本次新解锁，需弹系统通知
-      const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
-      if (fresh.length > 0) {
-        fresh.forEach((t) => shownRewardTiers.value.add(t.id));
-        persistShownRewards();
-        if (showDailySummary.value || showAchievementNotify.value) {
-          pendingRewards.value = fresh;
-        } else {
-          newRewards.value = fresh;
-          showRewardNotify.value = true;
-        }
-      }
-    } else {
-      // 首次使用：记录当前已解锁档位为基线，不弹历史已解锁档位
-      shownRewardTiers.value = new Set(unlockedUnclaimedRewards().map((t) => t.id));
-      persistShownRewards();
-    }
+    // 首次进入时也调一次重扫（复用顶部组件的 scanRewardNotify，见上）
+    scanRewardNotify();
 
     // 如果刚完成打卡，立即检测新成就（不被昨日小结阻塞）
     if (store.justCheckedIn) {
@@ -582,6 +586,14 @@ onMounted(() => {
       // 短延迟确保组件渲染完成
       setTimeout(() => checkNewAchievements(), 300);
     }
+  }
+});
+
+// KeepAlive 缓存下，从子页返回首页时不会重挂载，改用 onActivated 再次重扫新解锁档位
+// （与 onMounted 内首次基线初始化行为保持一致，见 has keep-alive 说明）
+onActivated(() => {
+  if (store.user) {
+    scanRewardNotify();
   }
 });
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
@@ -210,7 +210,9 @@ const handleToggleDate = (date: string) => {
 markGroupCommentsRead(todayStr.value);
 
 // 消息中心跳转：切到记录Tab，自动展开目标日期并滚动到对应记录
-onMounted(() => {
+// 处理跨页跳转深链（消息中心点某条记录 → 自动滚动到该日期组）：
+// KeepAlive 缓存下返回不重挂载，需在 onMounted 与 onActivated 都执行
+const processPendingDeepLink = () => {
   if (store.selectedDateStr) {
     const targetDate = store.selectedDateStr;
     store.setSelectedDateStr(null);
@@ -224,7 +226,9 @@ onMounted(() => {
       });
     });
   }
-});
+};
+onMounted(processPendingDeepLink);
+onActivated(processPendingDeepLink);
 </script>
 
 <template>
