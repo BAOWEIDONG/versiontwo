@@ -294,11 +294,6 @@ onUnmounted(() => {
   sliderCleanups.clear();
 });
 
-// 学员对运动批注的反馈（点按钮同时视为已读）
-const markExerciseFeedback = (recordId: string, feedback: 'received' | 'helpful') => {
-  store.updateExerciseRecord(recordId, { studentFeedback: feedback, commentRead: true });
-};
-
 // 学员展开未读批注所在日期分组 → 该分组内批注标记为已读（真正看到才算已读）
 const markGroupCommentsRead = (date: string) => {
   const group = groupedHistory.value.find((g) => g.date === date);
@@ -847,21 +842,6 @@ const handleSubmit = () => {
                     <span v-if="!record.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                   </div>
                   <p class="text-xs text-gray-700 leading-relaxed">{{ record.coachComment }}</p>
-                  <!-- 学员反馈 -->
-                  <div class="flex gap-2 mt-2">
-                    <button
-                      @click="markExerciseFeedback(record.id, 'received')"
-                      :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', record.studentFeedback === 'received' ? 'bg-[#07C160] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                    >
-                      {{ record.studentFeedback === 'received' ? '✓ 已收到' : '收到' }}
-                    </button>
-                    <button
-                      @click="markExerciseFeedback(record.id, 'helpful')"
-                      :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', record.studentFeedback === 'helpful' ? 'bg-[#FF976A] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                    >
-                      {{ record.studentFeedback === 'helpful' ? '✓ 有用' : '👍 有用' }}
-                    </button>
-                  </div>
                 </div>
               </div>
             </Card>

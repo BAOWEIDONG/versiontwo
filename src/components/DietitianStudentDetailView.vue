@@ -6,7 +6,7 @@ import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
-import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, ThumbsUp, CheckCircle2, Salad, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
+import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, Salad, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
@@ -723,12 +723,7 @@ function handleDeleteManualScore(id: string) {
                   <button @click="startComment(record)" class="text-xs text-[#1677FF]">
                     编辑
                   </button>
-                  <!-- 学员反馈状态 -->
-                  <span v-if="record.studentFeedback" class="flex items-center gap-1 text-[10px] font-bold text-[#07C160] bg-[#07C160]/10 px-2 py-0.5 rounded-full">
-                    <component :is="record.studentFeedback === 'helpful' ? ThumbsUp : CheckCircle2" class="w-3 h-3" />
-                    学员{{ record.studentFeedback === 'helpful' ? '觉得有用' : '已收到' }}
-                  </span>
-                  <span v-else-if="record.dietitianComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <span v-if="record.dietitianComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     <Eye class="w-3 h-3" />
                     学员已读未回
                   </span>
@@ -852,11 +847,7 @@ function handleDeleteManualScore(id: string) {
                 <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.coachComment }}</p>
                 <div class="flex items-center gap-2 mt-1">
                   <span v-if="record.coachName" class="text-[10px] text-gray-400">批注人：{{ record.coachName }}</span>
-                  <span v-if="record.studentFeedback" class="flex items-center gap-1 text-[10px] font-bold text-[#07C160] bg-[#07C160]/10 px-2 py-0.5 rounded-full">
-                    <component :is="record.studentFeedback === 'helpful' ? ThumbsUp : CheckCircle2" class="w-3 h-3" />
-                    学员{{ record.studentFeedback === 'helpful' ? '觉得有用' : '已收到' }}
-                  </span>
-                  <span v-else-if="record.coachComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <span v-if="record.coachComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     <Eye class="w-3 h-3" />
                     学员已读未回
                   </span>
@@ -1009,11 +1000,7 @@ function handleDeleteManualScore(id: string) {
                         <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ rec.dietitianComment }}</p>
                         <div class="flex items-center gap-2 mt-1">
                           <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">编辑</button>
-                          <span v-if="rec.studentFeedback" class="flex items-center gap-1 text-[10px] font-bold text-[#07C160] bg-[#07C160]/10 px-2 py-0.5 rounded-full">
-                            <component :is="rec.studentFeedback === 'helpful' ? ThumbsUp : CheckCircle2" class="w-3 h-3" />
-                            学员{{ rec.studentFeedback === 'helpful' ? '觉得有用' : '已收到' }}
-                          </span>
-                          <span v-else-if="rec.dietitianComment && rec.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          <span v-if="rec.dietitianComment && rec.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                             <Eye class="w-3 h-3" />
                             学员已读未回
                           </span>

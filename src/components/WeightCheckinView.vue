@@ -58,11 +58,6 @@ const saveTarget = () => {
   editingTarget.value = false;
 };
 
-// 学员对批注的反馈（点按钮同时视为已读）
-const markWeightFeedback = (recordId: string, feedback: 'received' | 'helpful') => {
-  store.updateWeightRecord(recordId, { studentFeedback: feedback, commentRead: true });
-};
-
 const handlePhotoSelect = async (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
   if (files.length === 0) return;
@@ -754,21 +749,6 @@ function handleChartTouchMove(e: TouchEvent) {
                       <span v-if="w.dietitianCommentDate" class="text-[10px] text-gray-400">{{ w.dietitianCommentDate }}</span>
                     </div>
                     <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ w.dietitianComment }}</p>
-                    <!-- 学员反馈 -->
-                    <div class="flex gap-2 mt-2">
-                      <button
-                        @click="markWeightFeedback(w.id, 'received')"
-                        :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', w.studentFeedback === 'received' ? 'bg-[#07C160] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                      >
-                        {{ w.studentFeedback === 'received' ? '✓ 已收到' : '收到' }}
-                      </button>
-                      <button
-                        @click="markWeightFeedback(w.id, 'helpful')"
-                        :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', w.studentFeedback === 'helpful' ? 'bg-[#FF976A] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                      >
-                        {{ w.studentFeedback === 'helpful' ? '✓ 有用' : '👍 有用' }}
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
