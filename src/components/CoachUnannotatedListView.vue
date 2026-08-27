@@ -74,7 +74,7 @@ const collapseAll = () => { expanded.value = new Set<string>(); };
 // 点击批注 → 跳转学员详情并定位到该运动记录
 const openRecord = (studentId: string, recordId: string) => {
   store.setSelectedStudentId(studentId);
-  store.coachFocusRecordId = recordId;
+  store.setPendingAnnotation('exercise', recordId);
   store.setCurrentView('coach-student-detail');
 };
 
@@ -122,15 +122,31 @@ const intentLabel = (intensity: number) =>
             <ChevronDown class="w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200" :class="{ 'rotate-180': isExpanded(group.studentId) }" />
           </button>
           <div v-show="isExpanded(group.studentId)" class="divide-y divide-gray-50">
-            <button v-for="r in group.records" :key="r.id" @click="openRecord(group.studentId, r.id)"
-              class="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-gray-50 transition-colors">
-              <Dumbbell class="w-4 h-4 text-[#07C160] shrink-0" />
-              <div class="flex-1 min-w-0">
-                <div class="text-sm text-gray-900 truncate">{{ r.type }}</div>
-                <div class="text-[10px] text-gray-400 mt-0.5">{{ fmtShortDate(r.date.split(' ')[0]) }} · {{ r.duration }}分钟 · {{ intentLabel(r.intensity) }}</div>
+            <div v-for="r in group.records" :key="r.id" @click="openRecord(group.studentId, r.id)"
+              class="p-3 flex gap-3 cursor-pointer active:bg-gray-50 transition-colors">
+              <!-- 缩略图（对标营养师：照片或类型图标占位） -->
+              <div class="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
+                <img loading="lazy" decoding="async" v-if="r.photos && r.photos.length > 0" :src="r.photos[0]" alt="运动" class="w-full h-full object-cover" />
+                <div v-else-if="r.videoUrls && r.videoUrls.length > 0" class="w-full h-full bg-black flex items-center justify-center">
+                  <Dumbbell class="w-5 h-5 text-white" />
+                </div>
+                <div v-else class="w-full h-full bg-[#07C160]/8 flex items-center justify-center">
+                  <Dumbbell class="w-5 h-5 text-[#07C160]" />
+                </div>
               </div>
-              <span class="shrink-0 text-[10px] text-[#07C160] font-bold px-2 py-1 rounded-full bg-[#07C160]/10">去批注</span>
-            </button>
+              <!-- 内容 -->
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center mb-0.5">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-[#07C160]/10 text-[#07C160]">运动</span>
+                    <span class="text-[10px] text-gray-500">{{ r.type }}</span>
+                  </div>
+                  <span class="text-[10px] text-gray-400">{{ fmtShortDate(r.date.split(' ')[0]) }}</span>
+                </div>
+                <div class="text-xs text-gray-700">{{ r.duration }}分钟 · {{ intentLabel(r.intensity) }}</div>
+                <div v-if="r.notes" class="text-[10px] text-gray-400 mt-0.5 truncate">{{ r.notes }}</div>
+              </div>
+            </div>
           </div>
         </div>
         <button v-if="hasMore" @click="loadMore" class="w-full py-2.5 mt-2 text-xs font-bold text-[#07C160] bg-white border border-[#07C160]/30 rounded-xl active:bg-green-50">

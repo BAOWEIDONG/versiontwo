@@ -174,18 +174,26 @@ const openReport = (r: any) => {
   if (r.type === 'pdf') window.open(r.url, '_blank');
   else store.openImagePreview([r.url], 0);
 };
-// 教练批注深链：进入/返回时滚动定位到指定运动记录
-const focusRecord = () => {
-  const id = store.coachFocusRecordId;
-  if (!id) return;
-  store.coachFocusRecordId = null;
+// 批注深链（与营养师同一套 pendingAnnotation 机制）：进入/返回时定位+高亮目标运动记录
+const consumePendingAnnotation = () => {
+  const type = store.pendingRecordType;
+  const recordId = store.pendingRecordId;
+  if (!type) return;
+  if (type === 'exercise') activeTab.value = 'exercise';
   nextTick(() => {
-    const el = document.getElementById(`record-${id}`);
-    if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (recordId) {
+      const el = document.getElementById(`record-${recordId}`);
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.classList.add('ring-2', 'ring-[#07C160]');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-[#07C160]'), 2000);
+      }
+    }
+    store.setPendingAnnotation(null);
   });
 };
-onMounted(focusRecord);
-onActivated(focusRecord);
+onMounted(consumePendingAnnotation);
+onActivated(consumePendingAnnotation);
 
 </script>
 
