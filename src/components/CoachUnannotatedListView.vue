@@ -83,10 +83,18 @@ const intentLabel = (intensity: number) =>
 </script>
 
 <template>
-  <div class="flex min-h-full flex-col bg-[#F4F6F8] pb-24 font-sans">
-    <div class="pt-[calc(env(safe-area-inset-top)+0.5rem)] px-6 pb-5 bg-gradient-to-br from-[#07C160] via-[#04a551] to-[#06a551] rounded-b-[28px]">
-      <h1 class="text-lg font-bold text-white">教练批注</h1>
-      <p class="text-xs text-white/80 mt-1">当前营期：{{ currentCamp?.name || '未选择' }} · 待批注 {{ unannotatedCount }} 条</p>
+  <div class="flex min-h-full flex-col bg-[#F7F8FA] pb-24 font-sans">
+    <!-- 顶部：白底标题（对标营养师，无渐变弧度） -->
+    <div class="pt-[calc(env(safe-area-inset-top)+1.5rem)] px-5 pb-3 bg-white">
+      <h1 class="text-lg font-bold text-gray-900">教练批注</h1>
+    </div>
+
+    <!-- 营期显示条（对标营养师样式，营期由首页主控只读展示） -->
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100">
+      <div>
+        <div class="text-xs text-gray-500">当前营期</div>
+        <div class="text-sm font-medium text-gray-800">{{ currentCamp?.name || '未选择' }} · 待批注 {{ unannotatedCount }} 条</div>
+      </div>
     </div>
 
     <div class="px-4 mt-3 space-y-2">
