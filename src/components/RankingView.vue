@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { usePaged } from '../composables/usePaged';
+import { useDebounced } from '../composables/useDebounced';
 import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { NavBar, Card } from './ui';
@@ -75,9 +76,14 @@ const handleRefresh = () => {
   }, 800);
 };
 
+// 防抖源：打卡/批注高频变化时合并为一次重算，避免提交即全量重排
+const dDiet = useDebounced(campDiet);
+const dEx = useDebounced(campEx);
+const dManual = useDebounced(campManual);
+
 const rankedStudents = computed(() => {
   if (campStudents.value.length === 0) return [];
-  return rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
+  return rankStudents(campStudents.value, dDiet.value, dEx.value, dManual.value);
 });
 
 // ---- 排名较昨日变动 ----

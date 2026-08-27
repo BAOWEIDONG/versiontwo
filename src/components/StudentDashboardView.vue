@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onActivated, watch } from 'vue';
+import { useDebounced } from '../composables/useDebounced';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
@@ -108,19 +109,26 @@ const unreadCount = computed(() => {
   return diet.length + ex.length + wt.length;
 });
 
-const scoreData = computed(() => {
-  if (!store.user || campStudents.value.length === 0) return null;
-  const ranked = rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
-  return ranked.find((s) => s.studentId === store.user!.id) || null;
+// 排名重计算防抖：打卡/批注等高频数据变化时，重的 rankStudents 合并为 300ms 后一次，
+// 避免每次提交触发同步重算风暴（打卡后卡顿根治）
+const dDiet = useDebounced(campDiet);
+const dEx = useDebounced(campEx);
+const dManual = useDebounced(campManual);
+const rankedDebounced = computed(() => {
+  if (!store.user || campStudents.value.length === 0) return [];
+  return rankStudents(campStudents.value, dDiet.value, dEx.value, dManual.value);
 });
 
-// 与前一名（更高分者）的分差
+const scoreData = computed(() =>
+  rankedDebounced.value.find((s) => s.studentId === store.user?.id) || null,
+);
+
+// 与前一名（更高分者）的分差（复用防抖后的排名，避免重复全量计算）
 const gapToAhead = computed(() => {
-  if (!store.user || campStudents.value.length === 0) return null;
-  const ranked = rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
-  const me = ranked.find((s) => s.studentId === store.user!.id);
+  if (!store.user || rankedDebounced.value.length === 0) return null;
+  const me = rankedDebounced.value.find((s) => s.studentId === store.user!.id);
   if (!me || me.rank <= 1) return null;
-  const ahead = ranked
+  const ahead = rankedDebounced.value
     .filter((s) => s.totalScore > me.totalScore)
     .sort((a, b) => a.totalScore - b.totalScore)[0];
   if (!ahead) return null;

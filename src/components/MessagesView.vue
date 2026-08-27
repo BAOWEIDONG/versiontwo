@@ -6,6 +6,7 @@ import { NavBar, StudentTabbar } from './ui';
 import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, RefreshCw } from 'lucide-vue-next';
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { usePaged } from '../composables/usePaged';
+import { useDebounced } from '../composables/useDebounced';
 import { rankStudents } from '../lib/scoring';
 
 const store = useAppStore();
@@ -250,8 +251,9 @@ const messages = computed<MessageItem[]>(() =>
 );
 
 const unreadCount = computed(() => allMessages.value.filter((m) => m.unread).length);
-// 长列表分页：默认只渲染前 20 条，滚动更多再加载（生产由后端分页）
-const { items: pagedMessages, hasMore, remaining, loadMore } = usePaged(messages, 20);
+// 长列表分页 + 防抖：默认只渲染前 20 条；打卡/批注等高频变化时列表重建合并为一次
+const debouncedMessages = useDebounced(messages, 300);
+const { items: pagedMessages, hasMore, remaining, loadMore } = usePaged(debouncedMessages, 20);
 
 /** 各分类筛选 Tab 的未读数：all=总未读，其余按 type 统计未读 */
 const tabUnread = (key: string): number =>

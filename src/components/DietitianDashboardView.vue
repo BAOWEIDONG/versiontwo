@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { usePaged } from '../composables/usePaged';
+import { useDebounced } from '../composables/useDebounced';
 import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange } from '../lib/camps';
@@ -41,6 +42,11 @@ const campDietRecords = computed(() => activeCampId.value ? store.getCampDietRec
 const campWeightRecords = computed(() => activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords);
 const campExerciseRecords = computed(() => activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords);
 const campManualRecords = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
+// 防抖镜像：学员打卡/批注高频变化时，首页重计算合并为 300ms 一次，避免提交即全量重排卡顿
+const dDietRecords = useDebounced(campDietRecords);
+const dExerciseRecords = useDebounced(campExerciseRecords);
+const dManualRecords = useDebounced(campManualRecords);
+const dWeightRecords = useDebounced(campWeightRecords);
 
 // 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径）
 const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
@@ -50,19 +56,19 @@ const todayStr = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2
 
 const rankedStudents = computed(() => {
   if (campStudents.value.length === 0) return [];
-  return rankStudents(campStudents.value, campDietRecords.value, campExerciseRecords.value, campManualRecords.value);
+  return rankStudents(campStudents.value, dDietRecords.value, dExerciseRecords.value, dManualRecords.value);
 });
 
 const studentsStatus = computed(() =>
   campStudents.value.map((student) => {
-    const studentDiets = campDietRecords.value.filter((r) => r.studentId === student.id && r.date.startsWith(todayStr));
-    const studentExercises = campExerciseRecords.value.filter((r) => r.studentId === student.id && r.date.startsWith(todayStr));
+    const studentDiets = dDietRecords.value.filter((r) => r.studentId === student.id && r.date.startsWith(todayStr));
+    const studentExercises = dExerciseRecords.value.filter((r) => r.studentId === student.id && r.date.startsWith(todayStr));
 
     const hasBreakfast = studentDiets.some((d) => d.meal === 'breakfast');
     const hasLunch = studentDiets.some((d) => d.meal === 'lunch');
     const hasDinner = studentDiets.some((d) => d.meal === 'dinner');
     const hasExercise = studentExercises.some((e) => e.studentId === student.id);
-    const hasWeight = campWeightRecords.value.some((w) => w.studentId === student.id && w.date.startsWith(todayStr));
+    const hasWeight = dWeightRecords.value.some((w) => w.studentId === student.id && w.date.startsWith(todayStr));
 
     const missing: string[] = [];
     if (!hasBreakfast) missing.push('早餐');
