@@ -98,6 +98,22 @@ const METRIC_DIRECTION: Record<string, 'lower' | 'higher'> = {
 };
 
 /**
+ * 方向性改善判定（仅按指标明确方向的升降判定，不含"异常转正常"）
+ * 用于营养师结营统计 / 企业汇报版的"改善率"——用户口径：异常→正常太主观，
+ * 有的差异可能是好的也可能是坏的，故不再把异常恢复计为改善。
+ * 学员个人营期报告仍走 isImproved（含异常转正常信号），不在此列。
+ */
+export function isDirectionalImprovement(
+  m: Pick<MetricChange, 'name' | 'change'>,
+): boolean {
+  const direction = METRIC_DIRECTION[m.name];
+  if (m.change === null || !direction) return false;
+  if (direction === 'lower' && m.change < 0) return true;
+  if (direction === 'higher' && m.change > 0) return true;
+  return false;
+}
+
+/**
  * 计算单个指标的前后变化
  *
  * 改善判断逻辑:
@@ -662,7 +678,7 @@ export function generateDietitianSummary(
   });
 
   // 有效学员：至少有一项"身体测量数据"分类的指标同时有 beforeValue 和 afterValue（数值型）
-  // 这些学员才参与体重变化、异常改善等聚合统计
+  // 这些学员才参与体重变化等聚合统计
   const bodyConfigIds = metricConfigs
     .filter((c) => c.category === '身体测量数据')
     .map((c) => c.id);
@@ -697,11 +713,6 @@ export function generateDietitianSummary(
     ? studentReports.reduce((sum, r) => sum + r.checkinStats.totalCheckinDays, 0) / totalStudents
     : null;
 
-  // 异常改善：基于有效学员（需要体成分数据）
-  const avgAbnormalImproved = validStudentCount > 0
-    ? validReports.reduce((sum, r) => sum + r.summary.abnormalImprovedCount, 0) / validStudentCount
-    : null;
-
   // 指标聚合
   const metricAggregates: MetricAggregate[] = metricConfigs.map((config) => {
     const changes: MetricChange[] = studentReports.map((r) =>
@@ -730,7 +741,7 @@ export function generateDietitianSummary(
       (m) => m.beforeValue !== null && m.afterValue !== null,
     );
 
-    const improvedCount = validChanges.filter((m) => m.isImproved).length;
+    const improvedCount = validChanges.filter((m) => isDirectionalImprovement(m)).length;
     const totalCount = validChanges.length;
     const improvementRate = totalCount > 0 ? improvedCount / totalCount : null;
 
@@ -755,7 +766,6 @@ export function generateDietitianSummary(
     avgWeightChange,
     avgCompletionRate,
     avgCheckinDays,
-    avgAbnormalImproved,
     studentReports,
     metricAggregates,
   };
@@ -799,10 +809,6 @@ export function generateEnterpriseReport(summary: DietitianCampSummary): Enterpr
   );
   const totalExerciseMinutes = studentReports.reduce(
     (sum, r) => sum + r.checkinStats.totalExerciseDuration,
-    0,
-  );
-  const abnormalImprovedTotal = studentReports.reduce(
-    (sum, r) => sum + r.summary.abnormalImprovedCount,
     0,
   );
 
@@ -869,9 +875,6 @@ export function generateEnterpriseReport(summary: DietitianCampSummary): Enterpr
   if (weightGoalCount > 0) {
     highlights.push(`${weightGoalCount} 名学员减重达到 3kg 以上，占总参营人数 ${pct(weightGoalCount / Math.max(totalStudents, 1))}`);
   }
-  if (abnormalImprovedTotal > 0) {
-    highlights.push(`共 ${abnormalImprovedTotal} 项次异常健康指标恢复正常范围`);
-  }
   if (bodyFatRecordCount > 0 && bodyFatLossCount > 0) {
     highlights.push(`${bodyFatLossCount}/${bodyFatRecordCount} 名学员体脂肪下降，健康风险降低`);
   }
@@ -893,7 +896,6 @@ export function generateEnterpriseReport(summary: DietitianCampSummary): Enterpr
     weightRecordCount,
     totalCheckinRecords,
     totalExerciseMinutes,
-    abnormalImprovedTotal,
     avgCheckinDays,
     avgLongestStreak,
     streakChampionCount,

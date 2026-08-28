@@ -97,7 +97,7 @@ const handleExport = () => {
           <h2 class="text-lg font-bold">健康训练营 · 结营汇报</h2>
         </div>
         <p class="text-xs opacity-85 mb-4">{{ report.campDays }} 天 · {{ report.totalStudents }} 名员工参营</p>
-        <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="grid grid-cols-2 gap-3 text-center">
           <div class="bg-white/15 rounded-lg py-3">
             <div class="text-2xl font-bold">{{ fmt(report.avgWeightLoss) }}<span class="text-xs font-normal">kg</span></div>
             <div class="text-[10px] opacity-80 mt-0.5">人均减重</div>
@@ -105,10 +105,6 @@ const handleExport = () => {
           <div class="bg-white/15 rounded-lg py-3">
             <div class="text-2xl font-bold">{{ fmtPct(report.avgCompletionRate) }}</div>
             <div class="text-[10px] opacity-80 mt-0.5">平均打卡完成率</div>
-          </div>
-          <div class="bg-white/15 rounded-lg py-3">
-            <div class="text-2xl font-bold">{{ report.abnormalImprovedTotal }}</div>
-            <div class="text-[10px] opacity-80 mt-0.5">异常指标恢复(项次)</div>
           </div>
         </div>
       </div>
@@ -200,10 +196,6 @@ const handleExport = () => {
             {{ report.muscleGainCount }}/{{ report.muscleRecordCount }} 人
             <span v-if="report.muscleRecordCount > 0" class="text-xs text-[#1677FF]">（{{ fmtPct(report.muscleGainCount / report.muscleRecordCount) }}）</span>
           </span>
-        </div>
-        <div class="flex items-center justify-between py-2">
-          <span class="text-sm text-gray-500">异常指标恢复正常</span>
-          <span class="text-sm font-bold text-[#07C160]">{{ report.abnormalImprovedTotal }} 项次</span>
         </div>
       </Card>
 

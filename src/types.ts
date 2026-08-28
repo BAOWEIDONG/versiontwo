@@ -476,8 +476,6 @@ export interface DietitianCampSummary {
   avgCompletionRate: number | null;
   /** 平均打卡天数（基于全部学员） */
   avgCheckinDays: number | null;
-  /** 平均异常改善数（基于有效人数） */
-  avgAbnormalImproved: number | null;
   /** 每位学员的报告 */
   studentReports: StudentCampReport[];
   /** 指标聚合统计 */
@@ -508,8 +506,6 @@ export interface EnterpriseCampReport {
   totalCheckinRecords: number;
   /** 累计运动总时长（分钟，全体学员） */
   totalExerciseMinutes: number;
-  /** 异常指标恢复正常：总项次数（全体学员 turnedNormal 之和） */
-  abnormalImprovedTotal: number;
   /** 平均打卡天数（全体学员） */
   avgCheckinDays: number | null;
   /** 平均最长连续打卡天数 */

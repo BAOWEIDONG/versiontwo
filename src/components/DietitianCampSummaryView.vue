@@ -5,7 +5,7 @@ import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { useDeferred } from '../composables/useDeferred';
 import { NavBar, Card, ChartRulePopup } from './ui';
-import { BarChart3, TrendingDown, Users, Trophy, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
+import { BarChart3, TrendingDown, Users, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary } from '../lib/campReport';
@@ -171,13 +171,6 @@ const fmtChange = (v: number | null, unit = ''): string => {
         </Card>
         <Card class="p-4 text-center">
           <div class="flex items-center justify-center mb-2">
-            <Trophy class="w-5 h-5 text-[#FF976A] mr-1" />
-          </div>
-          <div class="text-2xl font-bold text-[#FF976A]">{{ fmt(summary.avgAbnormalImproved, 0) }}</div>
-          <div class="text-xs text-gray-500 mt-1">平均异常改善数<span class="text-[10px] text-gray-400">（按有效人数）</span></div>
-        </Card>
-        <Card class="p-4 text-center">
-          <div class="flex items-center justify-center mb-2">
             <BarChart3 class="w-5 h-5 text-[#1677FF] mr-1" />
           </div>
           <div class="text-2xl font-bold text-[#1677FF]">{{ fmt(summary.avgCheckinDays, 0) }}</div>
@@ -214,9 +207,6 @@ const fmtChange = (v: number | null, unit = ''): string => {
                 </span>
                 <span>完成率 {{ fmtPct(report.checkinStats.completionRate) }}</span>
                 <span>连续{{ report.summary.longestStreak }}天</span>
-                <span v-if="report.summary.abnormalImprovedCount > 0" class="text-[#07C160]">
-                  改善{{ report.summary.abnormalImprovedCount }}项
-                </span>
               </div>
             </div>
             <div class="flex items-center shrink-0 ml-2">
@@ -236,8 +226,7 @@ const fmtChange = (v: number | null, unit = ''): string => {
           <ChartRulePopup title="指标改善率计算规则">
             <p><span class="font-bold text-gray-900">改善率 =</span> 改善人数 ÷ 有前后检测数据人数 × 100%</p>
             <p><span class="font-bold text-gray-900">改善判断：</span>按指标方向判定——"越低越好"的指标（如体重、脂肪、胆固醇）值下降为改善；"越高越好"的指标（如肌肉量、基础代谢率、HDL）值上升为改善。</p>
-            <p><span class="font-bold text-gray-900">异常转正常：</span>检测值从异常范围恢复到正常范围，也计为改善。</p>
-            <p><span class="font-bold text-gray-900">未改善：</span>值不变、反方向变化、或仍为异常的均不计入改善人数。</p>
+            <p><span class="font-bold text-gray-900">未改善：</span>值不变或反方向变化。<span class="text-gray-500">（异常转正常不计为改善）</span></p>
             <p><span class="font-bold text-gray-900">前/后均值：</span>分别对所有有数值数据的学员取平均，变化=后均值-前均值。</p>
           </ChartRulePopup>
         </div>
