@@ -77,6 +77,15 @@ const activeCampId = computed(() => {
   return active?.id || availableCamps.value[0]?.id || null;
 });
 const activeCamp = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);
+// 学员是否已退营/禁用（复用账户 active=false：禁用后该手机号无法登录；此处兜底已登录的存量会话）
+const studentDisabled = computed(() => {
+  const u = store.user;
+  if (!u) return false;
+  const acc = store.accounts.find((a) => a.id === u.id || a.phone === u.phone);
+  return acc ? acc.active === false : false;
+});
+// 本营期可正常参与/主动弹通知（未开始、已结束、退营、禁用状态均不主动弹出）
+const campActiveForStudent = computed(() => activeCamp.value?.status === 'active' && !studentDisabled.value);
 const campDays = computed(() => campDaysOf(activeCamp.value));
 const showCampSwitcher = computed(() => availableCamps.value.length > 1);
 const showCampPicker = ref(false);
@@ -256,6 +265,8 @@ const dailySummaryDismissed = ref(!!localStorage.getItem(_dailySummaryKey));
 
 const dailySummary = computed(() => {
   if (!store.user) return null;
+  // 未开始、已结束、退营、禁用状态不主动弹出（version2 PRD 2.1.1）
+  if (!campActiveForStudent.value) return null;
   const meals = new Set(campDiet.value.filter((r) => isMine(r) && r.date.startsWith(yesterdayStr)).map((r) => r.meal));
   const exerciseMins = campEx.value
     .filter((r) => isMine(r) && r.date.startsWith(yesterdayStr))
@@ -402,8 +413,10 @@ function persistShownRewards() {
 }
 
 // 检测新解锁的连续打卡奖励（打卡记录增加后由 watch 触发）
+// 未开始/已结束/退营/禁用不主动弹出，直接返回
 function checkNewRewardUnlocks() {
   if (!store.user) return;
+  if (!campActiveForStudent.value) return;
   const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
   if (fresh.length === 0) return;
   fresh.forEach((t) => shownRewardTiers.value.add(t.id));
@@ -419,6 +432,7 @@ function checkNewRewardUnlocks() {
 
 // 当最外层弹窗（昨日小结）关闭时，放行暂存的奖励弹窗
 function flushPendingRewards() {
+  if (!campActiveForStudent.value) { pendingRewards.value = []; return; }
   if (showDailySummary.value) return;
   if (pendingRewards.value.length === 0) return;
   newRewards.value = pendingRewards.value;
@@ -435,6 +449,8 @@ const goClaimRewards = () => { showRewardNotify.value = false; persistShownRewar
 // 保证「打卡页解锁 → 返回首页弹通知」行为与改造前一致。
 const scanRewardNotify = () => {
   if (!store.user) return;
+  // 未开始/已结束/退营/禁用不主动弹出（version2 PRD 2.1.2）
+  if (!campActiveForStudent.value) return;
   let seenRewards: string[] = [];
   try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
   if (seenRewards.length > 0) {
