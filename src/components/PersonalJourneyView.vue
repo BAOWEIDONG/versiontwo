@@ -77,7 +77,6 @@ const report = computed(() =>
     campDays.value,
   ),
 );
-const unlockedCount = computed(() => report.value.achievements.filter((a) => a.unlocked).length);
 
 // 体重趋势 SVG - 动态宽度，数据多时支持横向滚动
 const CHART_MIN_WIDTH = 280;

@@ -118,9 +118,6 @@ const labMetrics = computed(() =>
     }),
 );
 
-// 解锁的成就
-const unlockedAchievements = computed(() => report.value.achievements.filter((a) => a.unlocked));
-
 // 营养师结营寄语（按营期存储，key = `${campId}_${studentId}`）
 const campMessage = computed(() => {
   const sid = store.user?.id;
@@ -280,10 +277,6 @@ const exportPDF = () => {
           <div class="flex-1 bg-white/15 rounded-lg py-2">
             <div class="text-xl font-bold">{{ fmtPct(report.summary.completionRate) }}</div>
             <div class="text-[10px] opacity-80">完成率</div>
-          </div>
-          <div class="flex-1 bg-white/15 rounded-lg py-2">
-            <div class="text-xl font-bold">{{ unlockedAchievements.length }}</div>
-            <div class="text-[10px] opacity-80">成就解锁</div>
           </div>
         </div>
       </div>

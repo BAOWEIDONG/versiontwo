@@ -199,11 +199,6 @@ function revealToDate(targetDate: string) {
 
 const mealLabel = (meal: string) => MEAL_TYPES.find((m) => m.id === meal)?.label;
 
-// 学员对批注的反馈（点按钮同时视为已读）
-const markDietFeedback = (recordId: string, feedback: 'received' | 'helpful') => {
-  store.updateDietRecord(recordId, { studentFeedback: feedback, commentRead: true });
-};
-
 // 学员展开未读批注所在日期分组 → 该分组内批注标记为已读（真正看到才算已读）
 const markGroupCommentsRead = (date: string) => {
   const group = groupedHistory.value.find((g) => g.date === date);
@@ -414,21 +409,6 @@ onActivated(processPendingDeepLink);
                   <span v-if="record.dietitianCommentDate" class="text-[10px] text-gray-500">{{ record.dietitianCommentDate }}</span>
                 </div>
                 <p v-if="record.dietitianComment" class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.dietitianComment }}</p>
-                <!-- 学员反馈 -->
-                <div v-if="record.dietitianComment" class="flex gap-2 mt-2.5">
-                  <button
-                    @click="markDietFeedback(record.id, 'received')"
-                    :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', record.studentFeedback === 'received' ? 'bg-[#07C160] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                  >
-                    {{ record.studentFeedback === 'received' ? '✓ 已收到' : '收到' }}
-                  </button>
-                  <button
-                    @click="markDietFeedback(record.id, 'helpful')"
-                    :class="['text-[10px] px-2.5 py-1 rounded-full font-bold transition-all active:scale-95', record.studentFeedback === 'helpful' ? 'bg-[#FF976A] text-white' : 'bg-white text-gray-500 border border-gray-200']"
-                  >
-                    {{ record.studentFeedback === 'helpful' ? '✓ 有用' : '👍 有用' }}
-                  </button>
-                </div>
               </div>
             </Card>
           </div>
