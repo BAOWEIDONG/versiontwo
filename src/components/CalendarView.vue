@@ -163,7 +163,14 @@ const achievedDays = (requiredDays: number) =>
 
 const rewardDates = computed(() => {
   const projected = getProjectedRewardDates(streakData.value.currentStreak, streakData.value.streakStartDate, streakRewardTiers.value, campRewardClaims.value, store.user?.id);
+  // 资格快照：历史最长连续（断签不回落）作为"是否曾解锁"的兜底
+  const snapshot = Math.max(streakData.value.currentStreak, campLongestStreak.value);
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
   return projected.map(p => {
+    // 当前连续不足、但资格快照已曾解锁且未领取 → 仍可领取，日历以"今天"展示（历史完成日已不可还原）
+    if (!p.isUnlocked && !p.isClaimed && snapshot >= (p.tier.requiredDays ?? 0)) {
+      return { ...p.tier, date: todayStr, dateObj: new Date(todayStr), isUnlocked: true, isClaimed: false };
+    }
     if (!p.date) return null;
     const dateObj = new Date(p.date);
     return { ...p.tier, date: p.date, dateObj, isUnlocked: p.isUnlocked, isClaimed: p.isClaimed };

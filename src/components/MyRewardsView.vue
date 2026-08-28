@@ -146,7 +146,10 @@ const allRecords = computed<UnifiedRecord[]>(() => {
 
   // 兑换记录
   exchanges.value.forEach(e => {
-    const s = EXCHANGE_STATUS_MAP[e.status] || { label: e.status, color: '#969799', bg: '#F2F3F5' };
+    // 与领取记录同口径：待发货的线下兑换在「我的奖励」显示"待线下发放"（发放中心同单显示"线下领取"）
+    const s = (e.status === 'pending' && e.deliveryMethod === 'in-person')
+      ? { label: '待线下发放', color: '#FF976A', bg: '#FFF4ED' }
+      : EXCHANGE_STATUS_MAP[e.status] || { label: e.status, color: '#969799', bg: '#F2F3F5' };
     list.push({
       id: e.id, type: 'exchange', typeName: '积分兑换',
       productName: e.productName, productImage: e.productImage,
@@ -341,9 +344,14 @@ const unreadCount = computed(() => {
                   'bg-[#EBF5FF] text-[#1677FF]']">
                   {{ record.typeName }}
                 </span>
-                <span v-if="record.pointsSpent" class="flex items-center gap-0.5 text-[10px] text-gray-400">
+                <span v-if="record.pointsSpent && record.status !== 'cancelled'" class="flex items-center gap-0.5 text-[10px] text-gray-400">
                   <Coins class="w-3 h-3 text-[#FF976A]" />
                   <span class="font-bold text-[#FF6B35]">-{{ record.pointsSpent }}</span>
+                </span>
+                <!-- 已取消则积分已返还，不再显示红字扣分（弹窗明示已返还） -->
+                <span v-else-if="record.pointsSpent && record.status === 'cancelled'" class="flex items-center gap-0.5 text-[10px] text-gray-400">
+                  <Coins class="w-3 h-3 text-[#07C160]" />
+                  <span class="font-bold text-[#07C160]">+{{ record.pointsSpent }} 已返还</span>
                 </span>
                 <span class="text-[10px] text-gray-400">{{ formatDate(record.date) }}</span>
               </div>

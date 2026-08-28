@@ -613,6 +613,13 @@ export const useAppStore = defineStore('app', () => {
         return { ok: false, reason: '请完整填写收件人、电话和收货地址' };
       }
     }
+    // ⑤b 领取方式必须落在营养师配置的 deliveryMethods 内（防 PWA 旧包/异常入口提交非法方式）
+    if (claimInfo.deliveryMethod) {
+      const allowed = fresh.deliveryMethods || ['shipped'];
+      if (!allowed.includes(claimInfo.deliveryMethod)) {
+        return { ok: false, reason: '该奖励不支持所选领取方式' };
+      }
+    }
     const claim: RewardClaim = {
       id: `claim_${Date.now()}`,
       tierId,

@@ -44,8 +44,6 @@ const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId =
 const shippedClaims = computed(() => myClaims.value.filter(c => c.status === 'shipped'));
 const sortedTiers = computed(() => [...campRewardTiers.value].filter(t => t.source !== 'activity').sort((a, b) => a.requiredDays - b.requiredDays));
 const maxRequiredDays = computed(() => Math.max(...campRewardTiers.value.map(t => t.requiredDays), 1));
-const nextTier = computed(() => sortedTiers.value.find(t => currentStreak.value < t.requiredDays));
-const daysToNext = computed(() => nextTier.value ? nextTier.value.requiredDays - currentStreak.value : 0);
 
 // ─── 资格快照：营期内任意历史最长连续完成天数（断签后已解锁未领取档位不回落） ──────────────
 const activeCampObj = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);
@@ -60,8 +58,14 @@ const campLongestStreak = computed(() => {
     store.user?.id,
   );
 });
-/** 达标口径：当前连续 与 营期历史最长连续 取较大（资格快照语义） */
-const achievedDays = (tier: RewardTier) => Math.max(currentStreak.value, campLongestStreak.value);
+/** 达标口径：当前连续 与 营期历史最长连续 取较大（资格快照语义，断签不回落） */
+const snapshotDays = computed(() => Math.max(currentStreak.value, campLongestStreak.value));
+/** 达成档位资格用快照语义（= snapshotDays）；里程碑/进度也一并用它，避免断签后"已可领取却显示 0/N 天"自相矛盾 */
+const achievedDays = (tier: RewardTier) => snapshotDays.value;
+
+// 下一个未达标的里程碑：按资格快照推算（曾达到的档位不再要求重走当前连续）
+const nextTier = computed(() => sortedTiers.value.find(t => snapshotDays.value < t.requiredDays));
+const daysToNext = computed(() => nextTier.value ? nextTier.value.requiredDays - snapshotDays.value : 0);
 
 const getTierState = (tier: RewardTier) => {
   // 同一营期内判重（已领取）
@@ -190,7 +194,7 @@ const copied = ref(false);
         <div class="relative flex justify-between items-center">
           <!-- Connecting line -->
           <div class="absolute top-[18px] left-0 right-0 h-[3px] bg-gray-200/70 rounded-full"></div>
-          <div class="absolute top-[18px] left-0 h-[3px] rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.5)] transition-all duration-1000 ease-out" :style="{ width: `${Math.min((currentStreak / maxRequiredDays) * 100, 100)}%` }"></div>
+          <div class="absolute top-[18px] left-0 h-[3px] rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.5)] transition-all duration-1000 ease-out" :style="{ width: `${Math.min((snapshotDays / maxRequiredDays) * 100, 100)}%` }"></div>
 
           <!-- Milestone dots（统一 w-9 尺寸，靠高亮/外发光区分状态） -->
           <div v-for="tier in sortedTiers" :key="tier.id" class="relative flex flex-col items-center z-10" style="width: 0;">
@@ -204,7 +208,7 @@ const copied = ref(false);
               <Gift v-else-if="getTierState(tier) === 'unlocked'" class="w-4.5 h-4.5 text-orange-600 animate-bounce" />
               <Lock v-else class="w-3.5 h-3.5 text-gray-300" />
             </div>
-            <div :class="['text-[10px] mt-1.5 font-bold whitespace-nowrap transition-colors', currentStreak >= tier.requiredDays ? 'text-gray-700' : 'text-gray-400']">
+            <div :class="['text-[10px] mt-1.5 font-bold whitespace-nowrap transition-colors', snapshotDays >= tier.requiredDays ? 'text-gray-700' : 'text-gray-400']">
               {{ tier.requiredDays }}天
             </div>
           </div>
@@ -238,9 +242,9 @@ const copied = ref(false);
             <div class="text-xs text-gray-400 font-medium mb-2">连续打卡 {{ tier.requiredDays }} 天解锁</div>
             <div class="flex items-center gap-1.5">
               <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-orange-300 to-yellow-400 rounded-full transition-all duration-700" :style="{ width: `${Math.min((currentStreak / tier.requiredDays) * 100, 100)}%` }"></div>
+                <div class="h-full bg-gradient-to-r from-orange-300 to-yellow-400 rounded-full transition-all duration-700" :style="{ width: `${Math.min((snapshotDays / tier.requiredDays) * 100, 100)}%` }"></div>
               </div>
-              <span class="text-[10px] text-gray-400 font-medium shrink-0">{{ currentStreak }}/{{ tier.requiredDays }}</span>
+              <span class="text-[10px] text-gray-400 font-medium shrink-0">{{ snapshotDays }}/{{ tier.requiredDays }}</span>
             </div>
           </div>
         </div>
