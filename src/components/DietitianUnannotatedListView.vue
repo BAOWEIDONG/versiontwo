@@ -37,14 +37,20 @@ const store = useAppStore();
 // ─── 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径） ───
 const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
-// ─── 营期切换（与 store 同步，默认最新一期；不再支持「全部营期」） ───
-const selectedCampId = ref<string>(store.selectedCampId || latestOrFirstId(store.camps) || '');
+// ─── 营期切换（实时读 store.selectedCampId，与教练端口径一致；KeepAlive 缓存视图不再存本地快照） ───
+const selectedCampId = computed<string>({
+  get: () => store.selectedCampId || latestOrFirstId(store.camps) || '',
+  set: (v: string) => { store.selectedCampId = v; },
+});
 const showCampPicker = ref(false);
 const selectedCamp = computed(() => selectedCampId.value ? store.camps.find((c) => c.id === selectedCampId.value) : null);
 
 // 按营期过滤打卡记录
 const campDietRecords = computed(() => selectedCampId.value ? store.getCampDietRecords(selectedCampId.value) : store.dietRecords);
 const campWeightRecords = computed(() => selectedCampId.value ? store.getCampWeightRecords(selectedCampId.value) : store.weightRecords);
+
+// 退营学员与两端看板口径一致：待批注列表排除（active-only）
+const disabledStudentIds = computed(() => new Set(store.accounts.filter((a) => a.role === 'student' && a.active === false).map((a) => a.id)));
 
 // 过滤标签
 const activeFilter = ref<ItemType | 'all'>('all');
@@ -58,7 +64,7 @@ const allItems = computed<UnifiedItem[]>(() => {
 
   // 饮食待批注
   campDietRecords.value
-    .filter((r) => !r.dietitianComment && r.dietitianScore == null)
+    .filter((r) => !r.dietitianComment && r.dietitianScore == null && !disabledStudentIds.value.has(r.studentId))
     .forEach((r: DietRecord) => {
       items.push({
         id: r.id,
@@ -74,7 +80,7 @@ const allItems = computed<UnifiedItem[]>(() => {
 
   // 体重待批注（WeightRecord 无 dietitianScore 字段，仅看批注）
   campWeightRecords.value
-    .filter((r) => !r.dietitianComment)
+    .filter((r) => !r.dietitianComment && !disabledStudentIds.value.has(r.studentId))
     .forEach((r: WeightRecord) => {
       items.push({
         id: r.id,

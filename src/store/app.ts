@@ -340,6 +340,14 @@ export const useAppStore = defineStore('app', () => {
         return false;
       }
       if (data.user && data.user.role) {
+        // P0：退营学员刷新/重开不得自动重登——重查 active（登录时已拦，但持久化 camp_auth 会绕过）
+        if (data.user.role === 'student') {
+          const account = accounts.value.find((a) => a.id === data.user.id && a.role === 'student');
+          if (account && account.active === false) {
+            localStorage.removeItem('camp_auth');
+            return false;
+          }
+        }
         user.value = data.user;
         // 默认展示最新营期
         applyLatestCampDefault();
@@ -362,6 +370,12 @@ export const useAppStore = defineStore('app', () => {
       localStorage.removeItem('camp_auth');
     }
     return false;
+  }
+
+  /** 学员是否已退营（active=false）。退营是全局状态，任何资金/打卡写操作都须守此闸门。 */
+  function isStudentDisabled(studentId: string): boolean {
+    const acc = accounts.value.find((a) => a.id === studentId && a.role === 'student');
+    return acc ? acc.active === false : false;
   }
 
   /** 退出登录 */
@@ -412,6 +426,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function addWeightRecord(record: WeightRecord) {
+    if (isStudentDisabled(record.studentId)) return; // 退营学员禁止继续打卡
     weightRecords.value.push(record);
     api.createWeightRecord(record).catch(() => {});
   }
@@ -423,6 +438,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function addExerciseRecord(record: ExerciseRecord) {
+    if (isStudentDisabled(record.studentId)) return; // 退营学员禁止继续打卡
     exerciseRecords.value.push(record);
     api.createExerciseRecord(record).catch(() => {});
   }
@@ -434,6 +450,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function addDietRecord(record: DietRecord) {
+    if (isStudentDisabled(record.studentId)) return; // 退营学员禁止继续打卡
     // 幂等：同一学员、同一营期、同一天、同一餐次不重复插入（防绕过前端重复打卡）
     const day = (record.date || '').slice(0, 10);
     const exists = dietRecords.value.some(
@@ -552,6 +569,7 @@ export const useAppStore = defineStore('app', () => {
       status?: 'confirmed' | 'pending';
     },
   ): { ok: boolean; reason?: string; claim?: RewardClaim } {
+    if (isStudentDisabled(studentId)) return { ok: false, reason: '该学员已退营，无法领取奖励' }; // 退营学员禁止资金/领取操作
     // ①实时重读 tier，避免调用方传入的快照过期（已被删除 / 库存已被其它领取占用）
     const fresh = rewardTiers.value.find((t) => t.id === tierId);
     if (!fresh) return { ok: false, reason: '该奖励不存在或已被删除' };
@@ -720,6 +738,7 @@ export const useAppStore = defineStore('app', () => {
     deliveryInfo?: { recipientName: string; recipientPhone: string; recipientAddress: string; deliveryMethod: 'shipped' | 'in-person' },
     campId?: string,
   ): PointExchangeRecord | null {
+    if (isStudentDisabled(studentId)) return null; // 退营学员禁止资金/领取操作
     // 实时重读商品，避免调用方传入的快照过期（已下架 / 库存已被其它兑换占用）。真实上线须由服务端做权威校验。
     const fresh = pointProducts.value.find((p) => p.id === product.id);
     if (!fresh || !fresh.active) return null;
@@ -968,8 +987,9 @@ export const useAppStore = defineStore('app', () => {
     return true;
   }
 
-  /** 学员当前营期是否已开营（学员能否打卡） */
+  /** 学员当前营期是否已开营（学员能否打卡）。退营学员一律禁止。 */
   function canStudentCheckIn(studentId: string): boolean {
+    if (isStudentDisabled(studentId)) return false;
     return isCampStarted(getStudentCamp(studentId));
   }
 

@@ -53,8 +53,12 @@ interface ExchangeRecordItem {
 }
 const campOf = (campId?: string): Camp | undefined =>
   campId ? store.camps.find((c) => c.id === campId) : undefined;
-const studentPhoneOf = (studentId?: string): string | undefined =>
-  studentId ? store.getAllStudents().find((s) => s.id === studentId)?.phone : undefined;
+const studentPhoneOf = (studentId?: string): string | undefined => {
+  if (!studentId) return undefined;
+  // 退营学员不在 getAllStudents()（active-only）中，回退查 accounts 兜底姓名/手机号
+  return store.getAllStudents().find((s) => s.id === studentId)?.phone
+    || store.accounts.find((a) => a.id === studentId)?.phone;
+};
 const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
   const list: ExchangeRecordItem[] = [];
 

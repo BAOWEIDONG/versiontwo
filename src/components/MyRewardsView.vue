@@ -8,7 +8,8 @@ import {
   Truck, CheckCircle, XCircle, Clock, Package, AlertTriangle, ChevronRight, MapPin,
 } from 'lucide-vue-next';
 import type { PointExchangeRecord, RewardClaim } from '../types';
-import { calculateStreak } from '../lib/streak';
+import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
+import { format } from 'date-fns';
 
 const store = useAppStore();
 
@@ -42,6 +43,20 @@ const campWt = computed(() => activeCampId.value ? store.getCampWeightRecords(ac
 // 连续打卡数据
 const streakData = computed(() => calculateStreak(campEx.value, campDiet.value, campWt.value, studentId.value));
 
+// ─── 资格快照：营期内任意历史最长连续（断签后已解锁未领取档位不回落），与 RewardView 口径一致 ──
+const activeCampObj = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);
+const campLongestStreak = computed(() => {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const endRaw = activeCampObj.value?.endDate || todayStr;
+  const end = endRaw < todayStr ? endRaw : todayStr;
+  return calculateLongestStreakInRange(
+    activeCampObj.value?.startDate || '2000-01-01',
+    end,
+    campEx.value, campDiet.value, campWt.value,
+    studentId.value,
+  );
+});
+
 // 积分兑换记录（按当前营期过滤，与打卡/活动奖励口径一致）
 const exchanges = computed(() =>
   store.getStudentExchanges(studentId.value)
@@ -64,7 +79,8 @@ const claimableStreakTiers = computed(() => {
   const streakTiers = campTiers.value.filter(t => t.source === 'streak');
   return streakTiers.filter(tier => {
     if (streakClaims.value.some(c => c.tierId === tier.id)) return false;
-    if (streakData.value.currentStreak < tier.requiredDays) return false;
+    // 资格快照口径：当前连续 与 营期历史最长连续 取较大（曾解锁即不回落），与 RewardView 一致
+    if (Math.max(streakData.value.currentStreak, campLongestStreak.value) < tier.requiredDays) return false;
     if (tier.stock <= 0) return false;
     return true;
   });

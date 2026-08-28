@@ -171,6 +171,15 @@ const handleToggleDate = (date: string) => {
   toggleDate(date);
   if (willExpand) markGroupCommentsRead(date);
 };
+// 已展开分组内新入批注也自动标已读（否则红点残留到下次收起再展开才消失）
+watch(groupedHistory, () => {
+  groupedHistory.value.forEach((g) => {
+    if (!isExpanded(g.date)) return;
+    g.records.forEach((r) => {
+      if (r.dietitianComment && !r.commentRead) store.updateWeightRecord(r.id, { commentRead: true });
+    });
+  });
+});
 
 // 记录 Tab 默认全部收起：未读批注在展开其日期分组时才标记已读（真正看到才算已读）
 

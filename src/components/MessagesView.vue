@@ -256,7 +256,11 @@ const messages = computed<MessageItem[]>(() =>
     : allMessages.value.filter((m) => m.type === activeFilter.value),
 );
 
-const unreadCount = computed(() => allMessages.value.filter((m) => m.unread).length);
+// 未读数只统计「批注」（营养师+教练），与其余学员页 tabbar badge 口径一致；
+// 奖励/排名/系统通知仅作动态展示（rewardMessages 注明不计入未读数）。
+const unreadCount = computed(() =>
+  allMessages.value.filter((m) => m.unread && (m.type === 'dietitian' || m.type === 'coach')).length,
+);
 // 长列表分页 + 防抖：默认只渲染前 20 条；打卡/批注等高频变化时列表重建合并为一次
 const debouncedMessages = useDebounced(messages, 300);
 const { items: pagedMessages, hasMore, remaining, loadMore } = usePaged(debouncedMessages, 20);

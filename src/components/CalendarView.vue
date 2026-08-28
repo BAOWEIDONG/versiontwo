@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar, Card } from './ui';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
@@ -116,6 +116,14 @@ const selectedDateStr = computed(() => format(selectedDate.value, 'yyyy-MM-dd'))
 const dayExercises = computed(() => campEx.value.filter((r) => r.date.startsWith(selectedDateStr.value) && r.studentId === store.user?.id));
 const dayDiets = computed(() => campDiet.value.filter((r) => r.date.startsWith(selectedDateStr.value) && r.studentId === store.user?.id));
 const dayWeights = computed(() => campWt.value.filter((r) => r.date.startsWith(selectedDateStr.value) && r.studentId === store.user?.id));
+
+// 日历详情已展示批注即视为已读（与打卡页展开一批注才已读的口径一致：看到才算已读）
+watch(selectedDate, () => {
+  if (!store.user?.id) return;
+  dayWeights.value.forEach((w) => { if (w.dietitianComment && !w.commentRead) store.updateWeightRecord(w.id, { commentRead: true }); });
+  dayExercises.value.forEach((ex) => { if (ex.coachComment && !ex.commentRead) store.updateExerciseRecord(ex.id, { commentRead: true }); });
+  dayDiets.value.forEach((d) => { if (d.dietitianComment && !d.commentRead) store.updateDietRecord(d.id, { commentRead: true }); });
+}, { flush: 'post' });
 
 const prevMonth = () => {
   currentMonth.value = new Date(currentMonth.value.getFullYear(), currentMonth.value.getMonth() - 1, 1);

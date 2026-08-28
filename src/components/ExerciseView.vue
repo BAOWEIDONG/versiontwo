@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
@@ -316,6 +316,15 @@ const handleToggleDate = (date: string) => {
   toggleDate(date);
   if (willExpand) markGroupCommentsRead(date);
 };
+// 已展开分组内新入批注也自动标已读（否则红点残留到下次收起再展开才消失）
+watch(groupedHistory, () => {
+  groupedHistory.value.forEach((g) => {
+    if (!isExpanded(g.date)) return;
+    g.records.forEach((r) => {
+      if (r.coachComment && !r.commentRead) store.updateExerciseRecord(r.id, { commentRead: true });
+    });
+  });
+});
 // 记录 Tab 默认全部收起：未读批注在展开其日期分组时才标记已读（真正看到才算已读）
 
 // 消息中心跳转：切到记录Tab，自动展开目标日期并滚动到对应记录
