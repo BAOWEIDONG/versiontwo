@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
@@ -237,6 +237,37 @@ watch(selectedCampId, () => {
 // Questionnaire tab
 const qData = ref<any>(null);
 
+// 批注深链（与教练端同一套 pendingAnnotation 机制）：从待批注列表/消息进入时自动切 Tab + 滚动定位+高亮目标记录
+// ★KeepAlive 双挂：onMounted 只在首次挂载跑一次，订阅详情视图被缓存后再次进入 onMounted 不再触发 → 必须 onActivated 也跑；
+// 否则「第二次开始点批注不自动定位」（v27 加 KeepAlive 后回归）。首次挂载时 onActivated 也触发，第一次执行即清掉 pending，二次调用空转，安全。
+const consumePendingAnnotation = () => {
+  const type = store.pendingRecordType;
+  if (!type) return;
+  const recordId = store.pendingRecordId;
+  // 映射记录类型到 Tab
+  const tabMap: Record<string, 'diet' | 'exercise' | 'weight'> = {
+    diet: 'diet',
+    exercise: 'exercise',
+    weight: 'weight',
+  };
+  if (tabMap[type]) {
+    activeTab.value = tabMap[type];
+    nextTick(() => {
+      if (recordId) {
+        const el = document.getElementById(`record-${recordId}`);
+        if (el) {
+          el.scrollIntoView({ block: 'center' });
+          // 高亮闪烁
+          el.classList.add('ring-2', 'ring-[#FF976A]');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-[#FF976A]'), 2000);
+        }
+      }
+      // 清除 pending 状态，避免来回切换时重复触发
+      store.setPendingAnnotation(null);
+    });
+  }
+};
+
 onMounted(() => {
   const saved = localStorage.getItem('submitted_questionnaire') || localStorage.getItem('draft_questionnaire');
   if (saved) {
@@ -248,34 +279,9 @@ onMounted(() => {
     }
   }
 
-  // 待批注列表跳转：自动切 Tab + 滚动到对应记录
-  if (store.pendingRecordType) {
-    const type = store.pendingRecordType;
-    const recordId = store.pendingRecordId;
-    // 映射记录类型到 Tab
-    const tabMap: Record<string, 'diet' | 'exercise' | 'weight'> = {
-      diet: 'diet',
-      exercise: 'exercise',
-      weight: 'weight',
-    };
-    if (tabMap[type]) {
-      activeTab.value = tabMap[type];
-      nextTick(() => {
-        if (recordId) {
-          const el = document.getElementById(`record-${recordId}`);
-          if (el) {
-            el.scrollIntoView({ block: 'center' });
-            // 高亮闪烁
-            el.classList.add('ring-2', 'ring-[#FF976A]');
-            setTimeout(() => el.classList.remove('ring-2', 'ring-[#FF976A]'), 2000);
-          }
-        }
-        // 清除 pending 状态，避免来回切换时重复触发
-        store.setPendingAnnotation(null);
-      });
-    }
-  }
+  consumePendingAnnotation();
 });
+onActivated(consumePendingAnnotation);
 
 const startComment = (record: DietRecord) => {
   commentingId.value = record.id;
