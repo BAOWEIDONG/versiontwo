@@ -184,7 +184,7 @@ watch(
 
 // 所有历史记录按日期分组
 const allHistory = computed(() => [...userDiets.value].sort((a, b) => b.date.localeCompare(a.date)));
-const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allHistory);
+const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allHistory, { defaultExpandToday: false });
 
 // 首屏性能：历史记录按日期分组后只先渲染最近 N 组，滚动/点按钮再加载更早（减少首帧 DOM 与图片数量）
 const visibleGroupCount = ref(3); // 初始渲染最近 3 天分组（每组默认收起，数据量小）
@@ -221,8 +221,9 @@ const handleToggleDate = (date: string) => {
   if (willExpand) markGroupCommentsRead(date);
 };
 
-// 默认展开的"今天"分组直接可见，其中的未读批注视为已读
-markGroupCommentsRead(todayStr.value);
+// 记录 Tab 默认全部收起：未读批注在用户实际展开该日期分组时才标记已读，
+// 故"新批注"标识在展开前保持未读（真正看到才算已读）
+void markGroupCommentsRead;
 
 // 消息中心跳转：切到记录Tab，自动展开目标日期并滚动到对应记录
 // 处理跨页跳转深链（消息中心点某条记录 → 自动滚动到该日期组）：

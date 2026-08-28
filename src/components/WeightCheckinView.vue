@@ -153,7 +153,7 @@ const sortedRecords = computed(() =>
 
 // 按日期分组的历史记录
 const reversedRecords = computed(() => [...sortedRecords.value].reverse());
-const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(reversedRecords);
+const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(reversedRecords, { defaultExpandToday: false });
 
 // 学员展开未读批注所在日期分组 → 该分组内批注标记为已读（真正看到才算已读）
 const markGroupCommentsRead = (date: string) => {
@@ -172,8 +172,7 @@ const handleToggleDate = (date: string) => {
   if (willExpand) markGroupCommentsRead(date);
 };
 
-// 默认展开的"今天"分组直接可见，其中的未读批注视为已读
-markGroupCommentsRead(format(new Date(), 'yyyy-MM-dd'));
+// 记录 Tab 默认全部收起：未读批注在展开其日期分组时才标记已读（真正看到才算已读）
 
 // 手势改命令式绑定（Vue 压缩器会错绑模板 passive touch 事件致滑动失灵，见 feedback-tab-swipe-prod-build）
 const chartSvgRef = ref<SVGSVGElement | null>(null);

@@ -63,7 +63,7 @@ const userExercises = computed(() => campEx.value.filter((r) => r.studentId === 
 
 // 所有历史记录按日期分组
 const allHistory = computed(() => [...userExercises.value].sort((a, b) => b.date.localeCompare(a.date)));
-const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allHistory);
+const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allHistory, { defaultExpandToday: false });
 
 // 运动周趋势（规则见 journey.ts computeExerciseTrends 头部文档注释）
 const exerciseTrends = computed(() => computeExerciseTrends(campEx.value, store.user?.id));
@@ -316,9 +316,7 @@ const handleToggleDate = (date: string) => {
   toggleDate(date);
   if (willExpand) markGroupCommentsRead(date);
 };
-
-// 默认展开的"今天"分组直接可见，其中的未读批注视为已读
-markGroupCommentsRead(format(new Date(), 'yyyy-MM-dd'));
+// 记录 Tab 默认全部收起：未读批注在展开其日期分组时才标记已读（真正看到才算已读）
 
 // 消息中心跳转：切到记录Tab，自动展开目标日期并滚动到对应记录
 onMounted(() => {
