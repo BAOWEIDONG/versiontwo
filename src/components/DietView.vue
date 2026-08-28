@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
 import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
 import { Checkbox as VanCheckbox, showToast } from 'vant';
 import { NavBar, Card, Button } from './ui';
 import { Camera, X, ChevronDown, UtensilsCrossed } from 'lucide-vue-next';
@@ -71,7 +72,9 @@ const handlePhotoSelect = async (e: Event) => {
   if (files.length === 0) return;
   const remaining = 3 - photos.value.length;
   try {
-    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    // 上传前自动压缩图片（减少传输量+加载速度）
+    const compressed = await Promise.all(files.slice(0, remaining).map((f) => compressImage(f)));
+    const urls = await Promise.all(compressed.map((f) => uploadFile(f)));
     photos.value = [...photos.value, ...urls];
   } catch {
     showToast({ message: '照片上传失败，请重试', position: 'top', duration: 2500 });

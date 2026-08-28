@@ -5,6 +5,7 @@ import { useAppStore } from '../store/app';
 import { celebrateCheckin, celebrateReward } from '../lib/confetti';
 import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
 import { compressVideo } from '../lib/videoCompress';
 import { NavBar, Card, Button, Input, ChartRulePopup } from './ui';
 import { Plus, X, Camera, Video, PlayCircle, Loader, MessageCircle, ChevronDown, Dumbbell, TrendingUp } from 'lucide-vue-next';
@@ -105,8 +106,13 @@ const handlePhotoSelect = async (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || []) as File[];
   if (files.length === 0) return;
   const remaining = 6 - photos.value.length;
-  const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
-  photos.value = [...photos.value, ...urls];
+  try {
+    const compressed = await Promise.all(files.slice(0, remaining).map((f) => compressImage(f)));
+    const urls = await Promise.all(compressed.map((f) => uploadFile(f)));
+    photos.value = [...photos.value, ...urls];
+  } catch {
+    showToast({ message: '照片上传失败，请重试', position: 'top', duration: 2500 });
+  }
   (e.target as HTMLInputElement).value = '';
 };
 
