@@ -13,7 +13,7 @@ import { useAppStore } from '../../store/app';
  * 活动隐藏时索引自动收缩(首页0/消息1/档案2)，绝不漂移。
  *
  * props.anchor: 本页要高亮的 tab（语义键，非索引）。子页传其入口父 tab，如积分商城/我的
- * 奖励传 'activity-hub'；个人历程传 'dashboard'；个人营期报告传 'health-profile'。
+ * 奖励传 'activity-hub'；个人营期报告传 'dashboard'（高亮首页，用户口径）；个人历程传 'health-profile'。
  * 当 anchor 对应 tab 因活动隐藏而不存在(如活动隐藏时理论上不可达的活动子页)，回退高亮首页。
  */
 type Anchor = 'dashboard' | 'activity-hub' | 'messages' | 'health-profile';

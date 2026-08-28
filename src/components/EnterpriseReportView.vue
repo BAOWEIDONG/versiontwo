@@ -221,7 +221,7 @@ const handleExport = () => {
       <div class="text-center py-3">
         <div class="flex items-center justify-center gap-1.5 text-xs text-gray-400">
           <Flame class="w-3.5 h-3.5" />
-          <span>{{ report.campDays }}天健康训练营 · 专业营养师全程指导</span>
+          <span>健康训练营 · 专业营养师全程指导</span>
         </div>
         <p class="text-[10px] text-gray-300 mt-1">本报告仅含群体统计数据，不涉及任何个人健康信息</p>
       </div>

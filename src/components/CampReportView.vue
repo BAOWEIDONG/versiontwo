@@ -104,19 +104,22 @@ const bodyCompositionMetrics = computed(() =>
     }),
 );
 
+// 化验指标（非身体测量）：仅保留有前后值的项，不做"是否改善"的相关判断
 const labMetrics = computed(() =>
-  report.value.metricChanges
-    .filter((m) => m.category !== '身体测量数据')
-    .sort((a, b) => {
-      const aHas = a.beforeValue !== null || a.afterValue !== null;
-      const bHas = b.beforeValue !== null || b.afterValue !== null;
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      if (aHas && bHas) {
-        if (a.isImproved !== b.isImproved) return a.isImproved ? -1 : 1;
-      }
-      return 0;
-    }),
+  report.value.metricChanges.filter(
+    (m) => m.category !== '身体测量数据' && (m.beforeValue !== null || m.afterValue !== null),
+  ),
 );
+
+// 按分类分组展示（与健康档案一致：肝功能/肾功能/血脂/血糖 等拆分，不汇总成一张大表）
+const labMetricGroups = computed(() => {
+  const groups = new Map<string, MetricChange[]>();
+  for (const m of labMetrics.value) {
+    if (!groups.has(m.category)) groups.set(m.category, []);
+    groups.get(m.category)!.push(m);
+  }
+  return Array.from(groups.entries());
+});
 
 // 营养师结营寄语（按营期存储，key = `${campId}_${studentId}`）
 const campMessage = computed(() => {
@@ -409,33 +412,39 @@ const exportPDF = () => {
         </div>
       </Card>
 
-      <!-- 化验指标改善 -->
-      <Card v-if="labMetrics.some(m => m.beforeValue !== null || m.afterValue !== null)">
+      <!-- 化验指标变化（按分类拆分，与健康档案一致；不做"是否改善"判断文案） -->
+      <Card v-if="labMetrics.length > 0">
         <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
           <Heart class="h-4 w-4 text-[#1677FF]" />
           化验指标变化
         </h3>
-        <div class="space-y-2">
-          <template v-for="m in labMetrics" :key="m.configId">
-            <div
-              v-if="m.beforeValue !== null || m.afterValue !== null"
-              class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-            >
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-gray-900">{{ m.name }}</div>
-                <div class="text-[10px] text-gray-400">
-                  {{ m.beforeValue ?? '--' }} → {{ m.afterValue ?? '--' }} {{ m.unit }}
-                  <span v-if="m.normalRange" class="ml-1">参考: {{ m.normalRange }}</span>
+        <div class="space-y-4">
+          <div v-for="[catName, items] in labMetricGroups" :key="catName">
+            <div class="text-xs font-bold text-gray-500 mb-1 flex items-center gap-1.5">
+              <Heart class="h-3 w-3 text-[#1677FF]" />
+              {{ catName }}
+            </div>
+            <div class="space-y-2">
+              <div
+                v-for="m in items"
+                :key="m.configId"
+                class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+              >
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900">{{ m.name }}</div>
+                  <div class="text-[10px] text-gray-400">
+                    {{ m.beforeValue ?? '--' }} → {{ m.afterValue ?? '--' }} {{ m.unit }}
+                    <span v-if="m.normalRange" class="ml-1">参考: {{ m.normalRange }}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="text-right shrink-0 ml-2">
-                <div class="text-sm font-bold" :class="metricChangeColor(m)">
-                  {{ metricChangeText(m) }}
+                <div class="text-right shrink-0 ml-2">
+                  <div class="text-sm font-bold" :class="metricChangeColor(m)">
+                    {{ metricChangeText(m) }}
+                  </div>
                 </div>
-                <div v-if="m.turnedNormal" class="text-[10px] text-[#07C160]">已恢复正常</div>
               </div>
             </div>
-          </template>
+          </div>
         </div>
       </Card>
 
@@ -494,7 +503,7 @@ const exportPDF = () => {
       <!-- 底部鼓励语 -->
       <div class="text-center py-4">
         <p class="text-sm text-gray-400">
-          {{ report.studentName }} · {{ report.campDays }}天健康训练营
+          {{ report.studentName }} · 健康训练营
         </p>
         <p class="text-xs text-gray-300 mt-1">坚持就是胜利，健康是最好的奖励</p>
       </div>
@@ -534,7 +543,7 @@ const exportPDF = () => {
       </div>
     </VanPopup>
 
-    <StudentTabbar anchor="health-profile" print-hidden :badge="unreadCount > 0 ? unreadCount : undefined" />
+    <StudentTabbar anchor="dashboard" print-hidden :badge="unreadCount > 0 ? unreadCount : undefined" />
   </div>
 </template>
 
