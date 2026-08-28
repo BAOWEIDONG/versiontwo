@@ -166,7 +166,9 @@ const rewardMessages = computed<MessageItem[]>(() => {
             ? `${tier?.name || '奖励'} 已寄出${c.trackingNumber ? `，快递单号 ${c.trackingNumber}` : ''}，请注意查收`
             : inPerson
               ? `${tier?.name || '奖励'} 已线下发放，请向教练确认领取`
-              : `恭喜达成「${tier?.name || '奖励'}」，礼品将尽快寄出`,
+              : c.deliveryMethod === 'in-person'
+                ? `恭喜达成「${tier?.name || '奖励'}」，已为你安排线下领取，请等待营养师联系`
+                : `恭喜达成「${tier?.name || '奖励'}」，礼品将尽快寄出`,
         unread: seenState.value.rewards[c.id] !== undefined && seenState.value.rewards[c.id] !== c.status,
         targetView: confirmed ? 'camp-activities' : 'reward',
       };

@@ -132,6 +132,15 @@ const CLAIM_STATUS_MAP: Record<string, { label: string; color: string; bg: strin
   'in-person': { label: '线下发放', color: '#07C160', bg: '#E8F8EE' },
 };
 
+/** 领取记录状态标签：线下方式且尚未发放时要区分"待线下发放"，与打卡奖励/日历的"等待线下发放"口径一致 */
+function claimStatusMeta(claim: { status: string; deliveryMethod?: string }) {
+  const base = CLAIM_STATUS_MAP[claim.status] || { label: claim.status, color: '#969799', bg: '#F2F3F5' };
+  if (claim.status === 'pending' && claim.deliveryMethod === 'in-person') {
+    return { label: '待线下发放', color: '#FF976A', bg: '#FFF4ED' };
+  }
+  return base;
+}
+
 const allRecords = computed<UnifiedRecord[]>(() => {
   const list: UnifiedRecord[] = [];
 
@@ -157,7 +166,7 @@ const allRecords = computed<UnifiedRecord[]>(() => {
   // 打卡奖励
   streakClaims.value.forEach(c => {
     const tier = campTiers.value.find(t => t.id === c.tierId);
-    const s = CLAIM_STATUS_MAP[c.status] || { label: c.status, color: '#969799', bg: '#F2F3F5' };
+    const s = claimStatusMeta(c);
     list.push({
       id: c.id, type: 'streak', typeName: '打卡奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
@@ -188,7 +197,7 @@ const allRecords = computed<UnifiedRecord[]>(() => {
   // 活动奖励
   activityClaims.value.forEach(c => {
     const tier = campTiers.value.find(t => t.id === c.tierId);
-    const s = CLAIM_STATUS_MAP[c.status] || { label: c.status, color: '#969799', bg: '#F2F3F5' };
+    const s = claimStatusMeta(c);
     list.push({
       id: c.id, type: 'activity', typeName: '活动奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
