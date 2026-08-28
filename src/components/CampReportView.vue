@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { NavBar, Card, StudentTabbar } from './ui';
-import { Trophy, TrendingDown, TrendingUp, Activity, Target, Flame, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
+import { Trophy, TrendingDown, TrendingUp, Activity, Target, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';
@@ -199,9 +199,7 @@ const encouragement = computed(() => {
   // 2) 体成分：肌肉增加独立成亮点(含体重未降的「减脂增肌」重塑)；体脂降仅在不与体重重复时补充，避免注水
   if (s.muscleChangeKg !== null && s.muscleChangeKg > 0) parts.push(`肌肉增加${s.muscleChangeKg.toFixed(1)}公斤`);
   if (s.bodyFatLossKg !== null && s.bodyFatLossKg > 0 && !(s.weightLossKg !== null && s.weightLossKg > 0)) parts.push(`体脂减少${s.bodyFatLossKg.toFixed(1)}公斤`);
-  // 3) 健康指标正常化
-  if (s.abnormalImprovedCount > 0) parts.push(`${s.abnormalImprovedCount}项异常指标恢复正常`);
-  // 4) 坚持维度：与身体数据互为补充，长连击优先、其次高完成率
+  // 3) 坚持维度：与身体数据互为补充，长连击优先、其次高完成率
   if (s.longestStreak >= 7) parts.push(`最长连续打卡${s.longestStreak}天`);
   else if (s.completionRate !== null && s.completionRate >= 0.8) parts.push(`打卡完成率${fmtPct(s.completionRate)}`);
 
@@ -366,32 +364,6 @@ const exportPDF = () => {
         </div>
         <div v-else class="text-center text-sm text-gray-400 py-6">本营期暂无体成分检测数据</div>
       </Card>
-
-      <!-- 核心数据摘要 -->
-      <div class="grid grid-cols-2 gap-3">
-        <Card class="p-4 text-center">
-          <Flame class="w-5 h-5 text-orange-400 mx-auto mb-1" />
-          <div class="text-lg font-bold text-gray-900">{{ fmt(report.summary.bodyFatLossKg) }} <span class="text-xs text-gray-400">kg</span></div>
-          <div class="text-xs text-gray-500 mt-1">脂肪减少</div>
-        </Card>
-        <Card class="p-4 text-center">
-          <Heart class="w-5 h-5 text-[#1677FF] mx-auto mb-1" />
-          <div class="text-lg font-bold" :class="report.summary.muscleChangeKg !== null && report.summary.muscleChangeKg > 0 ? 'text-[#07C160]' : 'text-gray-900'">
-            {{ fmtChange(report.summary.muscleChangeKg, 'kg') }}
-          </div>
-          <div class="text-xs text-gray-500 mt-1">肌肉变化</div>
-        </Card>
-        <Card class="p-4 text-center">
-          <Target class="w-5 h-5 text-[#FF976A] mx-auto mb-1" />
-          <div class="text-lg font-bold text-gray-900">{{ fmt(report.summary.visceralFatChange) }} <span class="text-xs text-gray-400">cm²</span></div>
-          <div class="text-xs text-gray-500 mt-1">内脏脂肪改善</div>
-        </Card>
-        <Card class="p-4 text-center">
-          <Trophy class="w-5 h-5 text-[#FF976A] mx-auto mb-1" />
-          <div class="text-lg font-bold text-[#07C160]">{{ report.summary.abnormalImprovedCount }}</div>
-          <div class="text-xs text-gray-500 mt-1">异常指标改善</div>
-        </Card>
-      </div>
 
       <!-- 打卡统计 -->
       <Card>
