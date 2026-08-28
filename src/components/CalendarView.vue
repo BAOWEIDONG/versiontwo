@@ -141,6 +141,10 @@ const showClaimForm = ref(false);
 const selectedRewardTier = ref<any>(null);
 const claimFormData = ref({ name: store.user?.name || '', phone: store.user?.phone || '', address: '' });
 const claimFormError = ref('');
+// 领取方式：随营养师配置的 deliveryMethods 走（与打卡奖励页 RewardView 口径一致），默认取第一种
+const selectedDeliveryMethod = ref<'shipped' | 'in-person'>('shipped');
+const tierDeliveryMethods = computed(() => (selectedRewardTier.value?.deliveryMethods || ['shipped']) as ('shipped' | 'in-person')[]);
+const showDeliveryChoice = computed(() => tierDeliveryMethods.value.length > 1);
 
 const streakData = computed(() => calculateStreak(campEx.value, campDiet.value, campWt.value, store.user?.id));
 const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId === store.user?.id));
@@ -204,6 +208,7 @@ const openClaimForm = () => {
   showClaimForm.value = true;
   claimFormError.value = '';
   claimFormData.value = { name: store.user?.name || '', phone: store.user?.phone || '', address: '' };
+  selectedDeliveryMethod.value = tierDeliveryMethods.value[0] || 'shipped';
 };
 
 // 仅"当天"允许从完成度清单点击未完成项直达打卡页（历史日期不跳转）
@@ -215,9 +220,12 @@ const goCheckin = (view: 'diet' | 'exercise' | 'weight-checkin') => {
 };
 
 const submitClaim = () => {
-  if (!claimFormData.value.name.trim()) { claimFormError.value = '请输入收货人姓名'; return; }
-  if (!/^1[3-9]\d{9}$/.test(claimFormData.value.phone.trim())) { claimFormError.value = '请输入有效的11位手机号'; return; }
-  if (!claimFormData.value.address.trim()) { claimFormError.value = '请输入详细收货地址'; return; }
+  const method = selectedDeliveryMethod.value || 'shipped';
+  if (method === 'shipped') {
+    if (!claimFormData.value.name.trim()) { claimFormError.value = '请输入收货人姓名'; return; }
+    if (!/^1[3-9]\d{9}$/.test(claimFormData.value.phone.trim())) { claimFormError.value = '请输入有效的11位手机号'; return; }
+    if (!claimFormData.value.address.trim()) { claimFormError.value = '请输入详细收货地址'; return; }
+  }
   if (selectedRewardTier.value && store.user) {
     // 二次校验：必须真的满足连续打卡天数（五项全部完成才算一天）才能领取
     if (getRewardState(selectedRewardTier.value) !== 'claimable') {
@@ -225,16 +233,16 @@ const submitClaim = () => {
       return;
     }
     if (selectedRewardTier.value.stock <= 0) { claimFormError.value = '该礼品库存不足'; return; }
-    // 走 store 单一咽喉：实时校验库存/营期/once-per-tier 判重后写记录并扣库存
+    // 走 store 单一咽喉：实时校验库存/营期/once-per-tier 判重后写记录并扣库存；领取方式随营养师配置
     const result = store.claimRewardTier(
       selectedRewardTier.value.id,
       store.user.id,
       store.user.name,
       {
-        recipientName: claimFormData.value.name.trim(),
-        recipientPhone: claimFormData.value.phone.trim(),
-        recipientAddress: claimFormData.value.address.trim(),
-        deliveryMethod: 'shipped',
+        recipientName: method === 'shipped' ? claimFormData.value.name.trim() : store.user.name,
+        recipientPhone: method === 'shipped' ? claimFormData.value.phone.trim() : store.user.phone,
+        recipientAddress: method === 'shipped' ? claimFormData.value.address.trim() : '线下领取',
+        deliveryMethod: method,
         campId: activeCampId.value || undefined,
       },
     );
@@ -261,10 +269,10 @@ const editingAddress = ref(false);
 const editAddressData = ref({ name: '', phone: '', address: '' });
 const editAddressError = ref('');
 
-/** 是否允许修改地址：待发货 && 尚未编辑过 */
+/** 是否允许修改地址：待发货 && 尚未编辑过 && 邮寄领取（线下领取无邮寄地址可改） */
 const canEditAddress = computed(() => {
   const claim = getClaimInfo(selectedRewardTier.value);
-  return !!(claim && claim.status === 'pending' && !claim.addressEdited);
+  return !!(claim && claim.status === 'pending' && !claim.addressEdited && claim.deliveryMethod !== 'in-person');
 });
 
 const startEditAddress = () => {
@@ -651,6 +659,12 @@ const submitAddressEdit = () => {
                 <div class="font-bold mb-1 flex items-center gap-1"><Package class="w-3 h-3" /> 已发货</div>
                 <div class="font-mono">快递单号: {{ getClaimInfo(selectedRewardTier)?.trackingNumber }}</div>
               </div>
+              <div v-else-if="getClaimInfo(selectedRewardTier)?.status === 'in-person'" class="bg-orange-50 rounded-xl px-4 py-3 text-xs text-orange-600 border border-orange-100 mb-3 flex items-center justify-center gap-1">
+                <Package class="w-3 h-3" /> 已线下领取
+              </div>
+              <div v-else-if="getClaimInfo(selectedRewardTier)?.deliveryMethod === 'in-person'" class="bg-orange-50 rounded-xl px-4 py-3 text-xs text-orange-600 border border-orange-100 mb-3 flex items-center justify-center gap-1">
+                <Package class="w-3 h-3" /> 等待线下发放
+              </div>
               <div v-else class="bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-500 border border-gray-100 mb-3 flex items-center justify-center gap-1">
                 <Package class="w-3 h-3" /> 仓库备货中，待发货
               </div>
@@ -707,7 +721,7 @@ const submitAddressEdit = () => {
 
         <!-- Claim form view -->
         <div v-else>
-          <h3 class="text-lg font-bold text-gray-900 mb-4">填写收货信息</h3>
+          <h3 class="text-lg font-bold text-gray-900 mb-4">{{ selectedDeliveryMethod === 'shipped' ? '填写收货信息' : '确认领取信息' }}</h3>
           <div class="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 rounded-xl mb-4 flex gap-3 items-center border border-orange-100">
             <img loading="lazy" decoding="async" :src="selectedRewardTier.imageUrl" class="w-12 h-12 rounded-lg object-cover" />
             <div>
@@ -717,7 +731,24 @@ const submitAddressEdit = () => {
               </div>
             </div>
           </div>
-          <div class="space-y-4 mb-6">
+
+          <!-- 领取方式选择（仅当营养师配置了多种方式时显示，与打卡奖励页一致） -->
+          <div v-if="showDeliveryChoice" class="mb-4">
+            <label class="text-sm font-medium text-gray-700 block mb-2">选择领取方式</label>
+            <div class="flex gap-2">
+              <button
+                :class="['flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors', selectedDeliveryMethod === 'shipped' ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-200 text-gray-500']"
+                @click="selectedDeliveryMethod = 'shipped'; claimFormError = ''"
+              >邮寄</button>
+              <button
+                :class="['flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors', selectedDeliveryMethod === 'in-person' ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-200 text-gray-500']"
+                @click="selectedDeliveryMethod = 'in-person'; claimFormError = ''"
+              >线下领取</button>
+            </div>
+          </div>
+
+          <!-- 邮寄：收货信息表单 -->
+          <div v-if="selectedDeliveryMethod === 'shipped'" class="space-y-4 mb-6">
             <div>
               <label class="text-sm font-medium text-gray-700 block mb-1">收货人 <span class="text-red-500">*</span></label>
               <input type="text" placeholder="请输入姓名" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 focus:bg-white text-sm transition-colors" v-model="claimFormData.name" @input="claimFormError = ''" />
@@ -736,6 +767,16 @@ const submitAddressEdit = () => {
             </div>
             <div v-if="claimFormError" class="text-red-500 text-xs font-medium text-center">{{ claimFormError }}</div>
           </div>
+
+          <!-- 线下领取：说明信息 -->
+          <div v-else class="space-y-3 mb-6">
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
+              <Package class="w-8 h-8 text-blue-500 mx-auto mb-2" />
+              <div class="text-sm font-bold text-gray-900 mb-1">线下领取</div>
+              <div class="text-xs text-gray-500">提交后请等待营养师确认，确认后请前往指定地点领取奖品。</div>
+            </div>
+          </div>
+
           <div class="flex gap-3">
             <button class="flex-1 py-3 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold" @click="showClaimForm = false">返回</button>
             <button class="flex-[2] py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold shadow-lg shadow-orange-500/30 active:scale-95 transition-transform" @click="submitClaim">
