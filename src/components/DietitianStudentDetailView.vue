@@ -7,7 +7,7 @@ import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, Salad, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
-import { Popup as VanPopup } from 'vant';
+import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
@@ -370,13 +370,21 @@ const scoreBreakdown = computed(() => {
   const diet = calculateDietScore(campDietRecords.value.filter((r) => r.studentId === student.value!.id));
   const exercise = calculateExerciseScore(campExerciseRecords.value.filter((r) => r.studentId === student.value!.id));
   const manual = manualScoreTotal.value;
-  return { diet, exercise, manual, total: diet + exercise + manual };
+  return { diet, exercise, manual, total: Math.max(0, diet + exercise + manual) };
 });
 
 function handleAddManualScore() {
   if (!student.value || !manualReason.value.trim()) return;
   const points = manualMode.value === 'add' ? Math.abs(manualPoints.value) : -Math.abs(manualPoints.value);
   if (points === 0) return;
+  // 扣分护栏：不允许把学员总积分扣成负数
+  if (points < 0) {
+    const current = scoreBreakdown.value.total;
+    if (current + points < 0) {
+      showToast({ message: `当前积分 ${current}，本次扣 ${-points} 将变成负数，不允许扣分`, position: 'top', duration: 2500 });
+      return;
+    }
+  }
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const dateTimeStr = `${dateStr} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -396,7 +404,12 @@ function handleAddManualScore() {
 }
 
 function handleDeleteManualScore(id: string) {
-  store.deleteManualScoreRecord(id);
+  showConfirmDialog({
+    title: '确认删除',
+    message: '删除后该条加减分将回退，积分会相应变化。确认删除？',
+  }).then(() => {
+    store.deleteManualScoreRecord(id);
+  }).catch(() => {});
 }
 </script>
 

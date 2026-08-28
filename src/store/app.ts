@@ -20,6 +20,7 @@ import {
 } from '../mock/data';
 import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
+import { calculateStreak } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
@@ -411,6 +412,15 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function addDietRecord(record: DietRecord) {
+    // 幂等：同一学员、同一营期、同一天、同一餐次不重复插入（防绕过前端重复打卡）
+    const day = (record.date || '').slice(0, 10);
+    const exists = dietRecords.value.some(
+      (r) => r.studentId === record.studentId
+        && r.campId === record.campId
+        && r.meal === record.meal
+        && (r.date || '').startsWith(day),
+    );
+    if (exists) return;
     dietRecords.value.push(record);
     api.createDietRecord(record).catch(() => {});
   }
@@ -516,6 +526,23 @@ export const useAppStore = defineStore('app', () => {
     // ③once-per-tier 判重
     if (rewardClaims.value.some((c) => c.studentId === studentId && c.tierId === tierId)) {
       return { ok: false, reason: '您已领取过该奖励，请勿重复领取' };
+    }
+    // ④连续打卡达标校验（仅连续打卡奖励）：领取前复算学员连续满勤天数，防止绕过前端领取未达标档位
+    if (fresh.source === 'streak') {
+      const cid = claimInfo.campId;
+      const diet = (cid ? getCampDietRecords(cid) : dietRecords.value).filter((r) => r.studentId === studentId);
+      const ex = (cid ? getCampExerciseRecords(cid) : exerciseRecords.value).filter((r) => r.studentId === studentId);
+      const wt = (cid ? getCampWeightRecords(cid) : weightRecords.value).filter((r) => r.studentId === studentId);
+      const streak = calculateStreak(ex, diet, wt, studentId);
+      if (streak.currentStreak < fresh.requiredDays) {
+        return { ok: false, reason: '连续打卡天数未达到该奖励要求，无法领取' };
+      }
+    }
+    // ⑤邮寄类必须填收货信息
+    if (claimInfo.deliveryMethod === 'shipped') {
+      if (!claimInfo.recipientName?.trim() || !claimInfo.recipientPhone?.trim() || !claimInfo.recipientAddress?.trim()) {
+        return { ok: false, reason: '请完整填写收件人、电话和收货地址' };
+      }
     }
     const claim: RewardClaim = {
       id: `claim_${Date.now()}`,
@@ -631,6 +658,10 @@ export const useAppStore = defineStore('app', () => {
     }
     // 防御性校验：deliveryMethod 必须被商品支持
     if (deliveryInfo && !fresh.deliveryOptions.includes(deliveryInfo.deliveryMethod)) return null;
+    // 邮寄类必须填收货信息
+    if (deliveryInfo?.deliveryMethod === 'shipped') {
+      if (!deliveryInfo.recipientName?.trim() || !deliveryInfo.recipientPhone?.trim() || !deliveryInfo.recipientAddress?.trim()) return null;
+    }
 
     const now = formatDateTimeStr();
     const record: PointExchangeRecord = {

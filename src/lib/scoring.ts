@@ -100,7 +100,9 @@ export function calculateTotalScore(
   manualScoreRecords?: ManualScoreRecord[]
 ): number {
   const manual = manualScoreRecords ? calculateManualScore(manualScoreRecords) : 0;
-  return calculateDietScore(dietRecords) + calculateExerciseScore(exerciseRecords) + manual;
+  // 总分不得为负（扣分再多也不显示负数）
+  const total = calculateDietScore(dietRecords) + calculateExerciseScore(exerciseRecords) + manual;
+  return Math.max(0, total);
 }
 
 export interface StudentScoreData {
@@ -154,7 +156,7 @@ export function rankStudents(
       dietScore,
       exerciseScore,
       manualScore,
-      totalScore: dietScore + exerciseScore + manualScore
+      totalScore: Math.max(0, dietScore + exerciseScore + manualScore)
     };
   });
 
