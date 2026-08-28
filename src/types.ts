@@ -149,6 +149,15 @@ export interface CoachActivityRecord {
 }
 
 // Reward types
+/** 领奖时锁定的档位快照：历史领取记录以生成时为准，不依赖当前档位反查 */
+export interface RewardTierSnapshot {
+  name: string;
+  imageUrl: string;
+  requiredDays: number;
+  deliveryMethods?: ('shipped' | 'in-person')[];
+  version?: number;
+}
+
 export interface RewardTier {
   id: string;
   name: string;
@@ -164,6 +173,10 @@ export interface RewardTier {
   activityType?: 'milestone' | 'weekly' | 'lucky';
   /** 支持的领取方式（营养师配置，学员从中选择）：shipped=邮寄 / in-person=线下领取 */
   deliveryMethods?: ('shipped' | 'in-person')[];
+  /** 排序值（越小越靠前展示；未设置 = 0） */
+  sortValue?: number;
+  /** 版本号：每次编辑 +1。历史领取以档位版本快照为准 */
+  version?: number;
 }
 
 export interface RewardClaim {
@@ -195,6 +208,8 @@ export interface RewardClaim {
   deliveryMethod?: 'shipped' | 'in-person';
   /** 关联活动类型（仅活动奖励） */
   activityType?: 'milestone' | 'weekly' | 'lucky';
+  /** 领奖时锁定的档位快照：历史以快照为准，当前档位编辑/下架不影响 */
+  tierSnapshot?: RewardTierSnapshot;
 }
 
 // Points mall types
@@ -281,6 +296,31 @@ export interface PointExchangeRecord {
   snapshot?: PointProductSnapshot;
   /** 操作审计：created/shipped/verified/cancelled 全程留痕 */
   audit?: ExchangeAuditEntry[];
+}
+
+/** 营养师奖品/商品配置操作审计：记录操作者、时间、营期、前后值、原因、关联对象数 */
+export interface ConfigAudit {
+  id: string;
+  /** 配置对象：tier=连续打卡档位 / product=积分商城商品 */
+  module: 'tier' | 'product';
+  /** 操作动作描述：新增/编辑/下架/上架/删除 */
+  action: string;
+  /** 操作对象名称 */
+  targetName: string;
+  /** 操作人 */
+  operator: string;
+  /** 操作时间（yyyy-MM-dd HH:mm:ss） */
+  operatorTime: string;
+  /** 所属营期 */
+  campId?: string;
+  /** 修改前摘要（如库存/排序/状态） */
+  before?: string;
+  /** 修改后摘要 */
+  after?: string;
+  /** 操作原因 */
+  reason?: string;
+  /** 关联对象数（受影响记录数，如已领取/待发数） */
+  affectedCount?: number;
 }
 
 // Meal time configuration

@@ -97,6 +97,7 @@ const saveTier = () => {
       source: 'streak',
       description: editingTier.value.description,
       deliveryMethods: editingTier.value.deliveryMethods,
+      sortValue: editingTier.value.sortValue || 0,
       campId: selectedCampId.value,
     });
   }
@@ -278,8 +279,10 @@ function formatExchangeDate(dateStr: string) {
                   </div>
                 </div>
                 <div class="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded inline-block mt-1">连续打卡 {{ tier.requiredDays }} 天</div>
-                <div class="flex flex-wrap gap-1 mt-1">
+                <div class="flex flex-wrap items-center gap-1 mt-1">
                   <span v-for="m in (tier.deliveryMethods || ['shipped'])" :key="m" class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ DELIVERY_LABELS[m] }}</span>
+                  <span v-if="tier.sortValue" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ tier.sortValue }}</span>
+                  <span v-if="tier.version && tier.version > 1" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">v{{ tier.version }}</span>
                 </div>
                 <div v-if="getClaimCount(tier.id) > 0" class="text-[10px] text-gray-500 mt-1">已有 {{ getClaimCount(tier.id) }} 人领取</div>
               </div>
@@ -347,6 +350,33 @@ function formatExchangeDate(dateStr: string) {
         </button>
       </div>
 
+      <!-- 配置操作记录（审计） -->
+      <div>
+        <div class="flex items-center justify-between mb-2.5 mt-6">
+          <div class="flex items-center gap-2">
+            <div class="w-1.5 h-4 bg-gray-400 rounded-full"></div>
+            <h2 class="text-sm font-black text-gray-900">配置操作记录</h2>
+          </div>
+          <span class="text-[10px] text-gray-400">{{ store.configAudits.length }} 条</span>
+        </div>
+        <Card class="p-3">
+          <div v-if="store.configAudits.length === 0" class="text-center py-6 text-[11px] text-gray-400">暂无配置操作记录</div>
+          <div v-else class="space-y-2 max-h-[260px] overflow-y-auto">
+            <div v-for="a in store.configAudits.slice(0, 30)" :key="a.id" class="flex items-start gap-2 text-[11px] py-1 border-b border-gray-50 last:border-0">
+              <span :class="['shrink-0 px-1.5 py-0.5 rounded-full font-bold',
+                a.module === 'tier' ? (a.action === '新增' ? 'bg-blue-50 text-[#1677FF]' : a.action === '删除' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')
+              : (a.action === '新增' ? 'bg-orange-50 text-[#FF976A]' : a.action === '删除' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')]">
+                {{ a.module === 'tier' ? '档位' : '商品' }}{{ a.action }}
+              </span>
+              <div class="flex-1 min-w-0 leading-snug">
+                <div class="text-gray-700 truncate"><span class="text-gray-400">{{ a.operator }}</span> · {{ a.targetName }}<span v-if="a.after"> → {{ a.after }}</span></div>
+                <div class="text-gray-400 truncate mt-0.5">{{ a.operatorTime }}<template v-if="a.before"> · {{ a.before }}</template><template v-if="a.reason"> · {{ a.reason }}</template></div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <!-- 兑换记录入口 -->
       <div>
         <button class="w-full flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 active:bg-gray-50 transition-colors" @click="store.setCurrentView('fulfillment-center')">
@@ -395,6 +425,10 @@ function formatExchangeDate(dateStr: string) {
             <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
             <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.stock" @input="editingTier.stock = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
             <div v-if="editingTier.id && getClaimCount(editingTier.id) > 0" class="text-[11px] text-gray-400 mt-1">此数为当前可发放量，已有 {{ getClaimCount(editingTier.id) }} 件被领取（已占用）</div>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">排序值 <span class="text-xs text-gray-400 font-normal">（越小越靠前，默认 0）</span></label>
+            <input type="number" inputmode="numeric" placeholder="如：1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.sortValue" @input="editingTier.sortValue = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-2">领取方式 <span class="text-red-500">*</span></label>

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -164,6 +164,17 @@ export const useAppStore = defineStore('app', () => {
   const coachDashboardTab = ref<'incomplete' | 'completed' | 'activities'>('incomplete');
   const rewardTiers = ref<RewardTier[]>([...MOCK_REWARD_TIERS]);
   const rewardClaims = ref<RewardClaim[]>([...MOCK_REWARD_CLAIMS]);
+  /** 营养师奖品/商品配置操作审计（新增/编辑/上架/下架/删除），按时间倒序 */
+  const configAudits = ref<ConfigAudit[]>([]);
+  function recordConfigAudit(entry: Omit<ConfigAudit, 'id' | 'operatorTime' | 'operator'> & Partial<Pick<ConfigAudit, 'operator'>>) {
+    configAudits.value.unshift({
+      id: `cfg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      operator: entry.operator || user.value?.name || '营养师',
+      operatorTime: formatDateTimeStr(),
+      ...entry,
+    });
+    if (configAudits.value.length > 200) configAudits.value.splice(200);
+  }
   const mealTimeConfigByCamp = ref<Record<string, MealTimeConfig>>({});
   const metricConfigs = ref<MetricConfig[]>([...DEFAULT_METRIC_CONFIGS]);
 
@@ -470,23 +481,38 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function addRewardTier(tier: RewardTier) {
-    rewardTiers.value.push(tier);
+    rewardTiers.value.push({ ...tier, sortValue: tier.sortValue ?? 0, version: 1 });
+    recordConfigAudit({ module: 'tier', action: '新增', targetName: tier.name, campId: tier.campId, after: `连续${tier.requiredDays}天 · 库存 ${tier.stock}` });
     api.createRewardTier(tier).catch(() => {});
   }
 
   function updateRewardTier(id: string, updates: Partial<RewardTier>) {
-    rewardTiers.value = rewardTiers.value.map((t) => (t.id === id ? { ...t, ...updates } : t));
+    const prev = rewardTiers.value.find((t) => t.id === id);
+    // 仅"配置编辑"（非系统内部扣库存）才 bump 版本 + 记配置审计；领取扣库存只改 stock 不记
+    const isConfigEdit = Object.keys(updates).some((k) => k !== 'stock');
+    rewardTiers.value = rewardTiers.value.map((t) =>
+      (t.id === id ? { ...t, ...updates, ...(isConfigEdit ? { version: (t.version ?? 1) + 1 } : {}) } : t)
+    );
+    if (prev && isConfigEdit) {
+      const next = rewardTiers.value.find((t) => t.id === id);
+      recordConfigAudit({ module: 'tier', action: '编辑', targetName: prev.name, campId: prev.campId, before: `库存 ${prev.stock} v${prev.version ?? 1}`, after: `库存 ${next?.stock ?? prev.stock} v${(next?.version ?? prev.version ?? 1)}` });
+    }
     api.updateRewardTier(id, updates).catch(() => {});
   }
 
-  /** 删除奖励层级。存在未终态（confirmed=待领取 / pending=待发货）领取记录时拒绝删除。
+  /** 删除奖励层级。新版口径：一旦出现资格/领取/发货/售后记录即禁止物理删除，只能下架或归档（历史以档位快照为准）。
    *  返回 {ok, reason}，由调用方提示拦截原因与连带影响。 */
   function deleteRewardTier(id: string): { ok: boolean; reason?: string } {
-    const open = rewardClaims.value.filter((c) => c.tierId === id && (c.status === 'confirmed' || c.status === 'pending'));
-    if (open.length > 0) {
-      return { ok: false, reason: `该奖励已有 ${open.length} 条未发货领取记录（待发货/待领取），无法删除` };
+    const anyClaim = rewardClaims.value.filter((c) => c.tierId === id);
+    if (anyClaim.length > 0) {
+      const open = anyClaim.filter((c) => c.status === 'confirmed' || c.status === 'pending');
+      return { ok: false, reason: open.length > 0
+        ? `该奖励已有 ${open.length} 条未发货领取记录（待发货/待领取），无法删除`
+        : `该奖励已产生 ${anyClaim.length} 条领取/发货记录，无法物理删除，只能下架或归档` };
     }
+    const target = rewardTiers.value.find((t) => t.id === id);
     rewardTiers.value = rewardTiers.value.filter((t) => t.id !== id);
+    if (target) recordConfigAudit({ module: 'tier', action: '删除', targetName: target.name, campId: target.campId, before: `连续${target.requiredDays}天` });
     api.deleteRewardTier(id).catch(() => {});
     return { ok: true };
   }
@@ -567,6 +593,14 @@ export const useAppStore = defineStore('app', () => {
       deliveryMethod: claimInfo.deliveryMethod,
       campId: claimInfo.campId,
       activityType: claimInfo.activityType,
+      // 档位快照：锁定领取时名称/图片/门槛/领取方式/版本，之后编辑或下架档位不影响历史记录反查
+      tierSnapshot: {
+        name: fresh.name,
+        imageUrl: fresh.imageUrl,
+        requiredDays: fresh.requiredDays,
+        deliveryMethods: fresh.deliveryMethods,
+        version: fresh.version ?? 1,
+      },
     };
     // ④写记录 + 用 fresh tier 扣库存
     rewardClaims.value.push(claim);
@@ -598,14 +632,26 @@ export const useAppStore = defineStore('app', () => {
 
   function addPointProduct(product: PointProduct) {
     pointProducts.value.push({ ...product, sortValue: product.sortValue ?? 0, productVersion: 1 });
+    recordConfigAudit({ module: 'product', action: '新增', targetName: product.name, campId: product.campId, after: `${product.pointsRequired}积分 · 库存 ${product.stock}` });
     api.createPointProduct(product).catch(() => {});
   }
 
-  /** 更新商品；每次编辑递增商品版本号（历史订单以生成时快照为准，不因编辑追改） */
+  /** 更新商品。仅"配置编辑"（含 active 上/下架、不含系统内部扣/加库存）才递增版本号 + 写配置审计；
+   *  兑换/取消扣加库存只改 stock 不 bump 版本（历史订单版本以生成时快照为准）。 */
   function updatePointProduct(id: string, updates: Partial<PointProduct>) {
+    const prev = pointProducts.value.find((p) => p.id === id);
+    const isConfigEdit = 'active' in updates || Object.keys(updates).some((k) => k !== 'stock');
     pointProducts.value = pointProducts.value.map((p) =>
-      (p.id === id ? { ...p, ...updates, productVersion: (p.productVersion ?? 1) + 1 } : p)
+      (p.id === id ? { ...p, ...updates, ...(isConfigEdit ? { productVersion: (p.productVersion ?? 1) + 1 } : {}) } : p)
     );
+    if (prev && isConfigEdit) {
+      const next = pointProducts.value.find((p) => p.id === id);
+      if (updates.active !== undefined) {
+        recordConfigAudit({ module: 'product', action: updates.active ? '上架' : '下架', targetName: prev.name, campId: prev.campId, before: updates.active ? '已下架' : '上架中', after: updates.active ? '上架中' : '已下架' });
+      } else {
+        recordConfigAudit({ module: 'product', action: '编辑', targetName: prev.name, campId: prev.campId, before: `库存 ${prev.stock} v${prev.productVersion ?? 1}`, after: `库存 ${next?.stock ?? prev.stock} v${(next?.productVersion ?? prev.productVersion ?? 1)}` });
+      }
+    }
     api.updatePointProduct(id, updates).catch(() => {});
   }
 
@@ -616,7 +662,9 @@ export const useAppStore = defineStore('app', () => {
     if (open.length > 0) {
       return { ok: false, reason: `该商品已有 ${open.length} 条非取消兑换记录（待发货/已发货），无法删除` };
     }
+    const target = pointProducts.value.find((p) => p.id === id);
     pointProducts.value = pointProducts.value.filter((p) => p.id !== id);
+    if (target) recordConfigAudit({ module: 'product', action: '删除', targetName: target.name, campId: target.campId, before: `${target.pointsRequired}积分` });
     api.deletePointProduct(id).catch(() => {});
     return { ok: true };
   }
@@ -1054,6 +1102,7 @@ export const useAppStore = defineStore('app', () => {
     setSelectedDateStr,
     rewardTiers,
     rewardClaims,
+    configAudits,
     addRewardTier,
     updateRewardTier,
     deleteRewardTier,
