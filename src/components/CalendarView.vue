@@ -5,7 +5,7 @@ import { NavBar, Card } from './ui';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { Activity, Coffee, Scale, Gift, CheckCircle2, Lock, Package, Sparkles, Trophy, Check, PlayCircle } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast } from 'vant';
-import { calculateStreak, getProjectedRewardDates, isRangeComplete, isDayComplete } from '../lib/streak';
+import { calculateStreak, calculateLongestStreakInRange, getProjectedRewardDates, isDayComplete } from '../lib/streak';
 import { formatDateTime } from '../lib/utils';
 import type { ExerciseRecord } from '../types';
 
@@ -137,6 +137,18 @@ const claimFormError = ref('');
 const streakData = computed(() => calculateStreak(campEx.value, campDiet.value, campWt.value, store.user?.id));
 const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId === store.user?.id));
 
+// 资格快照：营期内最长连续完成天数（一旦达到档位即永久解锁，断签不回落）
+const campLongestStreak = computed(() => {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const endRaw = activeCamp.value?.endDate || todayStr;
+  const end = endRaw < todayStr ? endRaw : todayStr;
+  return calculateLongestStreakInRange(activeCamp.value?.startDate || '2000-01-01', end, campEx.value, campDiet.value, campWt.value, store.user?.id);
+});
+
+/** 已达成（资格判定）= 当前连续天 与 营期最长连续天 取更大者 */
+const achievedDays = (requiredDays: number) =>
+  Math.max(streakData.value.currentStreak, campLongestStreak.value) >= requiredDays;
+
 const rewardDates = computed(() => {
   const projected = getProjectedRewardDates(streakData.value.currentStreak, streakData.value.streakStartDate, streakRewardTiers.value, campRewardClaims.value, store.user?.id);
   return projected.map(p => {
@@ -151,30 +163,19 @@ const getRewardOnDate = (date: Date) => {
   return rewardDates.value.find(r => r.date === dStr);
 };
 
-/** 奖励状态: claimed=已领取 / claimable=可领取 / outOfStock=已领完 / locked=未解锁 */
+/** 奖励状态: claimed=已领取 / claimable=可领取 / outOfStock=已领完 / locked=未解锁
+ *  以资格快照判定（不二次校验连续段是否无缺卡）：曾在营期内连续满勤达到档位即视为可领，
+ *  营期已结营则所有未领奖励视为失效。 */
 const getRewardState = (reward: any): 'claimed' | 'claimable' | 'outOfStock' | 'locked' => {
   if (reward.isClaimed) return 'claimed';
-  if (reward.isUnlocked && reward.stock > 0) {
-    // 二次校验：从首次打卡日到奖励日，每天都必须完成全部打卡（五项缺一不可）
-    if (streakData.value.streakStartDate && reward.date) {
-      const allComplete = isRangeComplete(
-        streakData.value.streakStartDate,
-        reward.date,
-        campEx.value,
-        campDiet.value,
-        campWt.value,
-        store.user?.id
-      );
-      if (!allComplete) return 'locked';
-    }
-    return 'claimable';
-  }
-  if (reward.isUnlocked && reward.stock <= 0) return 'outOfStock';
+  if (activeCamp.value?.status === 'ended') return 'locked';
+  if (achievedDays(reward.requiredDays) && reward.stock > 0) return 'claimable';
+  if (achievedDays(reward.requiredDays) && reward.stock <= 0) return 'outOfStock';
   return 'locked';
 };
 
 const getDaysToUnlock = (reward: any): number => {
-  return Math.max(0, reward.requiredDays - streakData.value.currentStreak);
+  return Math.max(0, reward.requiredDays - Math.max(streakData.value.currentStreak, campLongestStreak.value));
 };
 
 const getClaimInfo = (reward: any) => {

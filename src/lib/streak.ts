@@ -168,6 +168,45 @@ export function isRangeComplete(
 }
 
 /**
+ * 计算营期区间内的最长连续完成天数（资格快照判定用）
+ *
+ * 新版 PRD（version2）语义：
+ *   "首次达到档位即创建不可逆资格快照" —— 一旦在该营期内任意时段连续满勤达到档位天数，
+ *   这个"已解锁资格"就永远成立，后续断签不会让已解锁但未领取的奖励重新锁定（场景二反转）。
+ *
+ * 该函数在 [startDate, endDate]（含）区间内逐日判断"当天是否五项全完成"，
+ * 返回最大连续完成段的天数。因为是一个最大值（单调不回退），天然等价于"历史是否曾达到过 N 天"，
+ * 从而无需额外持久化一个资格快照数组 —— 只要 once 达到过，之后任意时刻该值都 >= N。
+ *
+ * @param startDate  区间起点（营期开营日 / 该营期该学员生效日）
+ * @param endDate    区间终点（营期结营日，覆盖到 today 即可）
+ */
+export function calculateLongestStreakInRange(
+  startDate: string,
+  endDate: string,
+  exercises: ExerciseRecord[],
+  diets: DietRecord[],
+  weights: WeightRecord[],
+  userId?: string
+): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (start > end) return 0;
+  let longest = 0;
+  let run = 0;
+  for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+    const dStr = format(d, 'yyyy-MM-dd');
+    if (isDayComplete(dStr, exercises, diets, weights, userId)) {
+      run++;
+      if (run > longest) longest = run;
+    } else {
+      run = 0;
+    }
+  }
+  return longest;
+}
+
+/**
  * 计算各奖励阶梯的日期与状态
  *
  * 三种状态:

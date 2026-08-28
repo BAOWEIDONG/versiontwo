@@ -20,7 +20,7 @@ import {
 } from '../mock/data';
 import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
-import { calculateStreak } from '../lib/streak';
+import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
@@ -523,18 +523,28 @@ export const useAppStore = defineStore('app', () => {
     if (claimInfo.campId && fresh.campId && fresh.campId !== claimInfo.campId) {
       return { ok: false, reason: '该奖励不属于当前营期' };
     }
-    // ③once-per-tier 判重
-    if (rewardClaims.value.some((c) => c.studentId === studentId && c.tierId === tierId)) {
+    // ③once-per-tier 判重（仅判"同一营期"：同一档位所在营期只能领取一次；跨营期不同营期各自领取）
+    if (rewardClaims.value.some((c) => c.studentId === studentId && c.tierId === tierId && (claimInfo.campId ? c.campId === claimInfo.campId : true))) {
       return { ok: false, reason: '您已领取过该奖励，请勿重复领取' };
     }
-    // ④连续打卡达标校验（仅连续打卡奖励）：领取前复算学员连续满勤天数，防止绕过前端领取未达标档位
+    // ④连续打卡达标校验（仅连续打卡奖励）：资格快照口径 —— 已解锁未领取的档位断签后仍可领取。
+    //    达标判定 = max(当前连续天数, 营期内任意历史最长连续天数) >= requiredDays，避免断签重新锁定已解锁档位。
     if (fresh.source === 'streak') {
       const cid = claimInfo.campId;
       const diet = (cid ? getCampDietRecords(cid) : dietRecords.value).filter((r) => r.studentId === studentId);
       const ex = (cid ? getCampExerciseRecords(cid) : exerciseRecords.value).filter((r) => r.studentId === studentId);
       const wt = (cid ? getCampWeightRecords(cid) : weightRecords.value).filter((r) => r.studentId === studentId);
       const streak = calculateStreak(ex, diet, wt, studentId);
-      if (streak.currentStreak < fresh.requiredDays) {
+      const todayStr = formatDateTimeStr().slice(0, 10);
+      let longest = 0;
+      if (cid) {
+        const camp = camps.value.find((c) => c.id === cid) || null;
+        const endRaw = camp?.endDate || todayStr;
+        const end = endRaw < todayStr ? endRaw : todayStr;
+        longest = calculateLongestStreakInRange(camp?.startDate || '2000-01-01', end, ex, diet, wt, studentId);
+      }
+      const achieved = Math.max(streak.currentStreak, longest);
+      if (achieved < fresh.requiredDays) {
         return { ok: false, reason: '连续打卡天数未达到该奖励要求，无法领取' };
       }
     }

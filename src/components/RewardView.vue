@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { format, addDays } from 'date-fns';
-import { calculateStreak, isRangeComplete } from '../lib/streak';
+import { format } from 'date-fns';
+import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { useAppStore } from '../store/app';
 import { NavBar } from './ui';
 import { Popup as VanPopup } from 'vant';
@@ -40,34 +40,40 @@ const currentStreak = computed(() => streakData.value.currentStreak);
 const totalDays = computed(() => streakData.value.totalDays);
 
 const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId === store.user?.id));
-// 跨营期防重复领取：检查所有营期的领取记录（共享档位不能在不同营期重复领）
-const myAllCampClaims = computed(() => store.rewardClaims.filter(c => c.studentId === store.user?.id));
+// 新版口径：防重复领取 = 同一档位所在营期只能领取一次（不再跨营期合并卡相同档位）
 const shippedClaims = computed(() => myClaims.value.filter(c => c.status === 'shipped'));
 const sortedTiers = computed(() => [...campRewardTiers.value].filter(t => t.source !== 'activity').sort((a, b) => a.requiredDays - b.requiredDays));
 const maxRequiredDays = computed(() => Math.max(...campRewardTiers.value.map(t => t.requiredDays), 1));
 const nextTier = computed(() => sortedTiers.value.find(t => currentStreak.value < t.requiredDays));
 const daysToNext = computed(() => nextTier.value ? nextTier.value.requiredDays - currentStreak.value : 0);
 
+// ─── 资格快照：营期内任意历史最长连续完成天数（断签后已解锁未领取档位不回落） ──────────────
+const activeCampObj = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);
+const campLongestStreak = computed(() => {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const endRaw = activeCampObj.value?.endDate || todayStr;
+  const end = endRaw < todayStr ? endRaw : todayStr;
+  return calculateLongestStreakInRange(
+    activeCampObj.value?.startDate || '2000-01-01',
+    end,
+    campEx.value, campDiet.value, campWt.value,
+    store.user?.id,
+  );
+});
+/** 达标口径：当前连续 与 营期历史最长连续 取较大（资格快照语义） */
+const achievedDays = (tier: RewardTier) => Math.max(currentStreak.value, campLongestStreak.value);
+
 const getTierState = (tier: RewardTier) => {
-  // 跨营期检查：如果该档位已在任何营期被领取，则标记为已领取
-  const claimed = myAllCampClaims.value.find(c => c.tierId === tier.id);
+  // 同一营期内判重（已领取）
+  const claimed = myClaims.value.find(c => c.tierId === tier.id);
   if (claimed) return 'claimed';
-  if (currentStreak.value >= tier.requiredDays && tier.stock > 0) {
-    // 二次校验：从首次打卡日到奖励目标日，每天都必须完成全部打卡
-    if (streakData.value.streakStartDate && tier.requiredDays > 0) {
-      const rewardDate = format(addDays(new Date(streakData.value.streakStartDate), tier.requiredDays - 1), 'yyyy-MM-dd');
-      const allComplete = isRangeComplete(
-        streakData.value.streakStartDate,
-        rewardDate,
-        campEx.value, campDiet.value, campWt.value,
-        store.user?.id
-      );
-      if (!allComplete) return 'locked';
-    }
-    return 'unlocked';
-  }
-  if (currentStreak.value >= tier.requiredDays && tier.stock <= 0) return 'outOfStock';
-  return 'locked';
+  // 营期已结束且未领取 → 已失效（锁定）
+  if (activeCampObj.value?.status === 'ended') return 'locked';
+  // 资格快照：曾达到或当前达到档位天数 => 已解锁（断签不回落）
+  const reached = achievedDays(tier) >= tier.requiredDays;
+  if (!reached) return 'locked';
+  if (tier.stock > 0) return 'unlocked';
+  return 'outOfStock';
 };
 
 const tierDeliveryMethods = computed(() => selectedTier.value?.deliveryMethods || ['shipped']);
