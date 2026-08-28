@@ -52,8 +52,14 @@ const campWeightRecords = computed(() => selectedCampId.value ? store.getCampWei
 // 退营学员与两端看板口径一致：待批注列表排除（active-only）
 const disabledStudentIds = computed(() => new Set(store.accounts.filter((a) => a.role === 'student' && a.active === false).map((a) => a.id)));
 
-// 过滤标签
-const activeFilter = ref<ItemType | 'all'>('all');
+// 过滤标签（localStorage 持久化：营养师从学员详情返回或系统返回重载后，筛选不丢）
+const PEND_FILTER_KEY = 'dietitian_pending_filter';
+const storedFilter = (): ItemType | 'all' => {
+  const v = localStorage.getItem(PEND_FILTER_KEY);
+  return v === 'diet' || v === 'weight' ? v : 'all';
+};
+const activeFilter = ref<ItemType | 'all'>(storedFilter());
+watch(activeFilter, (v) => localStorage.setItem(PEND_FILTER_KEY, v));
 
 const mealLabel = (meal: string) => MEAL_TYPES.find((m) => m.id === meal)?.label;
 
