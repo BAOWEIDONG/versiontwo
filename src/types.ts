@@ -198,6 +198,31 @@ export interface RewardClaim {
 }
 
 // Points mall types
+/** 积分商城兑换操作审计条目（发货/线下核销/取消，记录操作人、时间、原因、状态流转） */
+export interface ExchangeAuditEntry {
+  /** created=下单 / shipped=邮寄发货 / verified=线下核销 / cancelled=取消 */
+  op: 'created' | 'shipped' | 'verified' | 'cancelled';
+  /** 操作人（下单=学员名；发货/核销=营养师；取消=学员或营养师） */
+  operator: string;
+  /** 操作时间（yyyy-MM-dd HH:mm:ss） */
+  operatorTime: string;
+  /** 操作原因说明（可空） */
+  reason?: string;
+  /** 状态流转 from -> to */
+  fromStatus: string;
+  toStatus: string;
+}
+
+/** 下单时锁定的商品完整快照：之后编辑/下架商品不影响历史订单（历史以快照为准） */
+export interface PointProductSnapshot {
+  productId: string;
+  name: string;
+  imageUrl: string;
+  pointsRequired: number;
+  deliveryOptions: ('shipped' | 'in-person')[];
+  productVersion?: number;
+}
+
 /** 积分商城商品 */
 export interface PointProduct {
   id: string;
@@ -212,6 +237,10 @@ export interface PointProduct {
   deliveryOptions: ('shipped' | 'in-person')[];
   /** 每人限兑换次数；0/未设置 = 不限制（营养师端配置） */
   maxExchange?: number;
+  /** 排序值（营养师配置，越小越靠前展示；未设置 = 0） */
+  sortValue?: number;
+  /** 商品版本号：每次编辑 +1。下单时写入订单快照，历史订单以其生成时版本为准，编辑商品不追溯 */
+  productVersion?: number;
   /** 所属营期 id；未设置(=undefined)视为全局/所有营期共用（与 RewardTier.campId 口径一致）。
    *  营养师在某个营期下新增商品时写入当前营期，随营期切换在配置端与学员商城分别展示。 */
   campId?: string;
@@ -248,6 +277,10 @@ export interface PointExchangeRecord {
   recipientPhone?: string;
   /** 收货地址 */
   recipientAddress?: string;
+  /** 下单时锁定的商品快照：编辑/下架商品不影响本单，历史以快照为准 */
+  snapshot?: PointProductSnapshot;
+  /** 操作审计：created/shipped/verified/cancelled 全程留痕 */
+  audit?: ExchangeAuditEntry[];
 }
 
 // Meal time configuration

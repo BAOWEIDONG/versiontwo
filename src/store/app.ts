@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -588,18 +588,24 @@ export const useAppStore = defineStore('app', () => {
   /** 营养师手动加减分记录 */
   const manualScoreRecords = ref<ManualScoreRecord[]>([...MOCK_MANUAL_SCORES]);
 
-  /** 获取上架商品；campId 传入时按营期过滤（未绑定 campId 的商品视为全局共享，与 RewardTier 口径一致） */
+  /** 获取上架商品；campId 传入时按营期过滤（未绑定 campId 的商品视为全局共享，与 RewardTier 口径一致）。
+   *  按 sortValue 升序（越小越靠前），sortValue 相同按名称/原始序。 */
   function getPointProducts(campId?: string | null) {
-    return pointProducts.value.filter((p) => p.active && (!campId || !p.campId || p.campId === campId));
+    return pointProducts.value
+      .filter((p) => p.active && (!campId || !p.campId || p.campId === campId))
+      .sort((a, b) => (a.sortValue ?? 0) - (b.sortValue ?? 0) || a.name.localeCompare(b.name));
   }
 
   function addPointProduct(product: PointProduct) {
-    pointProducts.value.push(product);
+    pointProducts.value.push({ ...product, sortValue: product.sortValue ?? 0, productVersion: 1 });
     api.createPointProduct(product).catch(() => {});
   }
 
+  /** 更新商品；每次编辑递增商品版本号（历史订单以生成时快照为准，不因编辑追改） */
   function updatePointProduct(id: string, updates: Partial<PointProduct>) {
-    pointProducts.value = pointProducts.value.map((p) => (p.id === id ? { ...p, ...updates } : p));
+    pointProducts.value = pointProducts.value.map((p) =>
+      (p.id === id ? { ...p, ...updates, productVersion: (p.productVersion ?? 1) + 1 } : p)
+    );
     api.updatePointProduct(id, updates).catch(() => {});
   }
 
@@ -689,6 +695,17 @@ export const useAppStore = defineStore('app', () => {
       recipientPhone: deliveryInfo?.recipientPhone,
       recipientAddress: deliveryInfo?.recipientAddress,
       campId,
+      // 商品快照：锁定下单时名称/图片/积分/配送/商品版本，之后编辑/下架商品不影响本单历史
+      snapshot: {
+        productId: fresh.id,
+        name: fresh.name,
+        imageUrl: fresh.imageUrl,
+        pointsRequired: fresh.pointsRequired,
+        deliveryOptions: fresh.deliveryOptions,
+        productVersion: fresh.productVersion ?? 1,
+      },
+      // 操作审计：下单即创建首条留痕
+      audit: [{ op: 'created', operator: studentName, operatorTime: now, fromStatus: '-', toStatus: 'pending', reason: '学员下单' }],
     };
     pointExchanges.value.push(record);
     // 扣减库存（剩余可发量语义：领取减 / 取消加 / 发货不动）
@@ -704,32 +721,48 @@ export const useAppStore = defineStore('app', () => {
       .sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate));
   }
 
-  /** 更新兑换状态 */
-  function updateExchangeStatus(id: string, status: PointExchangeRecord['status']) {
+  /** 更新兑换状态（含审计留痕）。
+   *  operator 操作人，reason 操作原因，写进 audit[] ；取消时自动恢复库存、积分自动返还 */
+  function updateExchangeStatus(id: string, status: PointExchangeRecord['status'], operator?: string, reason?: string) {
     const exchange = pointExchanges.value.find(e => e.id === id);
     if (!exchange) return;
     // 状态机校验：只允许 pending -> fulfilled/cancelled
     if (exchange.status !== 'pending') return;
-    // 如果取消兑换，恢复库存
+    const fromStatus = exchange.status;
+    // 如果取消兑换，恢复库存（剩余可发量语义：领取减 / 取消加 / 发货不动）
     if (status === 'cancelled') {
       const product = pointProducts.value.find(p => p.id === exchange.productId);
       if (product) {
         updatePointProduct(product.id, { stock: product.stock + 1 });
       }
     }
+    const now = formatDateTimeStr();
+    const auditEntry = {
+      op: (status === 'cancelled' ? 'cancelled' : status === 'fulfilled' ? exchange.deliveryMethod === 'in-person' ? 'verified' : 'shipped' : 'created') as ExchangeAuditEntry['op'],
+      operator: operator || (status === 'cancelled' ? '学员' : '营养师'),
+      operatorTime: now,
+      fromStatus,
+      toStatus: status,
+      reason,
+    };
     pointExchanges.value = pointExchanges.value.map((e) =>
-      (e.id === id ? { ...e, status, cancelledAt: status === 'cancelled' ? formatDateTimeStr() : undefined } : e)
+      (e.id === id ? {
+        ...e,
+        status,
+        cancelledAt: status === 'cancelled' ? now : undefined,
+        audit: [...(e.audit || []), auditEntry],
+      } : e)
     );
     api.updatePointExchange(id, status === 'cancelled' ? { status, cancelledAt: pointExchanges.value.find((x) => x.id === id)?.cancelledAt } : { status }).catch(() => {});
   }
 
-  /** 学员取消兑换（发货前可取消，积分自动返还） */
-  function cancelExchange(id: string) {
-    updateExchangeStatus(id, 'cancelled');
+  /** 学员取消兑换（发货前可取消，积分自动返还）。operator 默认学员名 */
+  function cancelExchange(id: string, operator?: string) {
+    updateExchangeStatus(id, 'cancelled', operator || undefined, '学员取消');
   }
 
-  /** 营养师发货兑换商品 */
-  function shipExchange(id: string, trackingNumber: string, method: 'shipped' | 'in-person') {
+  /** 营养师发货（邮寄）或线下核销（in-person）；含审计留痕。operator 操作人 */
+  function shipExchange(id: string, trackingNumber: string, method: 'shipped' | 'in-person', operator?: string) {
     const exchange = pointExchanges.value.find(e => e.id === id);
     if (!exchange || exchange.status !== 'pending') return;
     const now = formatDateTimeStr();
@@ -739,6 +772,14 @@ export const useAppStore = defineStore('app', () => {
       trackingNumber: method === 'shipped' ? trackingNumber : undefined,
       shipDate: method === 'shipped' ? now : undefined,
       deliveredAt: method === 'in-person' ? now : undefined,
+      audit: [...(exchange.audit || []), {
+        op: method === 'in-person' ? 'verified' : 'shipped',
+        operator: operator || '营养师',
+        operatorTime: now,
+        fromStatus: 'pending',
+        toStatus: 'fulfilled',
+        reason: method === 'in-person' ? '线下核销发放' : `邮寄发货${trackingNumber ? `，单号 ${trackingNumber}` : ''}`,
+      }],
     };
     pointExchanges.value = pointExchanges.value.map((e) => (e.id === id ? { ...e, ...updates } : e));
     api.updatePointExchange(id, updates).catch(() => {});

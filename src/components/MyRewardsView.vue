@@ -228,7 +228,7 @@ function openCancelModal(record: UnifiedRecord) {
 function confirmCancel() {
   if (!cancelTarget.value || cancelTarget.value.type !== 'exchange') return;
   const raw = cancelTarget.value.raw as PointExchangeRecord;
-  store.cancelExchange(raw.id);
+  store.cancelExchange(raw.id, store.user?.role === 'dietitian' ? store.user.name : store.user?.name || '学员');
   showCancelModal.value = false;
   cancelTarget.value = null;
   showSuccessToast('已取消兑换，积分已返还');

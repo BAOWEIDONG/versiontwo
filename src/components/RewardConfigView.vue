@@ -180,6 +180,7 @@ const saveProduct = () => {
       deliveryOptions: editingProduct.value.deliveryOptions || ['shipped', 'in-person'],
       // 每人限兑换次数：0 / 不填 = 不限
       maxExchange: maxExchange && maxExchange > 0 ? maxExchange : undefined,
+      sortValue: editingProduct.value.sortValue || 0,
       campId: editingProduct.value.campId,
     });
   }
@@ -224,7 +225,7 @@ const EXCHANGE_STATUS: Record<string, { label: string; color: string; bg: string
 };
 
 const handleExchangeStatus = (id: string, status: PointExchangeRecord['status']) => {
-  store.updateExchangeStatus(id, status);
+  store.updateExchangeStatus(id, status, store.user?.name || '营养师');
   showToast(status === 'fulfilled' ? '已标记为发放' : status === 'cancelled' ? '已取消兑换' : '已更新状态');
 };
 
@@ -322,6 +323,8 @@ function formatExchangeDate(dateStr: string) {
                   <Coins class="w-3.5 h-3.5 text-[#FF976A]" />
                   <span class="text-xs font-black text-[#FF6B35]">{{ product.pointsRequired }}</span>
                   <span class="text-[10px] text-gray-400">积分</span>
+                  <span v-if="product.sortValue" class="ml-1 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ product.sortValue }}</span>
+                  <span v-if="product.productVersion && product.productVersion > 1" class="text-[10px] text-gray-400">v{{ product.productVersion }}</span>
                 </div>
                 <div v-if="product.description" class="text-[10px] text-gray-500 mt-1 truncate">{{ product.description }}</div>
               </div>
@@ -446,6 +449,10 @@ function formatExchangeDate(dateStr: string) {
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">每人限兑次数 <span class="text-xs text-gray-400 font-normal">（填 0 表示不限制）</span></label>
             <input type="number" inputmode="numeric" placeholder="如：1" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.maxExchange" @input="editingProduct.maxExchange = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">排序值 <span class="text-xs text-gray-400 font-normal">（越小越靠前，默认 0）</span></label>
+            <input type="number" inputmode="numeric" placeholder="如：1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.sortValue" @input="editingProduct.sortValue = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-2">配送方式</label>

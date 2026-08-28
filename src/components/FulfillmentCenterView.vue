@@ -7,7 +7,7 @@ import {
   Truck, Coins, Clock, CheckCircle2,
   AlertCircle, ClipboardCheck, Eye, Search,
 } from 'lucide-vue-next';
-import type { RewardClaim, PointExchangeRecord, Camp } from '../types';
+import type { RewardClaim, PointExchangeRecord, Camp, ExchangeAuditEntry } from '../types';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import { campDateRange } from '../lib/camps';
 
@@ -48,6 +48,8 @@ interface ExchangeRecordItem {
   cancelledAt?: string;
   campId?: string;
   camp?: Camp;
+  /** 积分兑换操作审计（发货/线下核销/取消/下单），连续打卡奖励无 */
+  audit?: ExchangeAuditEntry[];
 }
 const campOf = (campId?: string): Camp | undefined =>
   campId ? store.camps.find((c) => c.id === campId) : undefined;
@@ -68,6 +70,7 @@ const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
       trackingNumber: e.trackingNumber,
       cancelledAt: e.cancelledAt,
       campId: e.campId, camp: campOf(e.campId),
+      audit: e.audit,
     });
   }
 
@@ -329,6 +332,9 @@ const filteredExchangeRecords = computed(() => {
   });
 });
 
+const auditOpLabel = (op: ExchangeAuditEntry['op']): string =>
+  op === 'created' ? '下单' : op === 'shipped' ? '邮寄发货' : op === 'verified' ? '线下核销' : '取消';
+
 const EX_GROUP_META: Record<ExGroupKey, { label: string; color: string; bg: string }> = {
   pending: { label: '待发货', color: '#1677FF', bg: '#EBF5FF' },
   shipped: { label: '已发货', color: '#07C160', bg: '#E8F8EE' },
@@ -475,7 +481,7 @@ function submitShipping() {
       shipDate: dateStr,
     });
   } else if (shipTarget.value.type === 'exchange' && shipTarget.value.rawExchange) {
-    store.shipExchange(shipTarget.value.rawExchange.id, trackingNumber.value.trim(), 'shipped');
+    store.shipExchange(shipTarget.value.rawExchange.id, trackingNumber.value.trim(), 'shipped', store.user?.name || '营养师');
   }
   showShipModal.value = false;
   showToast('发货成功');
@@ -493,7 +499,7 @@ function submitInPerson() {
       deliveredAt: dateStr,
     });
   } else if (shipTarget.value.type === 'exchange' && shipTarget.value.rawExchange) {
-    store.shipExchange(shipTarget.value.rawExchange.id, '', 'in-person');
+    store.shipExchange(shipTarget.value.rawExchange.id, '', 'in-person', store.user?.name || '营养师');
   }
   showInPersonModal.value = false;
   showToast('线下发放已确认');
@@ -944,6 +950,14 @@ function switchModule(m: Module) {
                     </div>
                   </div>
                   <div v-if="record.camp" class="mt-2 text-[10px] text-gray-400 truncate">{{ record.camp.name }} · {{ campDateRange(record.camp) }}</div>
+                  <div v-if="record.audit && record.audit.length" class="mt-2 space-y-1 border-t border-gray-50 pt-1.5">
+                    <div v-for="(a, i) in record.audit" :key="i" class="flex items-center gap-1.5 text-[10px] text-gray-400">
+                      <span class="font-bold shrink-0" :class="a.op === 'cancelled' ? 'text-[#FF6B35]' : a.toStatus === 'fulfilled' ? 'text-[#07C160]' : 'text-gray-400'">{{ auditOpLabel(a.op) }}</span>
+                      <span class="truncate">{{ a.operator }}</span>
+                      <span class="shrink-0">·</span>
+                      <span class="truncate flex-1 min-w-0">{{ formatDateTime(a.operatorTime) }}{{ a.reason ? ' · ' + a.reason : '' }}</span>
+                    </div>
+                  </div>
                   <div v-if="record.trackingNumber" class="mt-1.5 bg-green-50 rounded-lg px-2 py-1 flex items-start justify-between">
                     <span class="text-[10px] text-gray-600 font-mono font-bold break-all min-w-0">单号 {{ record.trackingNumber }}</span>
                     <button class="shrink-0 text-[10px] text-[#07C160] font-bold active:scale-95 ml-2" @click="copyToClipboard(record.trackingNumber!, '单号')">复制</button>
