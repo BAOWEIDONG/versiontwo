@@ -128,7 +128,14 @@ const campMessage = computed(() => {
   if (!sid || !cid) return '';
   return store.getCampMessage(cid, sid);
 });
+// 营养师姓名：优先取「填写结营寄语的营养师」；历史寄语未记录作者时回退到批注人
 const dietitianName = computed(() => {
+  const sid = store.user?.id;
+  const cid = selectedCampId.value || campInfo.value?.id;
+  if (sid && cid) {
+    const author = store.getCampMessageAuthor(cid, sid);
+    if (author) return author;
+  }
   const names = [campDietRecords.value, campExerciseRecords.value, campWeightRecords.value]
     .flat()
     .map((r) => (r as any).dietitianName || (r as any).coachName)

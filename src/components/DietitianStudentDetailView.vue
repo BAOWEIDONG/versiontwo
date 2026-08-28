@@ -102,7 +102,8 @@ const saveCampMessage = () => {
   const studentId = store.selectedStudentId;
   if (!studentId) return;
   if (!selectedCampId.value) return;
-  store.setCampMessage(selectedCampId.value, studentId, campMessageText.value);
+  // 记录作者（营养师姓名），结营报告内展示"填写文本 + 营养师姓名"
+  store.setCampMessage(selectedCampId.value, studentId, campMessageText.value, store.user?.name || '营养师');
   campMessageSaved.value = true;
   setTimeout(() => (campMessageSaved.value = false), 2000);
 };

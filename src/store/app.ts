@@ -94,6 +94,8 @@ export const useAppStore = defineStore('app', () => {
   const campMessages = ref<Record<string, string>>({
     'camp1_s1': '坚持下来很不容易，你的自律大家都看在眼里。这段时间养成的饮食和运动习惯是最好的收获，继续保持，健康是一辈子的事！',
   });
+  /** 结营寄语作者（营养师姓名），key 同 campMessages：{ [`${campId}_${studentId}`]: name } */
+  const campMessageAuthors = ref<Record<string, string>>({});
 
   /** 趣味活动开关（按营期独立配置，营养师端配置，学员端按此展示） */
   /** 每周挑战默认关闭：需营养师先设置开始日期，再手动开启 */
@@ -135,19 +137,28 @@ export const useAppStore = defineStore('app', () => {
     api.updateActivityConfigApi(campId, merged as Record<string, unknown>).catch(() => {});
   }
 
-  function setCampMessage(campId: string, studentId: string, text: string) {
+  function setCampMessage(campId: string, studentId: string, text: string, author = '') {
     const key = `${campId}_${studentId}`;
-    if (text.trim()) campMessages.value = { ...campMessages.value, [key]: text.trim() };
-    else {
+    if (text.trim()) {
+      campMessages.value = { ...campMessages.value, [key]: text.trim() };
+      if (author) campMessageAuthors.value = { ...campMessageAuthors.value, [key]: author };
+    } else {
       const next = { ...campMessages.value };
       delete next[key];
       campMessages.value = next;
+      const aNext = { ...campMessageAuthors.value };
+      delete aNext[key];
+      campMessageAuthors.value = aNext;
     }
     api.saveCampMessage(campId, studentId, text).catch(() => {});
   }
 
   function getCampMessage(campId: string, studentId: string): string {
     return campMessages.value[`${campId}_${studentId}`] || '';
+  }
+
+  function getCampMessageAuthor(campId: string, studentId: string): string {
+    return campMessageAuthors.value[`${campId}_${studentId}`] || '';
   }
   const viewHistory = ref<View[]>(['login']);
   const currentView = computed<View>(() => viewHistory.value[viewHistory.value.length - 1]);
@@ -1056,6 +1067,7 @@ export const useAppStore = defineStore('app', () => {
     campMessages,
     setCampMessage,
     getCampMessage,
+    getCampMessageAuthor,
     activityConfigByCamp,
     getActivityConfig,
     getHasActivity,
