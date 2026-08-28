@@ -4,7 +4,7 @@ import { useAppStore } from '../store/app';
 import { useDeferred } from '../composables/useDeferred';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { NavBar, Card } from './ui';
-import { Building2, Users, Trophy, Flame, Sparkles, Download, ShieldCheck, HeartPulse, Dumbbell } from 'lucide-vue-next';
+import { Building2, Users, Flame, Sparkles, Download, ShieldCheck, HeartPulse, Dumbbell } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary, generateEnterpriseReport } from '../lib/campReport';
@@ -215,30 +215,6 @@ const handleExport = () => {
             <div class="text-[10px] text-gray-500 mt-1">累计打卡总次数</div>
           </div>
         </div>
-      </Card>
-
-      <!-- 改善最显著的指标 -->
-      <Card v-if="report.topImprovedMetrics.length > 0">
-        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b pb-2">
-          <Trophy class="h-4 w-4 text-[#FF976A]" />
-          改善最显著的指标
-        </h3>
-        <div class="space-y-3">
-          <div v-for="(m, i) in report.topImprovedMetrics" :key="i" class="flex items-center gap-3">
-            <span class="text-sm text-gray-700 w-24 shrink-0 truncate">{{ m.name }}</span>
-            <div class="flex-1 bg-gray-100 rounded-full h-4 relative overflow-hidden">
-              <div
-                class="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-[#07C160] to-[#4ade80]"
-                :style="{ width: `${(m.improvementRate ?? 0) * 100}%` }"
-              ></div>
-            </div>
-            <span class="text-xs font-bold text-[#07C160] w-12 text-right shrink-0">{{ fmtPct(m.improvementRate) }}</span>
-            <span class="text-[10px] text-gray-400 w-20 text-right shrink-0">
-              {{ m.improvedCount }}/{{ m.totalCount }}人
-            </span>
-          </div>
-        </div>
-        <p class="text-[10px] text-gray-400 mt-3">改善率 = 该指标改善人数 ÷ 参与检测总人数（有前后数据），按改善率降序排列</p>
       </Card>
 
       <!-- 页脚 -->

@@ -4,8 +4,8 @@ import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { useDeferred } from '../composables/useDeferred';
-import { NavBar, Card, ChartRulePopup } from './ui';
-import { BarChart3, TrendingDown, Users, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings } from 'lucide-vue-next';
+import { NavBar, Card } from './ui';
+import { BarChart3, TrendingDown, Users, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings, Flame } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary } from '../lib/campReport';
@@ -42,15 +42,12 @@ const { data: summary, done: summaryReady } = useDeferred<DietitianCampSummary>(
   ),
 );
 
-// 按分类分组的指标聚合（summary 未就绪时为空）
-const metricCategories = computed(() => {
-  if (!summary.value) return [];
-  const cats = new Map<string, typeof summary.value.metricAggregates>();
-  for (const m of summary.value.metricAggregates) {
-    if (!cats.has(m.category)) cats.set(m.category, []);
-    cats.get(m.category)!.push(m);
-  }
-  return Array.from(cats.entries());
+// 减重总人数及占比（基于有体重记录的学员：体重下降人数 / 有体重记录人数）
+const weightLossStats = computed(() => {
+  if (!summary.value) return { count: 0, total: 0 };
+  const withWeight = summary.value.studentReports.filter((r) => r.weightTrend.totalChange !== null);
+  const count = withWeight.filter((r) => (r.weightTrend.totalChange ?? 0) < 0).length;
+  return { count, total: withWeight.length };
 });
 
 // 打开学员详情
@@ -176,6 +173,13 @@ const fmtChange = (v: number | null, unit = ''): string => {
           <div class="text-2xl font-bold text-[#1677FF]">{{ fmt(summary.avgCheckinDays, 0) }}</div>
           <div class="text-xs text-gray-500 mt-1">平均打卡天数<span class="text-[10px] text-gray-400">（按全部学员）</span></div>
         </Card>
+        <Card class="p-4 text-center">
+          <div class="flex items-center justify-center mb-2">
+            <Flame class="w-5 h-5 text-[#FF976A] mr-1" />
+          </div>
+          <div class="text-2xl font-bold text-[#FF976A]">{{ weightLossStats.count }}<span class="text-sm font-normal text-gray-400">/{{ weightLossStats.total }}</span></div>
+          <div class="text-xs text-gray-500 mt-1">减重总人数<span class="text-[10px] text-gray-400">（{{ fmtPct(weightLossStats.total ? weightLossStats.count / weightLossStats.total : 0) }}占比）</span></div>
+        </Card>
       </div>
 
       <!-- 学员列表 -->
@@ -213,61 +217,6 @@ const fmtChange = (v: number | null, unit = ''): string => {
               <ChevronRight class="w-4 h-4 text-gray-300" />
             </div>
           </div>
-        </div>
-      </Card>
-
-      <!-- 指标聚合统计 -->
-      <Card v-for="[catName, metrics] in metricCategories" :key="catName">
-        <div class="flex items-center justify-between mb-3 border-b pb-2">
-          <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
-            <Activity class="h-4 w-4 text-[#1677FF]" />
-            {{ catName }}
-          </h3>
-          <ChartRulePopup title="指标改善率计算规则">
-            <p><span class="font-bold text-gray-900">改善率 =</span> 改善人数 ÷ 有前后检测数据人数 × 100%</p>
-            <p><span class="font-bold text-gray-900">改善判断：</span>按指标方向判定——"越低越好"的指标（如体重、脂肪、胆固醇）值下降为改善；"越高越好"的指标（如肌肉量、基础代谢率、HDL）值上升为改善。</p>
-            <p><span class="font-bold text-gray-900">未改善：</span>值不变或反方向变化。<span class="text-gray-500">（异常转正常不计为改善）</span></p>
-            <p><span class="font-bold text-gray-900">前/后均值：</span>分别对所有有数值数据的学员取平均，变化=后均值-前均值。</p>
-          </ChartRulePopup>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="text-gray-500 border-b border-gray-100">
-                <th class="text-left py-2 font-medium">指标</th>
-                <th class="text-right py-2 font-medium">营前(均)</th>
-                <th class="text-right py-2 font-medium">营后(均)</th>
-                <th class="text-right py-2 font-medium">变化</th>
-                <th class="text-right py-2 font-medium">改善率</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="m in metrics"
-                :key="m.configId"
-                class="border-b border-gray-50 last:border-0"
-              >
-                <td class="py-2 text-left text-gray-900 font-medium">{{ m.name }}</td>
-                <td class="py-2 text-right text-gray-600">
-                  {{ m.avgBefore !== null ? m.avgBefore.toFixed(1) : '--' }}
-                  <span class="text-gray-400">{{ m.unit }}</span>
-                </td>
-                <td class="py-2 text-right text-gray-600">
-                  {{ m.avgAfter !== null ? m.avgAfter.toFixed(1) : '--' }}
-                  <span class="text-gray-400">{{ m.unit }}</span>
-                </td>
-                <td class="py-2 text-right font-medium" :class="m.avgChange !== null && m.avgChange < 0 ? 'text-[#07C160]' : m.avgChange !== null && m.avgChange > 0 ? 'text-orange-500' : 'text-gray-400'">
-                  {{ fmtChange(m.avgChange) }}
-                </td>
-                <td class="py-2 text-right">
-                  <span v-if="m.improvementRate !== null" :class="m.improvementRate > 0 ? 'text-[#07C160] font-medium' : 'text-gray-400'">
-                    {{ fmtPct(m.improvementRate) }}
-                  </span>
-                  <span v-else class="text-gray-400">--</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </Card>
 
