@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
 import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot } from '../types';
 import {
@@ -222,6 +222,8 @@ export const useAppStore = defineStore('app', () => {
 
   // 联调加载：USE_MOCK=true 时返回同一份 mock（无副作用）；USE_MOCK=false 时从后端拉取
   async function init() {
+    // 已有本地持久化的业务数据时直接回读，避免后续被 MOCK 种子覆盖（保证发货/批注等成果刷新后仍在）
+    if (restoreBiz()) return;
     try {
       const [studentList, diet, exercise, weight, activities, tiers, claims, metricCfgs, campList, accountList, products, exchanges] = await Promise.all([
         api.getStudents(),
@@ -249,6 +251,8 @@ export const useAppStore = defineStore('app', () => {
       accounts.value = accountList;
       pointProducts.value = products;
       pointExchanges.value = exchanges;
+
+      persistBiz(); // 首次拉取后建立持久化基线（记录被改前内存态无存储基线）
 
       // 按营期加载活动配置和餐时配置
       for (const camp of campList) {
@@ -650,6 +654,49 @@ export const useAppStore = defineStore('app', () => {
   const pointExchanges = ref<PointExchangeRecord[]>([...MOCK_POINT_EXCHANGES]);
   /** 营养师手动加减分记录 */
   const manualScoreRecords = ref<ManualScoreRecord[]>([...MOCK_MANUAL_SCORES]);
+
+  // ============================================================================
+  //  业务数据 localStorage 持久化（纯前端 demo：业务数据默认只在内存，刷新/跨会话即丢）
+  //  ---------------------------------------------------------------------------
+  //  用一个快照桶把主要可变业务数据统一写进 localStorage，并在 init() 时回读，
+  //  让营养师发货/批注/打分等跨角色操作的成果在刷新或同浏览器重进页面后仍然可见，
+  //  修复"营养师发货后学员端仍显示待发货/无发货消息"的断链。
+  //  边界：demo 无共享后端，跨浏览器/设备仍无法同步；这里仅解决"同浏览器刷新/换号"的丢数。
+  // ============================================================================
+  const BIZ_KEY = 'camp_biz_data_v1';
+  const bizSources = [
+    students, weightRecords, exerciseRecords, dietRecords, coachActivities,
+    rewardTiers, rewardClaims, metricConfigs, camps, accounts,
+    pointProducts, pointExchanges, manualScoreRecords,
+    activityConfigByCamp, mealTimeConfigByCamp,
+  ];
+  const bizNames = [
+    'students', 'weightRecords', 'exerciseRecords', 'dietRecords', 'coachActivities',
+    'rewardTiers', 'rewardClaims', 'metricConfigs', 'camps', 'accounts',
+    'pointProducts', 'pointExchanges', 'manualScoreRecords',
+    'activityConfigByCamp', 'mealTimeConfigByCamp',
+  ] as const;
+  function persistBiz() {
+    const snap: Record<string, unknown> = {};
+    bizSources.forEach((src, i) => { snap[bizNames[i]] = src.value; });
+    try { localStorage.setItem(BIZ_KEY, JSON.stringify(snap)); } catch { /* 隐私模式/超限：静默降级为内存，不影响功能 */ }
+  }
+  /** 从 localStorage 回读业务数据并覆盖各 ref；无可用数据返回 false */
+  function restoreBiz(): boolean {
+    try {
+      const raw = localStorage.getItem(BIZ_KEY);
+      if (!raw) return false;
+      const snap = JSON.parse(raw) as Record<string, unknown>;
+      let hasData = false;
+      bizSources.forEach((src, i) => {
+        if (snap[bizNames[i]] !== undefined) { (src as { value: unknown }).value = snap[bizNames[i]]; hasData = true; }
+      });
+      return hasData;
+    } catch { return false; }
+  }
+  let persistTimer: ReturnType<typeof setTimeout> | undefined;
+  // 任何业务数据变化后防抖写盘（demo 数据量小；防抖避免批注输入时高频序列化）
+  watch(bizSources as any, () => { clearTimeout(persistTimer); persistTimer = setTimeout(persistBiz, 400); }, { deep: true });
 
   /** 获取上架商品；campId 传入时按营期过滤（未绑定 campId 的商品视为全局共享，与 RewardTier 口径一致）。
    *  按 sortValue 升序（越小越靠前），sortValue 相同按名称/原始序。 */
