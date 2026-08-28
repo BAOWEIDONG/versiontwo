@@ -42,12 +42,22 @@ const { data: summary, done: summaryReady } = useDeferred<DietitianCampSummary>(
   ),
 );
 
-// 减重总人数及占比（基于有体重记录的学员：体重下降人数 / 有体重记录人数）
+// 减重总人数及占比（分母=本营期参营学员总数：体重下降人数 / 参营学员总数）
 const weightLossStats = computed(() => {
   if (!summary.value) return { count: 0, total: 0 };
-  const withWeight = summary.value.studentReports.filter((r) => r.weightTrend.totalChange !== null);
-  const count = withWeight.filter((r) => (r.weightTrend.totalChange ?? 0) < 0).length;
-  return { count, total: withWeight.length };
+  const count = summary.value.studentReports.filter((r) => (r.weightTrend.totalChange ?? 0) < 0).length;
+  return { count, total: summary.value.totalStudents };
+});
+
+// 按分类分组的指标聚合（summary 未就绪时为空）
+const metricCategories = computed(() => {
+  if (!summary.value) return [];
+  const cats = new Map<string, typeof summary.value.metricAggregates>();
+  for (const m of summary.value.metricAggregates) {
+    if (!cats.has(m.category)) cats.set(m.category, []);
+    cats.get(m.category)!.push(m);
+  }
+  return Array.from(cats.entries());
 });
 
 // 打开学员详情
@@ -178,7 +188,7 @@ const fmtChange = (v: number | null, unit = ''): string => {
             <Flame class="w-5 h-5 text-[#FF976A] mr-1" />
           </div>
           <div class="text-2xl font-bold text-[#FF976A]">{{ weightLossStats.count }}<span class="text-sm font-normal text-gray-400">/{{ weightLossStats.total }}</span></div>
-          <div class="text-xs text-gray-500 mt-1">减重总人数<span class="text-[10px] text-gray-400">（{{ fmtPct(weightLossStats.total ? weightLossStats.count / weightLossStats.total : 0) }}占比）</span></div>
+          <div class="text-xs text-gray-500 mt-1">减重总人数<span class="text-[10px] text-gray-400">（{{ fmtPct(weightLossStats.total ? weightLossStats.count / weightLossStats.total : 0) }}占参营）</span></div>
         </Card>
       </div>
 
@@ -217,6 +227,48 @@ const fmtChange = (v: number | null, unit = ''): string => {
               <ChevronRight class="w-4 h-4 text-gray-300" />
             </div>
           </div>
+        </div>
+      </Card>
+
+      <!-- 指标聚合统计 -->
+      <Card v-for="[catName, metrics] in metricCategories" :key="catName">
+        <div class="flex items-center justify-between mb-3 border-b pb-2">
+          <h3 class="font-bold text-gray-900 flex items-center gap-2 text-sm">
+            <Activity class="h-4 w-4 text-[#1677FF]" />
+            {{ catName }}
+          </h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="text-gray-500 border-b border-gray-100">
+                <th class="text-left py-2 font-medium">指标</th>
+                <th class="text-right py-2 font-medium">营前(均)</th>
+                <th class="text-right py-2 font-medium">营后(均)</th>
+                <th class="text-right py-2 font-medium">变化</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in metrics"
+                :key="m.configId"
+                class="border-b border-gray-50 last:border-0"
+              >
+                <td class="py-2 text-left text-gray-900 font-medium">{{ m.name }}</td>
+                <td class="py-2 text-right text-gray-600">
+                  {{ m.avgBefore !== null ? m.avgBefore.toFixed(1) : '--' }}
+                  <span class="text-gray-400">{{ m.unit }}</span>
+                </td>
+                <td class="py-2 text-right text-gray-600">
+                  {{ m.avgAfter !== null ? m.avgAfter.toFixed(1) : '--' }}
+                  <span class="text-gray-400">{{ m.unit }}</span>
+                </td>
+                <td class="py-2 text-right font-medium" :class="m.avgChange !== null && m.avgChange < 0 ? 'text-[#07C160]' : m.avgChange !== null && m.avgChange > 0 ? 'text-orange-500' : 'text-gray-400'">
+                  {{ fmtChange(m.avgChange) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </Card>
 
