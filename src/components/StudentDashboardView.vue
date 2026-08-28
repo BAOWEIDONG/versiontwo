@@ -6,14 +6,12 @@ import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { Card, GenderAvatar, StudentTabbar } from './ui';
-import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, Sparkles, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
+import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast } from 'vant';
 import { rankStudents } from '../lib/scoring';
 import { getTodayQuote } from '../lib/motivationalQuotes';
 import { calculateStreak } from '../lib/streak';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
-import { generateStudentReport } from '../lib/campReport';
-import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import type { RewardTier } from '../types';
 
 const store = useAppStore();
@@ -343,80 +341,6 @@ const unreadComments = computed(() => {
 // 卡片入场动画
 const visibleCards = ref<number[]>([]);
 
-// ---- 成就解锁通知 ----
-const newAchievements = ref<{ icon: string; title: string; description: string }[]>([]);
-const showAchievementNotify = ref(false);
-// 记录上次已知的已解锁成就ID（避免每次进页面都弹）
-const prevAchievementIds = ref<Set<string>>(new Set());
-// 记录上次已知的已达标里程碑阈值（避免重复弹窗）
-const prevMilestoneThresholds = ref<Set<number>>(new Set());
-// 待展示的成就弹窗（当昨日小结正在展示时，先暂存）
-const pendingAchievements = ref<{ icon: string; title: string; description: string }[]>([]);
-
-const dismissAchievementNotify = () => {
-  showAchievementNotify.value = false;
-  // 记录已看过的成就
-  const key = `seen_ach_v2_${store.user?.id || 'anon'}`;
-  const all = generateStudentReport(
-    { id: store.user?.id || 's1', name: store.user?.name || '', gender: store.user?.gender },
-    store.metricConfigs,
-    MOCK_STUDENT_METRIC_VALUES[store.user?.id || 's1'] || {},
-    campDiet.value.filter(isMine),
-    campEx.value.filter(isMine),
-    campWt.value.filter(isMine),
-    campDays.value,
-  ).achievements.filter((a) => a.unlocked).map((a) => a.id);
-  prevAchievementIds.value = new Set(all);
-  localStorage.setItem(key, JSON.stringify(all));
-  // 同时记录里程碑阈值
-  const mKey = `seen_ms_v2_${store.user?.id || 'anon'}`;
-  const mThresholds = computeWeightMilestones(myWeightRecords.value, startWeight.value)
-    .filter(m => m.achieved).map(m => m.threshold);
-  prevMilestoneThresholds.value = new Set(mThresholds);
-  localStorage.setItem(mKey, JSON.stringify(mThresholds));
-};
-
-// 检测新解锁的成就
-function checkNewAchievements() {
-  if (!store.user) return;
-  const report = generateStudentReport(
-    { id: store.user.id, name: store.user.name, gender: store.user.gender },
-    store.metricConfigs,
-    MOCK_STUDENT_METRIC_VALUES[store.user.id] || {},
-    campDiet.value.filter(isMine),
-    campEx.value.filter(isMine),
-    campWt.value.filter(isMine),
-    campDays.value,
-  );
-  const unlocked = report.achievements.filter((a) => a.unlocked);
-  const fresh = unlocked.filter((a) => !prevAchievementIds.value.has(a.id));
-
-  // 同时检查体重里程碑（3%/5%）
-  const ms = computeWeightMilestones(myWeightRecords.value, startWeight.value);
-  const newMilestones = ms.filter(m => m.achieved && !prevMilestoneThresholds.value.has(m.threshold));
-
-  if (fresh.length > 0 || newMilestones.length > 0) {
-    const items = [
-      ...fresh.map((a) => ({ icon: a.icon, title: a.title, description: a.description })),
-      ...newMilestones.map((m) => ({
-        icon: '🎯',
-        title: `减重${Math.round(m.threshold * 100)}%里程碑`,
-        description: `恭喜达成减重 ${Math.round(m.threshold * 100)}% 目标`,
-      })),
-    ];
-
-    // 如果昨日小结正在展示，暂存等关闭后再弹
-    if (showDailySummary.value) {
-      pendingAchievements.value = items;
-    } else {
-      newAchievements.value = items;
-      showAchievementNotify.value = true;
-    }
-  }
-  // 更新已知已解锁集合
-  prevAchievementIds.value = new Set(unlocked.map((a) => a.id));
-  prevMilestoneThresholds.value = new Set(ms.filter(m => m.achieved).map(m => m.threshold));
-}
 
 // 监听打卡记录变化（从子页面打卡后返回首页时触发）
 const checkinRecordCount = computed(() => ({
@@ -438,25 +362,14 @@ watch(checkinRecordCount, (newVal, oldVal) => {
       setTimeout(tryCheck, 600);
       return;
     }
-    checkNewAchievements();
     checkNewRewardUnlocks();
   };
   setTimeout(tryCheck, 800);
 });
 
-// 监听昨日小结关闭后，如果有待展示的成就弹窗，则展示
-watch(showDailySummary, (val) => {
-  if (!val && pendingAchievements.value.length > 0) {
-    newAchievements.value = pendingAchievements.value;
-    pendingAchievements.value = [];
-    showAchievementNotify.value = true;
-  }
+// 监听昨日小结关闭后，若有待展示的连续打卡奖励弹窗，则继续展示（避免多个弹层叠加）
+watch(showDailySummary, () => {
   flushPendingRewards();
-});
-
-// 成就弹窗关闭后，若有待展示的连续打卡奖励弹窗，继续展示（避免多个弹层叠加）
-watch(showAchievementNotify, (val) => {
-  if (!val) flushPendingRewards();
 });
 
 // ---- 连续打卡奖励解锁通知（打卡完成后弹窗，提示去领取） ----
@@ -495,8 +408,8 @@ function checkNewRewardUnlocks() {
   if (fresh.length === 0) return;
   fresh.forEach((t) => shownRewardTiers.value.add(t.id));
   persistShownRewards();
-  // 与昨日小结/成就弹窗协调，避免多个弹层叠加
-  if (showDailySummary.value || showAchievementNotify.value) {
+  // 与昨日小结弹层协调，避免多个弹层叠加
+  if (showDailySummary.value) {
     pendingRewards.value = fresh;
   } else {
     newRewards.value = fresh;
@@ -504,9 +417,9 @@ function checkNewRewardUnlocks() {
   }
 }
 
-// 当最外层弹窗（昨日小结/成就）都关闭时，放行暂存的奖励弹窗
+// 当最外层弹窗（昨日小结）关闭时，放行暂存的奖励弹窗
 function flushPendingRewards() {
-  if (showDailySummary.value || showAchievementNotify.value) return;
+  if (showDailySummary.value) return;
   if (pendingRewards.value.length === 0) return;
   newRewards.value = pendingRewards.value;
   pendingRewards.value = [];
@@ -530,7 +443,7 @@ const scanRewardNotify = () => {
     if (fresh.length > 0) {
       fresh.forEach((t) => shownRewardTiers.value.add(t.id));
       persistShownRewards();
-      if (showDailySummary.value || showAchievementNotify.value) {
+      if (showDailySummary.value) {
         pendingRewards.value = fresh;
       } else {
         newRewards.value = fresh;
@@ -549,52 +462,8 @@ onMounted(() => {
     setTimeout(() => visibleCards.value.push(idx), delay);
   });
 
-  // 页面加载时初始化 baseline
-  if (store.user) {
-    // 使用版本化 key，避免旧版 mock 数据残留的 baseline 干扰
-    const key = `seen_ach_v2_${store.user.id}`;
-    let seenIds: string[] = [];
-    try { seenIds = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* */ }
-    if (seenIds.length > 0) {
-      prevAchievementIds.value = new Set(seenIds);
-    } else {
-      // 首次使用：记录当前已解锁的成就为 baseline，不弹窗
-      const report = generateStudentReport(
-        { id: store.user.id, name: store.user.name, gender: store.user.gender },
-        store.metricConfigs,
-        MOCK_STUDENT_METRIC_VALUES[store.user.id] || {},
-        campDiet.value.filter(isMine),
-        campEx.value.filter(isMine),
-        campWt.value.filter(isMine),
-        campDays.value,
-      );
-      const unlocked = report.achievements.filter((a) => a.unlocked).map((a) => a.id);
-      prevAchievementIds.value = new Set(unlocked);
-      localStorage.setItem(key, JSON.stringify(unlocked));
-    }
-    // 同步初始化里程碑 baseline
-    const mKey = `seen_ms_v2_${store.user.id}`;
-    let seenMs: number[] = [];
-    try { seenMs = JSON.parse(localStorage.getItem(mKey) || '[]'); } catch { /* */ }
-    if (seenMs.length > 0) {
-      prevMilestoneThresholds.value = new Set(seenMs);
-    } else {
-      const ms = computeWeightMilestones(myWeightRecords.value, startWeight.value)
-        .filter(m => m.achieved).map(m => m.threshold);
-      prevMilestoneThresholds.value = new Set(ms);
-      localStorage.setItem(mKey, JSON.stringify(ms));
-    }
-
-    // 首次进入时也调一次重扫（复用顶部组件的 scanRewardNotify，见上）
-    scanRewardNotify();
-
-    // 如果刚完成打卡，立即检测新成就（不被昨日小结阻塞）
-    if (store.justCheckedIn) {
-      store.justCheckedIn = false;
-      // 短延迟确保组件渲染完成
-      setTimeout(() => checkNewAchievements(), 300);
-    }
-  }
+  // 首次进入时重扫新解锁的连续打卡奖励档位（打卡成功后返回首页弹通知提示领取）
+  scanRewardNotify();
 });
 
 // KeepAlive 缓存下，从子页返回首页时不会重挂载，改用 onActivated 再次重扫新解锁档位
@@ -808,11 +677,11 @@ onActivated(() => {
                 </div>
                 <div>
                   <div class="text-sm font-bold text-gray-900">个人历程</div>
-                  <div class="text-[11px] text-gray-500 mt-0.5">减重报告 · 成就解锁 · 数据趋势</div>
+                  <div class="text-[11px] text-gray-500 mt-0.5">营期报告 · 数据趋势 · 结营寄语</div>
                   <div class="flex gap-1.5 mt-2">
                     <span class="text-[9px] font-bold text-[#07C160] bg-[#07C160]/8 px-2 py-0.5 rounded-full">报告</span>
-                    <span class="text-[9px] font-bold text-[#FF976A] bg-[#FF976A]/8 px-2 py-0.5 rounded-full">成就</span>
                     <span class="text-[9px] font-bold text-[#1677FF] bg-[#1677FF]/8 px-2 py-0.5 rounded-full">趋势</span>
+                    <span class="text-[9px] font-bold text-[#FF976A] bg-[#FF976A]/8 px-2 py-0.5 rounded-full">寄语</span>
                   </div>
                 </div>
               </div>
@@ -879,33 +748,6 @@ onActivated(() => {
 
             <button @click="dismissDailySummary" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#07C160] to-[#06b558] text-white text-sm font-bold active:scale-[0.98] transition-transform shadow-lg shadow-[#07C160]/20">
               开启今天 ->
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- 成就解锁通知弹层 -->
-    <Teleport to="body">
-      <Transition name="summary-fade">
-        <div v-if="showAchievementNotify" class="fixed inset-0 z-[998] bg-black/40 flex items-center justify-center px-8" @click.self="dismissAchievementNotify">
-          <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center summary-slide-up">
-            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center mb-3">
-              <Sparkles class="w-8 h-8 text-[#FF976A]" />
-            </div>
-            <h3 class="text-base font-black text-gray-900 mb-1">恭喜解锁新成就！</h3>
-            <p class="text-xs text-gray-400 mb-4">你达成了{{ newAchievements.length > 1 ? `${newAchievements.length}个里程碑` : '一个里程碑' }}</p>
-            <div class="space-y-3 mb-5">
-              <div v-for="ach in newAchievements" :key="ach.title" class="flex items-center gap-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-3">
-                <div class="w-11 h-11 rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center text-2xl shrink-0">{{ ach.icon }}</div>
-                <div class="text-left flex-1 min-w-0">
-                  <div class="text-sm font-bold text-gray-900">{{ ach.title }}</div>
-                  <div class="text-[10px] text-gray-500 leading-tight">{{ ach.description }}</div>
-                </div>
-              </div>
-            </div>
-            <button @click="dismissAchievementNotify" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF976A] to-[#F7941D] text-white text-sm font-bold active:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20">
-              继续加油 ->
             </button>
           </div>
         </div>
