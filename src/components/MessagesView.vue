@@ -229,9 +229,15 @@ const rankMessage = computed<MessageItem[]>(() => {
 });
 
 // ---- 汇总排序 ----
+// 同一时间按优先级：批注 > 奖励/兑换 > 排名（version2 PRD 2.9）
+const typePriority: Record<string, number> = { dietitian: 0, coach: 0, reward: 1, rank: 2 };
 const allMessages = computed<MessageItem[]>(() =>
   [...commentMessages.value, ...rewardMessages.value, ...exchangeMessages.value, ...rankMessage.value]
-    .sort((a, b) => b.date.localeCompare(a.date)),
+    .sort((a, b) => {
+      const dc = b.date.localeCompare(a.date);
+      if (dc !== 0) return dc;
+      return (typePriority[a.type] ?? 9) - (typePriority[b.type] ?? 9);
+    }),
 );
 
 // ---- 分类筛选：营养师批注 / 教练批注 / 系统通知 ----
