@@ -722,6 +722,7 @@ export const useAppStore = defineStore('app', () => {
 
   /** 营养师手动加减分（乐观更新 + fire-and-forget 持久化，同 addDietRecord 模式） */
   function addManualScoreRecord(record: ManualScoreRecord) {
+    if (isStudentDisabled(record.studentId)) return; // 退营学员禁止手动加减分（与其余写方法口径一致）
     manualScoreRecords.value.push(record);
     api.createManualScoreRecord(record).catch(() => {});
   }

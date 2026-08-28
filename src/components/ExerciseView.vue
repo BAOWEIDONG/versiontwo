@@ -67,7 +67,6 @@ const { grouped: groupedHistory, toggleDate, isExpanded } = useDateGrouping(allH
 
 // 运动周趋势（规则见 journey.ts computeExerciseTrends 头部文档注释）
 const exerciseTrends = computed(() => computeExerciseTrends(campEx.value, store.user?.id));
-const exerciseTrendMax = computed(() => Math.max(...exerciseTrends.value.map((t) => t.totalDuration), 1));
 
 // 全部运动统计（不限时间范围，包含所有历史记录）
 const totalExerciseCount = computed(() => userExercises.value.length);

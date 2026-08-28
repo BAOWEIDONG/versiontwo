@@ -6,12 +6,12 @@ import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
-import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, Salad, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
+import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
-import { computeDietScoreTrends, computeExerciseTrends } from '../lib/journey';
+import { computeExerciseTrends } from '../lib/journey';
 import DailyExerciseTrend from './DailyExerciseTrend.vue';
 import { calculateDietScore, calculateExerciseScore, calculateManualScore } from '../lib/scoring';
 import type { DietRecord, WeightRecord, ExerciseRecord, ManualScoreRecord } from '../types';
@@ -127,17 +127,6 @@ const studentExercises = computed(() =>
 );
 
 // 趋势图计算（与学员端 DietView/ExerciseView 完全对称，内容一致；使用营期过滤后的记录）
-const dietTrends = computed(() => computeDietScoreTrends(records.value, campExerciseRecords.value, campWeightRecords.value, store.selectedStudentId || undefined));
-const dietTrendMax = computed(() => Math.max(...dietTrends.value.map((t) => t.score), 100));
-const dietTrendColor = (score: number) => (score >= 80 ? '#07C160' : score >= 60 ? '#FF976A' : '#ef4444');
-const dietTrendDirection = computed(() => {
-  if (dietTrends.value.length < 2) return null;
-  const latest = dietTrends.value[dietTrends.value.length - 1].score;
-  const prev = dietTrends.value[dietTrends.value.length - 2].score;
-  if (latest > prev) return 'up';
-  if (latest < prev) return 'down';
-  return 'flat';
-});
 const exerciseTrends = computed(() => computeExerciseTrends(studentExercises.value, store.selectedStudentId || undefined));
 const exerciseTrendMax = computed(() => Math.max(...exerciseTrends.value.map((t) => t.totalDuration), 1));
 
@@ -545,65 +534,6 @@ function handleDeleteManualScore(id: string) {
     <div class="p-4 space-y-4">
       <!-- Diet tab -->
       <template v-if="activeTab === 'diet'">
-        <!-- 饮食健康指数趋势图 - 首期上线版暂移除，后续版本上线 -->
-        <!-- <Card v-if="dietTrends.length > 0" class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold text-gray-900 flex items-center gap-1.5 text-sm">
-              <Salad class="h-4 w-4 text-[#FF976A]" />
-              饮食健康指数
-            </h3>
-            <div class="flex items-center gap-2">
-              <ChartRulePopup title="饮食健康指数计算规则" button-text="计算规则">
-                <p><span class="font-bold text-gray-900">综合指数 =</span> 三餐规律(30%) + 结构均衡(40%) + 营养师评分(30%)，满分100分</p>
-                <p><span class="font-bold text-gray-900">三餐规律：</span>三餐齐全(早+午+晚)的天数 ÷ 有打卡的天数。缺打卡天数不影响分母。</p>
-                <p><span class="font-bold text-gray-900">结构均衡：</span>营养师已评定结构的记录中，包含至少2类食物(主食/蛋白质/蔬菜)的比例。减脂餐不吃主食，蛋白+蔬菜也算均衡。</p>
-                <p><span class="font-bold text-gray-900">营养师评分：</span>该周有评分记录的平均分(0~2分)，映射到0~1后计入。无评分记录时该维度权重按比例分配给其他维度。</p>
-                <p><span class="font-bold text-gray-900">动态权重：</span>缺失维度的权重按比例分配给已有数据维度，避免"无评分=不及格"。</p>
-                <p><span class="font-bold text-gray-900">颜色标识：</span>≥80分绿色(优秀)、60-79分橙色(良好)、&lt;60分红色(需改善)。</p>
-              </ChartRulePopup>
-              <span v-if="dietTrendDirection" class="text-[10px] font-bold" :class="dietTrendDirection === 'up' ? 'text-[#07C160]' : dietTrendDirection === 'down' ? 'text-red-500' : 'text-gray-400'">
-                {{ dietTrendDirection === 'up' ? '↑ 在变好' : dietTrendDirection === 'down' ? '↓ 有波动' : '-> 平稳' }}
-              </span>
-            </div>
-          </div>
-          <p class="text-[10px] text-gray-400">综合三餐规律(30%)、结构均衡(40%)、营养师评分(30%)，按可用数据动态加权，满分100分</p>
-          <div class="flex items-end justify-between gap-1.5 h-24">
-            <div v-for="t in dietTrends" :key="t.weekLabel" class="flex-1 flex flex-col items-center justify-end h-full">
-              <div class="text-[10px] font-bold mb-0.5" :style="{ color: dietTrendColor(t.score) }">{{ t.score }}</div>
-              <div class="w-full rounded-t transition-all min-h-[3px]" :style="{ height: `${Math.max((t.score / dietTrendMax) * 100, 3)}%`, backgroundColor: dietTrendColor(t.score) }"></div>
-              <div class="text-[9px] text-gray-400 mt-1">{{ t.weekLabel }}</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 text-[9px] text-gray-400">
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#07C160]"></span>≥80 优秀</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-[#FF976A]"></span>60-79 良好</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-red-400"></span>&lt;60 需改善</span>
-          </div>
-          <div v-if="dietTrends.length > 0" class="pt-2 border-t border-gray-50 space-y-2">
-            <div class="text-[10px] text-gray-400">最近一周 {{ dietTrends[dietTrends.length - 1].weekLabel }} 分解：</div>
-            <div class="flex items-center gap-2 text-[10px]">
-              <span class="text-gray-500 w-16 shrink-0">三餐规律</span>
-              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                <div class="h-full rounded-full bg-[#1677FF]" :style="{ width: `${dietTrends[dietTrends.length - 1].regularityRate * 100}%` }"></div>
-              </div>
-              <span class="text-gray-500 w-16 text-right">{{ Math.round(dietTrends[dietTrends.length - 1].regularityRate * 100) }}% ({{ dietTrends[dietTrends.length - 1].fullMealDays }}/{{ dietTrends[dietTrends.length - 1].checkinDays }}天)</span>
-            </div>
-            <div class="flex items-center gap-2 text-[10px]">
-              <span class="text-gray-500 w-16 shrink-0">结构均衡</span>
-              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                <div class="h-full rounded-full bg-[#07C160]" :style="{ width: `${dietTrends[dietTrends.length - 1].balanceRate * 100}%` }"></div>
-              </div>
-              <span class="text-gray-500 w-16 text-right">{{ dietTrends[dietTrends.length - 1].taggedRecords > 0 ? Math.round(dietTrends[dietTrends.length - 1].balanceRate * 100) + '%' : '待评定' }} ({{ dietTrends[dietTrends.length - 1].taggedRecords }}条已评)</span>
-            </div>
-            <div class="flex items-center gap-2 text-[10px]">
-              <span class="text-gray-500 w-16 shrink-0">营养师评分</span>
-              <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                <div class="h-full rounded-full bg-[#FF976A]" :style="{ width: `${dietTrends[dietTrends.length - 1].avgDietitianScore !== null ? (dietTrends[dietTrends.length - 1].avgDietitianScore! / 2) * 100 : 0}%` }"></div>
-              </div>
-              <span class="text-gray-500 w-16 text-right">{{ dietTrends[dietTrends.length - 1].avgDietitianScore !== null ? dietTrends[dietTrends.length - 1].avgDietitianScore!.toFixed(1) : '待评分' }}</span>
-            </div>
-          </div>
-        </Card> -->
 
         <div v-if="records.length === 0" class="text-center py-10 bg-white rounded-2xl border border-gray-100">
           <div class="w-14 h-14 mx-auto mb-2 rounded-full bg-[#FF976A]/10 flex items-center justify-center">

@@ -16,24 +16,7 @@ function lazyView(loader: () => Promise<{ default: Component }>): Component {
   return defineAsyncComponent({ loader, loadingComponent: ViewSkeleton, delay: 0 });
 }
 
-// 视图文件路径（供按角色预取 tab 页 chunk）
-const VIEW_PATH: Record<string, string> = {
-  login: 'LoginView', register: 'RegisterView', questionnaire: 'QuestionnaireView', upload: 'UploadView',
-  dashboard: 'StudentDashboardView', 'health-profile': 'HealthProfileView', exercise: 'ExerciseView',
-  diet: 'DietView', 'weight-checkin': 'WeightCheckinView', calendar: 'CalendarView',
-  'coach-dashboard': 'CoachDashboardView', 'coach-student-detail': 'CoachStudentDetailView', 'coach-unannotated-list': 'CoachUnannotatedListView',
-  'activity-upload': 'ActivityUploadView', 'activities-list': 'ActivitiesListView',
-  'dietitian-dashboard': 'DietitianDashboardView', 'dietitian-student-detail': 'DietitianStudentDetailView',
-  'dietitian-unannotated-list': 'DietitianUnannotatedListView', ranking: 'RankingView',
-  pointsDetail: 'PointsDetailView', reward: 'RewardView', 'reward-config': 'RewardConfigView',
-  'meal-time-config': 'MealTimeConfigView', 'metric-config': 'MetricConfigView',
-  'camp-summary': 'DietitianCampSummaryView', 'enterprise-report': 'EnterpriseReportView',
-  'camp-report': 'CampReportView', 'camp-activities': 'CampActivitiesView', 'activity-admin': 'ActivityAdminView',
-  'personal-journey': 'PersonalJourneyView', messages: 'MessagesView', 'account-manage': 'AccountManageView',
-  'dietitian-config': 'DietitianConfigView', 'activity-hub': 'ActivityHubView', 'points-mall': 'PointsMallView',
-  'fulfillment-center': 'FulfillmentCenterView', 'my-rewards': 'MyRewardsView',
-};
-
+// 视图文件路径（供按角色预取 tab 页 chunk）——预取实际走 VIEW_IMPORTERS，此表已废弃
 const VIEW_IMPORTERS: Record<string, () => Promise<{ default: Component }>> = {
   login: () => import('./components/LoginView.vue'),
   register: () => import('./components/RegisterView.vue'),

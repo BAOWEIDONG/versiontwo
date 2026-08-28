@@ -3,7 +3,7 @@ import { computed, ref, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { NavBar, StudentTabbar } from './ui';
-import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, FileText, RefreshCw } from 'lucide-vue-next';
+import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, RefreshCw } from 'lucide-vue-next';
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { usePaged } from '../composables/usePaged';
 import { useDebounced } from '../composables/useDebounced';

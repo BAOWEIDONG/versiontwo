@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { NavBar, Card, StudentTabbar } from './ui';
-import { Trophy, TrendingDown, TrendingUp, Activity, Target, Heart, Download, Lock, MessageCircle, FileText, Bell, Gift } from 'lucide-vue-next';
+import { Trophy, TrendingDown, TrendingUp, Activity, Target, Heart, Download, Lock, MessageCircle } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';

@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { NavBar, Card, StudentTabbar } from './ui';
-import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown, Bell, Gift } from 'lucide-vue-next';
+import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';

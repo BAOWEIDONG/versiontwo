@@ -458,8 +458,10 @@ const shipTarget = ref<ShipItem | null>(null);
 const trackingNumber = ref('');
 const shipError = ref('');
 const showInPersonModal = ref(false);
+const shipping = ref(false); // 发货/发放防连点
 
 function handleShipClick(item: ShipItem) {
+  shipping.value = false;
   shipTarget.value = item;
   trackingNumber.value = '';
   shipError.value = '';
@@ -467,13 +469,16 @@ function handleShipClick(item: ShipItem) {
 }
 
 function handleInPersonClick(item: ShipItem) {
+  shipping.value = false;
   shipTarget.value = item;
   showInPersonModal.value = true;
 }
 
 function submitShipping() {
+  if (shipping.value) return; // 防连点
   if (!trackingNumber.value.trim()) { shipError.value = '请输入快递单号'; return; }
   if (!shipTarget.value) return;
+  shipping.value = true;
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
@@ -492,7 +497,9 @@ function submitShipping() {
 }
 
 function submitInPerson() {
+  if (shipping.value) return; // 防连点
   if (!shipTarget.value) return;
+  shipping.value = true;
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
@@ -716,7 +723,7 @@ function switchModule(m: Module) {
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
                   <h3 class="text-sm font-bold text-gray-900 truncate">{{ allRewardTiers.find(t => t.id === claim.tierId)?.name || '未知礼品' }}</h3>
-                  <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="CLAIM_STATUS[claim.status]?.bg, CLAIM_STATUS[claim.status]?.color">
+                  <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" :style="{ color: CLAIM_STATUS[claim.status]?.color, backgroundColor: CLAIM_STATUS[claim.status]?.bg }">
                     {{ CLAIM_STATUS[claim.status]?.label }}
                   </span>
                 </div>
@@ -932,7 +939,7 @@ function switchModule(m: Module) {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-[13px] font-bold text-gray-900 truncate">{{ record.productName }}</span>
-                        <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" :class="statusMeta(record.type, record.status).bg, statusMeta(record.type, record.status).color">
+                        <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full" :style="{ color: statusMeta(record.type, record.status).color, backgroundColor: statusMeta(record.type, record.status).bg }">
                           {{ statusMeta(record.type, record.status).label }}
                         </span>
                       </div>

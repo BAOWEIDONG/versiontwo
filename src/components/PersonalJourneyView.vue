@@ -2,14 +2,13 @@
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar, Card, ChartRulePopup, StudentTabbar } from './ui';
-import { Activity, TrendingDown, Dumbbell, Award, Download, Lock, CheckCircle2, BookOpen, FileText, Bell, Gift, Trophy, ChevronRight } from 'lucide-vue-next';
+import { Activity, TrendingDown, Dumbbell, Download, BookOpen, Trophy, ChevronRight } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generatePersonalJourney } from '../lib/journey';
 import { campDaysOf } from '../lib/camps';
 import { generateStudentReport } from '../lib/campReport';
 import { exportReport } from '../lib/exportPDF';
-import type { Achievement } from '../types';
 
 const store = useAppStore();
 

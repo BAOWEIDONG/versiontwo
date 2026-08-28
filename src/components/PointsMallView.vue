@@ -4,7 +4,7 @@ import { useAppStore } from '../store/app';
 import { thumbUrl } from '../lib/imageThumb';
 import { NavBar as VanNavBar, showSuccessToast, showFailToast } from 'vant';
 import { StudentTabbar } from './ui';
-import { Activity, FileText, Bell, Coins, Gift, CheckCircle, Truck, MapPin, User, Phone } from 'lucide-vue-next';
+import { Coins, CheckCircle, Truck, MapPin, User, Phone } from 'lucide-vue-next';
 import type { PointProduct } from '../types';
 
 const store = useAppStore();

@@ -4,7 +4,7 @@ import { useAppStore } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { NavBar, Card, StudentTabbar } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
-import { Zap, Scale, Calendar, CheckCircle2, PartyPopper, Activity, Gift, Truck, HandCoins, Package, FileText, Bell, ChevronDown, MapPin } from 'lucide-vue-next';
+import { Zap, Scale, Calendar, CheckCircle2, PartyPopper, Gift, Truck, HandCoins, Package, ChevronDown, MapPin } from 'lucide-vue-next';
 import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 import type { RewardClaim } from '../types';
 

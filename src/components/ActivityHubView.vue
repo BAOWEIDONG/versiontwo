@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from '../store/app';
-import { Activity, FileText, Bell, ChevronRight, Gift, Zap, Scale, Coins, Trophy, Package, Sparkles } from 'lucide-vue-next';
+import { ChevronRight, Coins, Gift, Package, Sparkles } from 'lucide-vue-next';
 import { StudentTabbar } from './ui';
 import { calculateStreak } from '../lib/streak';
-import { computeWeightMilestones, computeWeeklyChallenges, computeLuckyDraw } from '../lib/campActivities';
 
 const store = useAppStore();
 

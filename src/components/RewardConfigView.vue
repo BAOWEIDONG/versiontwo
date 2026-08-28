@@ -5,9 +5,9 @@ import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
-import { Plus, Trash2, Edit3, Camera, AlertTriangle, ChevronDown, Coins, Package, Clock, CheckCircle, XCircle } from 'lucide-vue-next';
+import { Plus, Trash2, Edit3, Camera, AlertTriangle, Coins } from 'lucide-vue-next';
 import { uploadFile } from '../lib/api';
-import type { RewardTier, PointProduct, PointExchangeRecord } from '../types';
+import type { RewardTier, PointProduct } from '../types';
 
 const store = useAppStore();
 
@@ -216,23 +216,6 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
   } else {
     editingProduct.value.deliveryOptions = [...current, option];
   }
-}
-
-// 兑换记录状态管理
-const EXCHANGE_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: '待发放', color: '#FF976A', bg: '#FFF4ED' },
-  fulfilled: { label: '已发放', color: '#07C160', bg: '#E8F8EE' },
-  cancelled: { label: '已取消', color: '#969799', bg: '#F2F3F5' },
-};
-
-const handleExchangeStatus = (id: string, status: PointExchangeRecord['status']) => {
-  store.updateExchangeStatus(id, status, store.user?.name || '营养师');
-  showToast(status === 'fulfilled' ? '已标记为发放' : status === 'cancelled' ? '已取消兑换' : '已更新状态');
-};
-
-function formatExchangeDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 </script>
 

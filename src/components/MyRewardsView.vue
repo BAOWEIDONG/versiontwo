@@ -3,10 +3,7 @@ import { ref, computed } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar as VanNavBar, showSuccessToast } from 'vant';
 import { StudentTabbar } from './ui';
-import {
-  Activity, FileText, Bell, Coins, Gift, Zap,
-  Truck, CheckCircle, XCircle, Clock, Package, AlertTriangle, ChevronRight, MapPin,
-} from 'lucide-vue-next';
+import { Coins, Truck, Package, AlertTriangle, ChevronRight, MapPin } from 'lucide-vue-next';
 import type { PointExchangeRecord, RewardClaim } from '../types';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { format } from 'date-fns';

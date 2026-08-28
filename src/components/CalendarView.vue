@@ -5,7 +5,7 @@ import { NavBar, Card } from './ui';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { Activity, Coffee, Scale, Gift, CheckCircle2, Lock, Package, Sparkles, Trophy, Check, PlayCircle } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast } from 'vant';
-import { calculateStreak, calculateLongestStreakInRange, getProjectedRewardDates, isDayComplete } from '../lib/streak';
+import { calculateStreak, calculateLongestStreakInRange, getProjectedRewardDates } from '../lib/streak';
 import { formatDateTime } from '../lib/utils';
 import type { ExerciseRecord } from '../types';
 

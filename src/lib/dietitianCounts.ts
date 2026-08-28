@@ -11,11 +11,13 @@ export function useDietitianCounts() {
   const store = useAppStore();
   // 统一取所选营期（未选则回落最近一期），保证各页角标为同一口径
   const campId = computed(() => store.selectedCampId || latestOrFirstId(store.camps) || '');
+  // 退营学员：与待批注列表 active-only 口径一致，角标不统计（否则出现清不掉的死计数）
+  const disabledStudentIds = computed(() => new Set(store.accounts.filter((a) => a.role === 'student' && a.active === false).map((a) => a.id)));
 
   const unannotatedCount = computed(() => {
     if (!campId.value) return 0;
-    const diet = store.getCampDietRecords(campId.value).filter((r) => !r.dietitianComment && r.dietitianScore == null).length;
-    const weight = store.getCampWeightRecords(campId.value).filter((r) => !r.dietitianComment).length;
+    const diet = store.getCampDietRecords(campId.value).filter((r) => !r.dietitianComment && r.dietitianScore == null && !disabledStudentIds.value.has(r.studentId)).length;
+    const weight = store.getCampWeightRecords(campId.value).filter((r) => !r.dietitianComment && !disabledStudentIds.value.has(r.studentId)).length;
     return diet + weight;
   });
 

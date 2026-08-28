@@ -6,7 +6,7 @@ import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { Card, GenderAvatar, StudentTabbar } from './ui';
-import { Activity, Coffee, Calendar, FileText, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, Flame, BookOpen, Zap, MessageCircle, Bell, X, ChevronRight, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
+import { Activity, Coffee, Calendar, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, BookOpen, MessageCircle, ChevronRight, ChevronDown, TrendingDown, TrendingUp, Minus, Target } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast } from 'vant';
 import { rankStudents } from '../lib/scoring';
 import { getTodayQuote } from '../lib/motivationalQuotes';
@@ -335,18 +335,6 @@ const todayDietLabel = computed(() => {
   if (count === 0) return '拍照上传';
   if (count >= 3) return '已完成 ✓';
   return `已记 ${count} 餐`;
-});
-
-// ---- 营养师未读批注（仅用于 tabbar badge 计数） ----
-const unreadComments = computed(() => {
-  const diet = campDiet.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
-  const exercise = campEx.value.filter((r) => isMine(r) && r.coachComment && !r.commentRead);
-  const weight = campWt.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
-  return [
-    ...diet.map((r) => ({ ...r, _type: 'diet' as const })),
-    ...exercise.map((r) => ({ ...r, _type: 'exercise' as const })),
-    ...weight.map((r) => ({ ...r, _type: 'weight' as const })),
-  ].sort((a, b) => ((b as any).dietitianCommentDate || (b as any).coachCommentDate || '').localeCompare((a as any).dietitianCommentDate || (a as any).coachCommentDate || ''));
 });
 
 // 卡片入场动画
