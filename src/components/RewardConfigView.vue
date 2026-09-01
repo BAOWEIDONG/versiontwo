@@ -53,6 +53,7 @@ const handleDelete = (id: string) => {
   showConfirmDialog({ title: '提示', message: '确定删除此奖励？' }).then(() => {
     const res = store.deleteRewardTier(id);
     if (!res.ok) showToast(res.reason || '删除失败');
+    else showToast({ message: '已删除', position: 'top', duration: 2000 });
   });
 };
 
@@ -103,6 +104,7 @@ const saveTier = () => {
     });
   }
   showEditModal.value = false;
+  showToast({ message: editingTier.value.id ? '改动已保存' : '奖品已添加', position: 'top', duration: 2000 });
 };
 
 const streakTiers = computed(() =>
@@ -152,6 +154,7 @@ const handleDeleteProduct = (id: string) => {
   showConfirmDialog({ title: '提示', message: '确定删除此商品？' }).then(() => {
     const res = store.deletePointProduct(id);
     if (!res.ok) showToast(res.reason || '删除失败');
+    else showToast({ message: '已删除', position: 'top', duration: 2000 });
   });
 };
 
@@ -187,6 +190,7 @@ const saveProduct = () => {
     });
   }
   showProductModal.value = false;
+  showToast({ message: editingProduct.value.id ? '改动已保存' : '商品已添加', position: 'top', duration: 2000 });
 };
 
 const toggleProductActive = (product: PointProduct) => {
@@ -199,11 +203,12 @@ const toggleProductActive = (product: PointProduct) => {
         ? `该商品已有 ${claimed} 件被领取${pending > 0 ? `（其中 ${pending} 件待发放）` : ''}。下架后学员端不再展示、不可再兑换，但已产生的兑换记录不受影响，仍可在「兑换记录与发货管理」中发货。`
         : '下架后学员端将不再展示该商品，学员不可再兑换。';
     showConfirmDialog({ title: '确认下架', message: `${impact} 确定下架吗？` })
-      .then(() => store.updatePointProduct(product.id, { active: false }))
+      .then(() => { store.updatePointProduct(product.id, { active: false }); showToast({ message: '已下架', position: 'top', duration: 2000 }); })
       .catch(() => {});
     return;
   }
   store.updatePointProduct(product.id, { active: true });
+  showToast({ message: '已上架', position: 'top', duration: 2000 });
 };
 
 function toggleDeliveryOption(option: 'shipped' | 'in-person') {

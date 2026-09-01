@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { useAppStore } from '../store/app';
 import { NavBar } from './ui';
-import { Popup as VanPopup } from 'vant';
+import { Popup as VanPopup, showToast } from 'vant';
 import { Gift, Lock, CheckCircle2, Check, Sparkles, Trophy, Package, Flame, Copy, MapPin } from 'lucide-vue-next';
 import type { RewardTier } from '../types';
 
@@ -130,6 +130,7 @@ const submitClaim = () => {
     }
     showClaimModal.value = false;
     formData.value.address = '';
+    showToast({ message: '领取成功，请耐心等待发放', position: 'top', duration: 2000 });
   }
 };
 

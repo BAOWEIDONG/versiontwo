@@ -82,6 +82,7 @@ const saveMetric = () => {
     });
   }
   showEditModal.value = false;
+  showToast({ message: editingMetric.value.id ? '已保存' : '指标已添加', position: 'top', duration: 2000 });
 };
 </script>
 

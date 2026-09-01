@@ -257,6 +257,7 @@ const submitClaim = () => {
       claimFormError.value = result.reason || '领取失败，请稍后重试';
       return;
     }
+    showToast({ message: '领取成功，请耐心等待发放', position: 'top', duration: 2000 });
     showRewardInfo.value = false;
     showClaimForm.value = false;
   }

@@ -253,6 +253,7 @@ const saveAccount = () => {
     });
   }
   showAccountModal.value = false;
+  showToast({ message: editingAccount.value.id ? '已保存' : '账号已创建', position: 'top', duration: 2000 });
 };
 
 // ─── 辅助 ───

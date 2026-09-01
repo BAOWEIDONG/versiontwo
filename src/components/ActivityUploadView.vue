@@ -122,6 +122,7 @@ const handleSubmit = () => {
       videoUrls: mediaType.value === 'video' ? videoUrls.value : [],
       campIds: selectedCampIds.value.length > 0 ? [...selectedCampIds.value] : undefined,
     });
+    showToast({ message: '修改已保存', position: 'top', duration: 2000 });
   } else {
     store.addCoachActivity({
       id: `act_${Date.now()}`,
@@ -133,6 +134,7 @@ const handleSubmit = () => {
       date: format(new Date(), 'yyyy-MM-dd'),
       campIds: selectedCampIds.value.length > 0 ? [...selectedCampIds.value] : undefined,
     });
+    showToast({ message: '发布成功', position: 'top', duration: 2000 });
   }
   store.setEditingActivity(null);
   store.setCurrentView('coach-dashboard');

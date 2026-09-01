@@ -10,7 +10,7 @@ import { Card } from './ui';
 import ActivityCard from './ActivityCard.vue';
 import type { CoachActivityRecord } from '../types';
 import { UserCircle, LogOut, Clock, FileText, Users, CheckCircle, XCircle, Search, X, ChevronDown, Dumbbell } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showConfirmDialog } from 'vant';
+import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup, showConfirmDialog, showToast } from 'vant';
 
 const store = useAppStore();
 const { unannotatedCount: coachUnannotatedCount } = useCoachCounts();
@@ -131,6 +131,7 @@ const deleteActivity = async (activity: CoachActivityRecord) => {
       confirmButtonColor: '#ee0a24',
     });
     store.deleteCoachActivity(activity.id);
+    showToast({ message: '已删除', position: 'top', duration: 2000 });
   } catch { /* 用户取消 */ }
 };
 
