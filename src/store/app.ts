@@ -22,6 +22,7 @@ import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
+import { loadMsgSeenState, systemMsgUnread } from '../lib/messageSeen';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
 function formatDateTimeStr(): string {
@@ -854,6 +855,43 @@ export const useAppStore = defineStore('app', () => {
       .sort((a, b) => b.exchangeDate.localeCompare(a.exchangeDate));
   }
 
+  /**
+   * 学员「消息」Tab 角标总数 = 批注未读(营养师+教练) + 系统通知未读(奖励/兑换，事件晚于最近查看时刻)。
+   * 供各学员页底部 StudentTabbar 的 messages badge 统一使用，保证任何页面下角标一致。
+   * 口径与 MessagesView 内逐条 unread 完全一致（共享 lib/messageSeen 的时刻模型 + getStudentCamp 营期）。
+   */
+  function getStudentMsgUnreadCount(studentId: string): number {
+    const camp = getStudentCamp(studentId);
+    const cid = camp?.id || null;
+    const diet = (cid ? getCampDietRecords(cid) : dietRecords.value).filter(
+      (r) => r.studentId === studentId && r.dietitianComment && !r.commentRead,
+    );
+    const ex = (cid ? getCampExerciseRecords(cid) : exerciseRecords.value).filter(
+      (r) => r.studentId === studentId && r.coachComment && !r.commentRead,
+    );
+    const wt = (cid ? getCampWeightRecords(cid) : weightRecords.value).filter(
+      (r) => r.studentId === studentId && r.dietitianComment && !r.commentRead,
+    );
+    const batch = diet.length + ex.length + wt.length;
+
+    const seen = loadMsgSeenState(studentId);
+    const claims = (cid ? getCampRewardClaims(cid) : rewardClaims.value).filter((c) => c.studentId === studentId);
+    const exchanges = getStudentExchanges(studentId).filter((e) => !cid || !e.campId || e.campId === cid);
+
+    let sys = 0;
+    for (const c of claims) {
+      // 与 MessagesView rewardMessages.date 一致：已发/已线下取发货日，否则领取日
+      const d = (c.status === 'shipped' && c.shipDate) || (c.status === 'in-person' && c.deliveredAt) || c.claimDate;
+      if (systemMsgUnread(seen, d)) sys++;
+    }
+    for (const e of exchanges) {
+      // 与 MessagesView exchangeMessages.date 一致
+      const d = (e.status === 'fulfilled' && e.shipDate) || e.exchangeDate;
+      if (systemMsgUnread(seen, d)) sys++;
+    }
+    return batch + sys;
+  }
+
   /** 更新兑换状态（含审计留痕）。
    *  operator 操作人，reason 操作原因，写进 audit[] ；取消时自动恢复库存、积分自动返还 */
   function updateExchangeStatus(id: string, status: PointExchangeRecord['status'], operator?: string, reason?: string) {
@@ -1204,6 +1242,7 @@ export const useAppStore = defineStore('app', () => {
     getStudentTotalEarnedPoints,
     exchangePointProduct,
     getStudentExchanges,
+    getStudentMsgUnreadCount,
     updateExchangeStatus,
     cancelExchange,
     shipExchange,

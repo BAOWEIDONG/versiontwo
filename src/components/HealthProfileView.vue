@@ -11,17 +11,10 @@ import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 const store = useAppStore();
 
 // 未读批注数（tabbar badge）
-const unreadCount = computed(() => {
-  if (store.user?.role !== 'student') return 0;
-  const id = store.user.id;
-  const campId = store.getStudentCampId(id);
-  const diet = campId ? store.getCampDietRecords(campId) : store.dietRecords;
-  const ex = campId ? store.getCampExerciseRecords(campId) : store.exerciseRecords;
-  const wt = campId ? store.getCampWeightRecords(campId) : store.weightRecords;
-  return diet.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead).length
-    + ex.filter((r) => r.studentId === id && r.coachComment && !r.commentRead).length
-    + wt.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead).length;
-});
+// 消息未读数（批注 + 系统通知，store 级统一，与各学员页「消息」Tab 角标一致）
+const unreadCount = computed(() =>
+  store.user?.role === 'student' ? store.getStudentMsgUnreadCount(store.user.id) : 0,
+);
 
 // Build medical data from dynamic configs + per-student mock values, with gender-aware abnormal detection
 const medicalData = computed(() => {

@@ -266,14 +266,10 @@ function formatDate(dateStr: string) {
 }
 
 // 未读批注
-const unreadCount = computed(() => {
-  if (store.user?.role !== 'student') return 0;
-  const id = store.user.id;
-  const diet = campDiet.value.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
-  const ex = campEx.value.filter((r) => r.studentId === id && r.coachComment && !r.commentRead);
-  const wt = campWt.value.filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
-  return diet.length + ex.length + wt.length;
-});
+// 消息未读数（批注 + 系统通知，store 级统一，与各学员页「消息」Tab 角标一致）
+const unreadCount = computed(() =>
+  store.user?.role === 'student' ? store.getStudentMsgUnreadCount(store.user.id) : 0,
+);
 </script>
 
 <template>

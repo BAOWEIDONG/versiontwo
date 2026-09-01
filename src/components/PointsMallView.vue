@@ -100,18 +100,10 @@ function confirmExchange() {
 }
 
 // 未读批注
-const unreadCount = computed(() => {
-  if (store.user?.role !== 'student') return 0;
-  const id = store.user.id;
-  // 按当前营期过滤，避免多营期学员看到其它营期的批注未读（与首页/我的奖励/个人历程口径一致）
-  const diet = (activeCampId.value ? store.getCampDietRecords(activeCampId.value) : store.dietRecords)
-    .filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
-  const ex = (activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords)
-    .filter((r) => r.studentId === id && r.coachComment && !r.commentRead);
-  const wt = (activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords)
-    .filter((r) => r.studentId === id && r.dietitianComment && !r.commentRead);
-  return diet.length + ex.length + wt.length;
-});
+// 消息未读数（批注 + 系统通知，store 级统一，与各学员页「消息」Tab 角标一致）
+const unreadCount = computed(() =>
+  store.user?.role === 'student' ? store.getStudentMsgUnreadCount(store.user.id) : 0,
+);
 </script>
 
 <template>

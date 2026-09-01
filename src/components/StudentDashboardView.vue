@@ -106,15 +106,10 @@ const campEx = computed(() => activeCampId.value ? store.getCampExerciseRecords(
 const campWt = computed(() => activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords);
 const campManual = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 
-// 消息未读数（与活动/消息页面口径一致：靠批注未读）
-const unreadCount = computed(() => {
-  if (store.user?.role !== 'student') return 0;
-  const id = store.user.id;
-  const diet = campDiet.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
-  const ex = campEx.value.filter((r) => isMine(r) && r.coachComment && !r.commentRead);
-  const wt = campWt.value.filter((r) => isMine(r) && r.dietitianComment && !r.commentRead);
-  return diet.length + ex.length + wt.length;
-});
+// 消息未读数（与消息中心/活动/档案等各学员页底部「消息」Tab 角标口径一致：批注 + 系统通知）
+const unreadCount = computed(() =>
+  store.user?.role === 'student' ? store.getStudentMsgUnreadCount(store.user.id) : 0,
+);
 
 // 排名重计算防抖：打卡/批注等高频数据变化时，重的 rankStudents 合并为 300ms 后一次，
 // 避免每次提交触发同步重算风暴（打卡后卡顿根治）
