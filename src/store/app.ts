@@ -22,7 +22,6 @@ import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
-import { genOrderNo } from '../lib/orderNo';
 import { loadMsgSeenState, systemMsgUnread } from '../lib/messageSeen';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
@@ -622,17 +621,15 @@ export const useAppStore = defineStore('app', () => {
         return { ok: false, reason: '该奖励不支持所选领取方式' };
       }
     }
-    const claimDate = formatDateTimeStr();
     const claim: RewardClaim = {
       id: `claim_${Date.now()}`,
-      orderNo: genOrderNo(claimDate),
       tierId,
       studentId,
       studentName,
       recipientName: claimInfo.recipientName,
       recipientPhone: claimInfo.recipientPhone,
       recipientAddress: claimInfo.recipientAddress,
-      claimDate,
+      claimDate: formatDateTimeStr(),
       status: claimInfo.status ?? 'pending',
       deliveryMethod: claimInfo.deliveryMethod,
       campId: claimInfo.campId,
@@ -819,7 +816,6 @@ export const useAppStore = defineStore('app', () => {
     const now = formatDateTimeStr();
     const record: PointExchangeRecord = {
       id: `pe_${Date.now()}`,
-      orderNo: genOrderNo(now),
       studentId,
       studentName,
       productId: fresh.id,

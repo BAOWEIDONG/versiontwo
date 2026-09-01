@@ -181,7 +181,7 @@ export interface RewardTier {
 
 export interface RewardClaim {
   id: string;
-  /** 业务订单号：yyyyMMddHHmmss+4位随机，与积分兑换统一单号体系，前端不展示，仅后台可追溯留痕 */
+  /** 业务订单号：后端生成填写（预留字段，与积分兑换统一单号体系，前端不生成、不展示） */
   orderNo?: string;
   tierId: string;
   studentId: string;
@@ -266,7 +266,7 @@ export interface PointProduct {
 /** 积分兑换记录 */
 export interface PointExchangeRecord {
   id: string;
-  /** 业务订单号：yyyyMMddHHmmss+4位随机，前端不展示，仅后台可追溯留痕 */
+  /** 业务订单号：后端生成填写（预留字段，前端不生成、不展示，仅后台可追溯） */
   orderNo?: string;
   studentId: string;
   studentName: string;

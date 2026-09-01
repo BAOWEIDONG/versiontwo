@@ -1,6 +1,5 @@
 import type { WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord } from '../types';
 import type { MetricValue } from '../lib/medicalData';
-import { genOrderNo } from '../lib/orderNo';
 
 /** 生成奖品展示图 SVG data URI */
 function rewardImg(name: string, emoji: string, c1: string, c2: string): string {
@@ -472,7 +471,6 @@ export const MOCK_REWARD_TIERS: RewardTier[] = [
 export const MOCK_REWARD_CLAIMS: RewardClaim[] = [
   {
     id: 'c1',
-    orderNo: genOrderNo(iso(-6, '10:00:00'), '1001'),
     campId: 'camp1',
     tierId: 't0',
     studentId: 's1',
@@ -488,7 +486,6 @@ export const MOCK_REWARD_CLAIMS: RewardClaim[] = [
   },
   {
     id: 'c2',
-    orderNo: genOrderNo(iso(0, '11:00:00'), '1002'),
     campId: 'camp1',
     tierId: 't0',
     studentId: 's2',
@@ -811,10 +808,10 @@ export const MOCK_POINT_PRODUCTS: PointProduct[] = [
 /** 积分兑换记录 */
 export const MOCK_POINT_EXCHANGES: PointExchangeRecord[] = [
   // campId 与对应商品 pp1(camp1)/pp2(camp2)/pp3(camp1) 一致，避免无归属导致营期视图口径不一致
-  { id: 'pe1', orderNo: genOrderNo(iso(-3, '14:30:00'), '2001'), studentId: 's1', studentName: '李明', productId: 'pp1', productName: '运动水杯', productImage: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), pointsSpent: 30, exchangeDate: iso(-3, '14:30:00'), status: 'fulfilled', deliveryMethod: 'shipped', trackingNumber: 'SF1024567890', shipDate: iso(-2, '10:00:00'), recipientName: '李明', recipientPhone: '13800001111', recipientAddress: '北京市海淀区中关村大街1号', campId: 'camp1' },
-  { id: 'pe2', orderNo: genOrderNo(iso(-1, '09:15:00'), '2002'), studentId: 's7', studentName: '郑爽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '09:15:00'), status: 'pending', deliveryMethod: 'shipped', recipientName: '郑爽', recipientPhone: '13800000007', recipientAddress: '上海市浦东新区张江路100号', campId: 'camp2' },
-  { id: 'pe3', orderNo: genOrderNo(iso(-5, '16:20:00'), '2003'), studentId: 's3', studentName: '张伟', productId: 'pp3', productName: '瑜伽垫', productImage: rewardImg('瑜伽垫', '🧘', '#07C160', '#04A551'), pointsSpent: 80, exchangeDate: iso(-5, '16:20:00'), status: 'fulfilled', deliveryMethod: 'in-person', deliveredAt: iso(-4, '14:00:00'), campId: 'camp1' },
-  { id: 'pe4', orderNo: genOrderNo(iso(-1, '11:00:00'), '2004'), studentId: 's7', studentName: '郑爽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '11:00:00'), status: 'cancelled', deliveryMethod: 'shipped', recipientName: '郑爽', recipientPhone: '13800000007', recipientAddress: '上海市浦东新区张江路100号', cancelledAt: iso(-1, '12:34:00'), campId: 'camp2' },
+  { id: 'pe1', studentId: 's1', studentName: '李明', productId: 'pp1', productName: '运动水杯', productImage: rewardImg('运动水杯', '🥤', '#1677FF', '#0099CC'), pointsSpent: 30, exchangeDate: iso(-3, '14:30:00'), status: 'fulfilled', deliveryMethod: 'shipped', trackingNumber: 'SF1024567890', shipDate: iso(-2, '10:00:00'), recipientName: '李明', recipientPhone: '13800001111', recipientAddress: '北京市海淀区中关村大街1号', campId: 'camp1' },
+  { id: 'pe2', studentId: 's7', studentName: '郑爽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '09:15:00'), status: 'pending', deliveryMethod: 'shipped', recipientName: '郑爽', recipientPhone: '13800000007', recipientAddress: '上海市浦东新区张江路100号', campId: 'camp2' },
+  { id: 'pe3', studentId: 's3', studentName: '张伟', productId: 'pp3', productName: '瑜伽垫', productImage: rewardImg('瑜伽垫', '🧘', '#07C160', '#04A551'), pointsSpent: 80, exchangeDate: iso(-5, '16:20:00'), status: 'fulfilled', deliveryMethod: 'in-person', deliveredAt: iso(-4, '14:00:00'), campId: 'camp1' },
+  { id: 'pe4', studentId: 's7', studentName: '郑爽', productId: 'pp2', productName: '跳绳', productImage: rewardImg('跳绳', '🤸', '#FF976A', '#FF6B35'), pointsSpent: 50, exchangeDate: iso(-1, '11:00:00'), status: 'cancelled', deliveryMethod: 'shipped', recipientName: '郑爽', recipientPhone: '13800000007', recipientAddress: '上海市浦东新区张江路100号', cancelledAt: iso(-1, '12:34:00'), campId: 'camp2' },
 ];
 
 /** 营养师手动加减分记录（补录线下打卡积分等） */
