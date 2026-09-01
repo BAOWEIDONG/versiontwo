@@ -356,8 +356,6 @@ const exportPDF = () => {
               <div class="text-sm font-bold" :class="metricChangeColor(m)">
                 {{ metricChangeText(m) }}
               </div>
-              <div v-if="m.turnedNormal" class="text-[10px] text-[#07C160]">已恢复正常</div>
-              <div v-else-if="m.beforeAbnormal && m.afterAbnormal" class="text-[10px] text-orange-400">仍偏高</div>
             </div>
           </div>
         </div>
