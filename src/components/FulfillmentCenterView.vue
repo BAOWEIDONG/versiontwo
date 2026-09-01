@@ -48,6 +48,8 @@ interface ExchangeRecordItem {
   cancelledAt?: string;
   campId?: string;
   camp?: Camp;
+  /** 连续打卡奖励档位所需连续打卡天数（积分兑换无） */
+  requiredDays?: number;
   /** 积分兑换操作审计（发货/线下核销/取消/下单），连续打卡奖励无 */
   audit?: ExchangeAuditEntry[];
 }
@@ -84,8 +86,10 @@ const allExchangeRecords = computed<ExchangeRecordItem[]>(() => {
     if (tier?.source !== 'streak') continue;
     if (c.status !== 'pending' && c.status !== 'shipped' && c.status !== 'in-person') continue;
     list.push({
-      id: c.id, type: 'checkin', typeLabel: '连续打卡奖励',
+      id: c.id, type: 'checkin',
+      typeLabel: tier?.requiredDays ? `连续打卡 ${tier.requiredDays} 天奖励` : '连续打卡奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
+      requiredDays: tier?.requiredDays,
       studentName: c.studentName,
       studentPhone: studentPhoneOf(c.studentId),
       date: c.claimDate, status: c.status,
