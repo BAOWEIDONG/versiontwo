@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
 import { NavBar, Card, StudentTabbar } from './ui';
 import { Activity, FileText, ClipboardList, Stethoscope, UploadCloud, X, Pencil, ChevronRight, ChevronDown } from 'lucide-vue-next';
 import { Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
@@ -85,7 +86,7 @@ const handleModalFileSelect = async (e: Event) => {
   if (files.length === 0) return;
   const newReports = await Promise.all(
     files.map(async (f) => ({
-      url: await uploadFile(f),
+      url: await uploadFile(await compressImage(f)),
       type: (f.type === 'application/pdf' ? 'pdf' : 'image') as 'image' | 'pdf',
       name: f.name,
     })),

@@ -3,6 +3,8 @@ import { ref, reactive, computed } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
+import { compressVideo } from '../lib/videoCompress';
 import { NavBar, Card, Button, Input } from './ui';
 import { Popup as VanPopup, showToast } from 'vant';
 import { Camera, Video, X, ChevronDown, Check } from 'lucide-vue-next';
@@ -75,7 +77,7 @@ const handlePhotoSelect = async (e: Event) => {
   if (files.length === 0) return;
   const remaining = 5 - imageFiles.value.length;
   try {
-    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    const urls = await Promise.all(files.slice(0, remaining).map(async (f) => uploadFile(await compressImage(f))));
     imageFiles.value = [...imageFiles.value, ...urls];
   } catch {
     showToast({ message: '图片上传失败，请重试', position: 'top', duration: 2500 });
@@ -88,7 +90,7 @@ const handleVideoSelect = async (e: Event) => {
   if (files.length === 0) return;
   const remaining = 5 - videoUrls.value.length;
   try {
-    const urls = await Promise.all(files.slice(0, remaining).map((f) => uploadFile(f)));
+    const urls = await Promise.all(files.slice(0, remaining).map(async (f) => uploadFile(await compressVideo(f))));
     videoUrls.value = [...videoUrls.value, ...urls];
   } catch {
     showToast({ message: '视频上传失败，请重试', position: 'top', duration: 2500 });

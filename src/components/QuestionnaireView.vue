@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { showConfirmDialog, showToast, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
 import { Button, NavBar, Card } from './ui';
 import {
   UploadCloud, FileText, X, Minus, Plus,
@@ -215,7 +216,7 @@ const handleReportSelect = async (e: Event) => {
   const remaining = 5 - formData.medicalReports.length;
   const newReports = await Promise.all(
     files.slice(0, remaining).map(async (f) => ({
-      url: await uploadFile(f),
+      url: await uploadFile(await compressImage(f)),
       type: (f.type === 'application/pdf' ? 'pdf' : 'image') as 'image' | 'pdf',
       name: f.name,
     })),

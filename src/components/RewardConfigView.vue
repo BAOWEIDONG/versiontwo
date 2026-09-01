@@ -7,6 +7,7 @@ import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
 import { Plus, Trash2, Edit3, Camera, AlertTriangle, Coins } from 'lucide-vue-next';
 import { uploadFile } from '../lib/api';
+import { compressImage } from '../lib/imageCompress';
 import type { RewardTier, PointProduct } from '../types';
 
 const store = useAppStore();
@@ -38,7 +39,7 @@ const handleEdit = (tier?: RewardTier) => {
 const handlePhotoSelect = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files || files.length === 0) return;
-  const url = await uploadFile(files[0]);
+  const url = await uploadFile(await compressImage(files[0]));
   if (editingTier.value) editingTier.value.imageUrl = url;
   (e.target as HTMLInputElement).value = '';
 };
@@ -129,7 +130,7 @@ const productPhotoInputRef = ref<HTMLInputElement | null>(null);
 const handleProductPhotoSelect = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files || files.length === 0) return;
-  const url = await uploadFile(files[0]);
+  const url = await uploadFile(await compressImage(files[0]));
   if (editingProduct.value) editingProduct.value.imageUrl = url;
   (e.target as HTMLInputElement).value = '';
 };
