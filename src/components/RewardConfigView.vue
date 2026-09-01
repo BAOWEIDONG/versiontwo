@@ -5,7 +5,7 @@ import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { NavBar, Card } from './ui';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
-import { Plus, Trash2, Edit3, Camera, AlertTriangle, Coins } from 'lucide-vue-next';
+import { Plus, Trash2, Edit3, Camera, AlertTriangle, Coins, ChevronRight } from 'lucide-vue-next';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
 import type { RewardTier, PointProduct } from '../types';
