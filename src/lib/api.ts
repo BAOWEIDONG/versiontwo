@@ -54,8 +54,13 @@ import {
 } from '../mock/data';
 
 // ============ 联调配置 ============
-export const API_BASE = '/api';
-export const USE_MOCK = true;
+// 通过 .env 配置（构建期注入）：
+//   VITE_USE_MOCK = 'true'  → 使用本地 mock 数据，原型可独立运行（无需后端）
+//   VITE_USE_MOCK = 'false' → 发起真实 HTTP 请求到 VITE_API_BASE
+// 未配置 .env 时保持下列默认值（与旧硬编码行为一致，可直接构建运行）。
+const rawUseMock = import.meta.env.VITE_USE_MOCK as string | undefined;
+export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || '/api';
+export const USE_MOCK: boolean = rawUseMock === undefined ? true : rawUseMock === 'true';
 
 /** 通用请求封装（USE_MOCK=false 时实际发起请求） */
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
