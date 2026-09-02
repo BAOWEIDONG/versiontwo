@@ -11,8 +11,8 @@ import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
-import { computeExerciseTrends } from '../lib/journey';
-import DailyExerciseTrend from './DailyExerciseTrend.vue';
+import { computeDietScoreTrends, computeExerciseTrends } from '../lib/journey';
+import ExerciseTrendCard from './ExerciseTrendCard.vue';
 import { calculateDietScore, calculateExerciseScore, calculateManualScore } from '../lib/scoring';
 import type { DietRecord, WeightRecord, ExerciseRecord, ManualScoreRecord } from '../types';
 
@@ -710,7 +710,7 @@ function handleDeleteManualScore(id: string) {
               <span class="text-[10px] text-gray-400">单位：分钟</span>
             </div>
           </div>
-          <DailyExerciseTrend :records="studentExercises" />
+          <ExerciseTrendCard :records="studentExercises" />
         </Card>
 
         <div v-if="studentExercises.length === 0" class="text-center py-10 bg-white rounded-2xl border border-gray-100">
