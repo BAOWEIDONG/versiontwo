@@ -6,7 +6,7 @@ import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
-import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, TrendingUp, PlayCircle, ChevronDown, ChevronUp, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
+import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, PlayCircle, ChevronDown, ChevronUp, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
@@ -692,26 +692,8 @@ function handleDeleteManualScore(id: string) {
 
       <!-- Exercise tab -->
       <template v-if="activeTab === 'exercise'">
-        <!-- 每日运动趋势图（与学员端一致） -->
-        <Card v-if="studentExercises.length > 0" class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-bold text-gray-900 flex items-center gap-1.5 text-sm">
-              <TrendingUp class="h-4 w-4 text-[#07C160]" />
-              每日运动趋势
-            </h3>
-            <div class="flex items-center gap-2">
-              <ChartRulePopup title="运动趋势计算规则" button-text="计算规则">
-                <p><span class="font-bold text-gray-900">总时长 =</span> 该日所有运动记录的时长之和(分钟)，同一日多次运动分别相加</p>
-                <p><span class="font-bold text-gray-900">有效运动：</span>单次运动时长≥40分钟计为有效，与积分规则一致</p>
-                <p><span class="font-bold text-gray-900">运动次数：</span>该日运动记录条数，同一天多次运动分别计数</p>
-                <p><span class="font-bold text-gray-900">平均强度：</span>该日记录RPE强度的算术平均值(1-5级)，无记录显示"--"</p>
-                <p><span class="font-bold text-gray-900">交互：</span>点击某根柱形查看当天记录，左右滑动切换前一天/后一天</p>
-              </ChartRulePopup>
-              <span class="text-[10px] text-gray-400">单位：分钟</span>
-            </div>
-          </div>
-          <ExerciseTrendCard :records="studentExercises" />
-        </Card>
+        <!-- 每日运动趋势（共享组件：标题+规则+统计+图，与学员端一致） -->
+        <ExerciseTrendCard :records="studentExercises" />
 
         <div v-if="studentExercises.length === 0" class="text-center py-10 bg-white rounded-2xl border border-gray-100">
           <div class="w-14 h-14 mx-auto mb-2 rounded-full bg-[#07C160]/10 flex items-center justify-center">
