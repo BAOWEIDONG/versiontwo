@@ -4,7 +4,7 @@
 import { computed } from 'vue';
 import type { ExerciseRecord } from '../types';
 import DailyExerciseTrend from './DailyExerciseTrend.vue';
-import { ChartRulePopup } from './ui';
+import { Card, ChartRulePopup } from './ui';
 import { TrendingUp } from 'lucide-vue-next';
 
 const props = defineProps<{ records: ExerciseRecord[] }>();
