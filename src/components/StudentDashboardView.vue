@@ -177,6 +177,9 @@ function guardCheckin(view: View) {
 // 活动配置（按营期独立配置，取代旧的全局 activityConfig）
 const activityConfig = computed(() => store.getActivityConfig(activeCampId.value));
 
+// 活动总开关已开、但该营期尚未配置任何具体活动 → 首页显示「活动未上线」占位提示卡
+const activityNotOnline = computed(() => store.getActivityNotOnline(activeCampId.value));
+
 // ---- 趣味活动入口（营养师开关 + 学员有打卡记录才显示） ----
 const hasAnyCheckin = computed(() => {
   if (!store.user) return false;
@@ -536,6 +539,17 @@ onActivated(() => {
     </div>
 
     <div class="flex-1 px-5 pt-5 space-y-5 relative z-20">
+      <!-- 活动未上线占位提示卡（活动总开关已开启但尚未配置任何活动） -->
+      <div v-if="activityNotOnline" class="flex items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white/60 px-4 py-4">
+        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+          <Gift class="w-5 h-5 text-gray-400" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-bold text-gray-700">活动未上线</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">营养师正在配置活动内容，敬请期待</div>
+        </div>
+      </div>
+
       <!-- 体重 + 排名（2列卡片） -->
       <div class="grid grid-cols-2 gap-4 items-stretch">
         <!-- 最新体重卡（含体重变化 + 目标进度） -->

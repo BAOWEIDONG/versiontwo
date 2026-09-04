@@ -28,11 +28,21 @@ const photoInputRef = ref<HTMLInputElement | null>(null);
 
 const getClaimCount = (tierId: string) => campRewardClaims.value.filter(c => c.tierId === tierId).length;
 
+// ─── 连续打卡档：库存按「总数量」录入，下方小字展示「库存/已领取」 ───
+/** 编辑弹窗里输入的总数量（= 剩余库存 + 已领取）；新建默认 10 */
+const tierTotal = ref(10);
+/** 该档已领取数（编辑既有档时固定不变；新建为 0） */
+const tierClaimed = computed(() => (editingTier.value?.id ? getClaimCount(editingTier.value.id) : 0));
+/** 剩余库存 = 总数量 - 已领取 */
+const tierRemaining = computed(() => Math.max((tierTotal.value ?? 0) - tierClaimed.value, 0));
+
 const handleEdit = (tier?: RewardTier) => {
   editingTier.value = tier
     ? { ...tier }
-    : { name: '', requiredDays: 1, imageUrl: '', stock: 10, source: 'streak', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
+    : { name: '', requiredDays: 1, imageUrl: '', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
   formError.value = '';
+  /* 回填总数量：既有档 = 剩余 + 已领取；新建默认为 10 */
+  tierTotal.value = tier ? (tier.stock + getClaimCount(tier.id)) : 10;
   showEditModal.value = true;
 };
 
@@ -90,25 +100,30 @@ const saveTier = () => {
   if (!editingTier.value) return;
   if (!editingTier.value.name?.trim()) { formError.value = '请输入礼品名称'; return; }
   if (!editingTier.value.imageUrl) { formError.value = '请上传礼品图片'; return; }
-  if (editingTier.value.stock === undefined || editingTier.value.stock < 0) { formError.value = '请输入有效的库存'; return; }
+  if (tierTotal.value === undefined || tierTotal.value < 0) { formError.value = '请输入有效的总数量'; return; }
   if (editingTier.value.id) {
     const c = getClaimCount(editingTier.value.id);
-    if (c > 0 && editingTier.value.stock < c) { formError.value = `库存不能低于已领取的 ${c} 件（该奖励已有 ${c} 人领取）`; return; }
+    if (tierTotal.value < c) { formError.value = `总数量不能低于已领取的 ${c} 件（该奖励已有 ${c} 人领取）`; return; }
   }
   if (!editingTier.value.deliveryMethods || editingTier.value.deliveryMethods.length === 0) { formError.value = '请至少选择一种领取方式'; return; }
 
   const dup = campRewardTiers.value.find(t => t.requiredDays === editingTier.value!.requiredDays && t.id !== editingTier.value!.id);
   if (dup) { formError.value = `已存在连续打卡 ${editingTier.value.requiredDays} 天的奖励（${dup.name}），请设置不同天数`; return; }
 
+  /* 剩余库存 = 总数量 - 已领取 */
+  const stock = editingTier.value.id
+    ? tierTotal.value - getClaimCount(editingTier.value.id)
+    : tierTotal.value;
+
   if (editingTier.value.id) {
-    store.updateRewardTier(editingTier.value.id, { ...editingTier.value, source: 'streak' });
+    store.updateRewardTier(editingTier.value.id, { ...editingTier.value, stock, source: 'streak' });
   } else {
     store.addRewardTier({
       id: `t_${Date.now()}`,
       name: editingTier.value.name.trim(),
       requiredDays: editingTier.value.requiredDays!,
       imageUrl: editingTier.value.imageUrl,
-      stock: editingTier.value.stock,
+      stock,
       source: 'streak',
       description: editingTier.value.description,
       deliveryMethods: editingTier.value.deliveryMethods,
@@ -142,6 +157,14 @@ const editingProduct = ref<Partial<PointProduct> | null>(null);
 const productFormError = ref('');
 const productPhotoInputRef = ref<HTMLInputElement | null>(null);
 
+// ─── 积分商品：库存按「总数量」录入，下方小字展示「库存/已领取」 ───
+/** 编辑弹窗里输入的总数量（= 剩余库存 + 已领取/已兑换）；新建默认 50 */
+const productTotal = ref(50);
+/** 已兑换（非取消）数：编辑既有商品时固定不变；新建为 0 */
+const productClaimed = computed(() => (editingProduct.value?.id ? getProductClaimCount(editingProduct.value.id) : 0));
+/** 剩余库存 = 总数量 - 已兑换 */
+const productRemaining = computed(() => Math.max((productTotal.value ?? 0) - productClaimed.value, 0));
+
 const handleProductPhotoSelect = async (e: Event) => {
   const files = (e.target as HTMLInputElement).files;
   if (!files || files.length === 0) return;
@@ -153,8 +176,10 @@ const handleProductPhotoSelect = async (e: Event) => {
 const handleEditProduct = (product?: PointProduct) => {
   editingProduct.value = product
     ? { ...product }
-    : { name: '', imageUrl: '', description: '', pointsRequired: 100, stock: 50, active: true, deliveryOptions: ['shipped', 'in-person'], campId: selectedCampId.value };
+    : { name: '', imageUrl: '', description: '', pointsRequired: 100, active: true, deliveryOptions: ['shipped', 'in-person'], campId: selectedCampId.value };
   productFormError.value = '';
+  /* 回填总数量：既有商品 = 剩余 + 已兑换；新建默认为 50 */
+  productTotal.value = product ? (product.stock + getProductClaimCount(product.id)) : 50;
   showProductModal.value = true;
 };
 
@@ -176,16 +201,21 @@ const saveProduct = () => {
   if (!editingProduct.value.name?.trim()) { productFormError.value = '请输入商品名称'; return; }
   if (!editingProduct.value.imageUrl) { productFormError.value = '请上传商品图片'; return; }
   if (!editingProduct.value.pointsRequired || editingProduct.value.pointsRequired <= 0) { productFormError.value = '请输入有效的积分'; return; }
-  if (editingProduct.value.stock === undefined || editingProduct.value.stock < 0) { productFormError.value = '请输入有效的库存'; return; }
+  if (productTotal.value === undefined || productTotal.value < 0) { productFormError.value = '请输入有效的总数量'; return; }
   if (editingProduct.value.id) {
     const c = getProductClaimCount(editingProduct.value.id);
-    if (c > 0 && editingProduct.value.stock < c) { productFormError.value = `库存不能低于已领取的 ${c} 件（已有 ${c} 人兑换）`; return; }
+    if (productTotal.value < c) { productFormError.value = `总数量不能低于已兑换的 ${c} 件（已有 ${c} 人兑换）`; return; }
   }
   const maxExchange = editingProduct.value.maxExchange;
   if (maxExchange !== 0 && (maxExchange === undefined || maxExchange < 0)) { productFormError.value = '请输入有效的限兑次数'; return; }
 
+  /* 剩余库存 = 总数量 - 已兑换 */
+  const stock = editingProduct.value.id
+    ? productTotal.value - getProductClaimCount(editingProduct.value.id)
+    : productTotal.value;
+
   if (editingProduct.value.id) {
-    store.updatePointProduct(editingProduct.value.id, editingProduct.value);
+    store.updatePointProduct(editingProduct.value.id, { ...editingProduct.value, stock });
   } else {
     store.addPointProduct({
       id: `pp_${Date.now()}`,
@@ -193,7 +223,7 @@ const saveProduct = () => {
       imageUrl: editingProduct.value.imageUrl,
       description: editingProduct.value.description || '',
       pointsRequired: editingProduct.value.pointsRequired,
-      stock: editingProduct.value.stock,
+      stock,
       active: true,
       deliveryOptions: editingProduct.value.deliveryOptions || ['shipped', 'in-person'],
       // 每人限兑换次数：0 / 不填 = 不限
@@ -405,7 +435,7 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
           <AlertTriangle class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <div class="text-xs text-amber-700">
             <div class="font-bold mb-0.5">该奖励已有 {{ getClaimCount(editingTier.id) }} 人领取</div>
-            <div>修改会影响学员的进度计算，请谨慎操作。礼品名称和库存可安全修改。</div>
+            <div>修改会影响学员的进度计算，请谨慎操作。礼品名称和总数量可安全修改。</div>
           </div>
         </div>
         <div class="space-y-4 mb-6">
@@ -426,9 +456,9 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
             <input type="number" inputmode="numeric" placeholder="如：10" min="1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.requiredDays" @input="editingTier.requiredDays = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
           </div>
           <div>
-            <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
-            <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.stock" @input="editingTier.stock = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
-            <div v-if="editingTier.id && getClaimCount(editingTier.id) > 0" class="text-[11px] text-gray-400 mt-1">此数为当前可发放量，已有 {{ getClaimCount(editingTier.id) }} 件被领取（已占用）</div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">总数量 <span class="text-red-500">*</span></label>
+            <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="tierTotal" @input="tierTotal = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
+            <div class="text-[11px] text-gray-400 mt-1">库存 {{ tierRemaining }} 件 · 已领取 {{ tierClaimed }} 件</div>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">排序值 <span class="text-xs text-gray-400 font-normal">（越小越靠前，默认 0）</span></label>
@@ -480,9 +510,9 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
             <input type="number" inputmode="numeric" placeholder="如：200" min="1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.pointsRequired" @input="editingProduct.pointsRequired = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
           </div>
           <div>
-            <label class="text-sm font-medium text-gray-700 block mb-1">库存数量 <span class="text-red-500">*</span></label>
-            <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="editingProduct.stock" @input="editingProduct.stock = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
-            <div v-if="editingProduct.id && getProductClaimCount(editingProduct.id) > 0" class="text-[11px] text-gray-400 mt-1">此数为当前可发放量，已有 {{ getProductClaimCount(editingProduct.id) }} 件被兑换（已占用）</div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">总数量 <span class="text-red-500">*</span></label>
+            <input type="number" inputmode="numeric" placeholder="如：50" min="0" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF976A] text-sm" :value="productTotal" @input="productTotal = parseInt(($event.target as HTMLInputElement).value) || 0; productFormError = ''" />
+            <div class="text-[11px] text-gray-400 mt-1">库存 {{ productRemaining }} 件 · 已领取 {{ productClaimed }} 件</div>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">每人限兑次数 <span class="text-xs text-gray-400 font-normal">（填 0 表示不限制）</span></label>
