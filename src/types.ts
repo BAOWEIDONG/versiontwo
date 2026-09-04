@@ -169,6 +169,8 @@ export interface RewardTier {
   campId?: string;
   /** 奖品来源：streak=连续打卡奖励 / activity=趣味活动奖品 */
   source?: 'streak' | 'activity';
+  /** 是否上架；false = 学员端不可见、不可兑换（营养师下架后生效）；缺省视为上架 */
+  active?: boolean;
   /** 关联的趣味活动类型（source=activity 时有效）：milestone=阶梯减重 / weekly=每周挑战 / lucky=全勤抽奖 */
   activityType?: 'milestone' | 'weekly' | 'lucky';
   /** 支持的领取方式（营养师配置，学员从中选择）：shipped=邮寄 / in-person=线下领取 */

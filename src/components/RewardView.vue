@@ -42,8 +42,8 @@ const totalDays = computed(() => streakData.value.totalDays);
 const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId === store.user?.id));
 // 新版口径：防重复领取 = 同一档位所在营期只能领取一次（不再跨营期合并卡相同档位）
 const shippedClaims = computed(() => myClaims.value.filter(c => c.status === 'shipped'));
-const sortedTiers = computed(() => [...campRewardTiers.value].filter(t => t.source !== 'activity').sort((a, b) => a.requiredDays - b.requiredDays));
-const maxRequiredDays = computed(() => Math.max(...campRewardTiers.value.map(t => t.requiredDays), 1));
+const sortedTiers = computed(() => [...campRewardTiers.value].filter(t => t.source !== 'activity' && t.active !== false).sort((a, b) => a.requiredDays - b.requiredDays));
+const maxRequiredDays = computed(() => Math.max(...sortedTiers.value.map(t => t.requiredDays), 1));
 
 // ─── 资格快照：营期内任意历史最长连续完成天数（断签后已解锁未领取档位不回落） ──────────────
 const activeCampObj = computed(() => availableCamps.value.find(c => c.id === activeCampId.value) || null);

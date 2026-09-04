@@ -86,7 +86,7 @@ interface MessageItem {
   title: string;
   body: string;
   unread: boolean;
-  targetView: 'diet' | 'exercise' | 'weight-checkin' | 'reward' | 'ranking' | 'camp-activities' | 'points-mall';
+  targetView: 'diet' | 'exercise' | 'weight-checkin' | 'reward' | 'ranking' | 'camp-activities' | 'points-mall' | 'my-rewards';
   targetDate?: string; // yyyy-MM-dd for scroll-to-record
 }
 
@@ -139,12 +139,12 @@ const rewardMessages = computed<MessageItem[]>(() => {
           : shipped
             ? `${tier?.name || '奖励'} 已寄出${c.trackingNumber ? `，快递单号 ${c.trackingNumber}` : ''}，请注意查收`
             : inPerson
-              ? `${tier?.name || '奖励'} 已线下发放，请向教练确认领取`
+              ? `${tier?.name || '奖励'} 已线下发放，请向服务人员确认领取`
               : c.deliveryMethod === 'in-person'
                 ? `恭喜达成「${tier?.name || '奖励'}」，已为你安排线下领取，请等待营养师联系`
                 : `恭喜达成「${tier?.name || '奖励'}」，礼品将尽快寄出`,
         unread: systemMsgUnread(seenState.value, date),
-        targetView: confirmed ? 'camp-activities' : 'reward',
+        targetView: confirmed ? 'camp-activities' : 'my-rewards',
       };
     });
 });
@@ -167,7 +167,7 @@ const exchangeMessages = computed<MessageItem[]>(() => {
           ? `「${e.productName}」已寄出${e.trackingNumber ? `，快递单号 ${e.trackingNumber}` : ''}，请注意查收`
           : `你使用 ${e.pointsSpent} 积分兑换了「${e.productName}」，礼品将尽快寄出`,
         unread: systemMsgUnread(seenState.value, date),
-        targetView: 'points-mall',
+        targetView: 'my-rewards',
       };
     });
 });

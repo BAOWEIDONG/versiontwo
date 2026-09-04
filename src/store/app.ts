@@ -122,7 +122,7 @@ export const useAppStore = defineStore('app', () => {
       const tiers = campId
         ? rewardTiers.value.filter((t) => !t.campId || t.campId === campId)
         : rewardTiers.value;
-      if (tiers.some((t) => t.source === 'streak')) return true;
+      if (tiers.some((t) => t.source === 'streak' && t.active !== false)) return true;
     }
     return false;
   }
@@ -578,6 +578,7 @@ export const useAppStore = defineStore('app', () => {
     // ①实时重读 tier，避免调用方传入的快照过期（已被删除 / 库存已被其它领取占用）
     const fresh = rewardTiers.value.find((t) => t.id === tierId);
     if (!fresh) return { ok: false, reason: '该奖励不存在或已被删除' };
+    if (fresh.active === false) return { ok: false, reason: '该奖励已下架，无法领取' };
     if (fresh.stock <= 0) return { ok: false, reason: '该礼品库存不足' };
     // ②营期一致性
     if (claimInfo.campId && fresh.campId && fresh.campId !== claimInfo.campId) {
@@ -653,6 +654,13 @@ export const useAppStore = defineStore('app', () => {
   function updateRewardClaim(id: string, updates: Partial<RewardClaim>) {
     rewardClaims.value = rewardClaims.value.map((c) => (c.id === id ? { ...c, ...updates } : c));
     api.updateRewardClaim(id, updates).catch(() => {});
+  }
+
+  /** 连续打卡奖励 上架/下架（只改 active，不删数据；下架后学员端不可见、不可兑换，已兑仍可发货） */
+  function toggleRewardTierActive(id: string) {
+    const tier = rewardTiers.value.find((t) => t.id === id);
+    if (!tier) return;
+    updateRewardTier(id, { active: tier.active === false });
   }
 
   // ─── 积分商城 ──────────────────────────────────────────
@@ -1230,6 +1238,7 @@ export const useAppStore = defineStore('app', () => {
     configAudits,
     addRewardTier,
     updateRewardTier,
+    toggleRewardTierActive,
     deleteRewardTier,
     addRewardClaim,
     claimRewardTier,

@@ -57,6 +57,19 @@ const handleDelete = (id: string) => {
   });
 };
 
+const handleToggleTierActive = (tier: RewardTier) => {
+  const goingDown = tier.active !== false; // 当前视为上架 -> 下架
+  showConfirmDialog({
+    title: goingDown ? '确认下架' : '确认上架',
+    message: goingDown
+      ? `下架后学员端将不再展示该档位、不可再兑换（已有领取记录不受影响，仍可发货）。确定下架「${tier.name}」吗？`
+      : `上架后学员端将恢复展示并可兑换「${tier.name}」，确定上架吗？`,
+  }).then(() => {
+    store.toggleRewardTierActive(tier.id);
+    showToast({ message: goingDown ? '已下架' : '已上架', position: 'top', duration: 2000 });
+  });
+};
+
 const toggleDeliveryMethod = (method: 'shipped' | 'in-person') => {
   if (!editingTier.value) return;
   const methods = editingTier.value.deliveryMethods || [];
@@ -263,11 +276,13 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
                 <div class="flex justify-between items-start">
                   <h3 class="font-bold text-gray-900 text-base truncate pr-2">{{ tier.name }}</h3>
                   <div class="flex gap-2 shrink-0">
+                    <button @click="handleToggleTierActive(tier)" :class="['p-1', tier.active === false ? 'text-[#07C160]' : 'text-[#FF976A]']"><AlertTriangle class="w-4 h-4" /></button>
                     <button @click="handleEdit(tier)" class="text-blue-500 p-1"><Edit3 class="w-4 h-4" /></button>
                     <button @click="handleDelete(tier.id)" :class="['p-1', getClaimCount(tier.id) > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500']"><Trash2 class="w-4 h-4" /></button>
                   </div>
                 </div>
                 <div class="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded inline-block mt-1">连续打卡 {{ tier.requiredDays }} 天</div>
+                  <span class="inline-block ml-1 text-[10px] px-1.5 py-0.5 rounded font-bold mt-1" :class="tier.active === false ? 'bg-gray-200 text-gray-500' : 'bg-[#07C160]/10 text-[#07C160]'">{{ tier.active === false ? '已下架' : '上架中' }}</span>
                 <div class="flex flex-wrap items-center gap-1 mt-1">
                   <span v-for="m in (tier.deliveryMethods || ['shipped'])" :key="m" class="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ DELIVERY_LABELS[m] }}</span>
                   <span v-if="tier.sortValue" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ tier.sortValue }}</span>

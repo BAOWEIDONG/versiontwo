@@ -379,7 +379,7 @@ const rewardSeenKey = () => `seen_streak_reward_v2_${store.user?.id || 'anon'}`;
 const streakRewardTiers = computed(() => {
   const campId = activeCampId.value;
   const tiers = campId ? store.getCampRewardTiers(campId) : store.rewardTiers;
-  return [...tiers].filter((t) => t.source !== 'activity').sort((a, b) => a.requiredDays - b.requiredDays);
+  return [...tiers].filter((t) => t.source !== 'activity' && t.active !== false).sort((a, b) => a.requiredDays - b.requiredDays);
 });
 
 // 当前「已解锁且未领取」的连续打卡档位

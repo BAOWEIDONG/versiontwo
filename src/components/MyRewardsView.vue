@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onActivated } from 'vue';
 import { useAppStore } from '../store/app';
 import { NavBar as VanNavBar, showSuccessToast } from 'vant';
 import { StudentTabbar } from './ui';
@@ -13,6 +13,9 @@ const store = useAppStore();
 // ─── Tab（去掉「活动奖励」，仅 全部/积分兑换/打卡奖励） ───
 type Tab = 'all' | 'exchange' | 'reward';
 const activeTab = ref<Tab>('all');
+// 从消息中心发货通知等跳进来时，始终回到「全部」tab（即使 KeepAlive 缓存过旧 tab）
+onMounted(() => { activeTab.value = 'all'; });
+onActivated(() => { activeTab.value = 'all'; });
 
 // ─── 学员数据 ───
 const studentId = computed(() => store.user?.id || '');
@@ -73,7 +76,7 @@ const streakClaims = computed(() => {
 });
 
 const claimableStreakTiers = computed(() => {
-  const streakTiers = campTiers.value.filter(t => t.source === 'streak');
+  const streakTiers = campTiers.value.filter(t => t.source === 'streak' && t.active !== false);
   return streakTiers.filter(tier => {
     if (streakClaims.value.some(c => c.tierId === tier.id)) return false;
     // 资格快照口径：当前连续 与 营期历史最长连续 取较大（曾解锁即不回落），与 RewardView 一致
