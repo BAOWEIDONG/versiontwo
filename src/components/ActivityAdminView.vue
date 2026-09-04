@@ -27,8 +27,8 @@ const activityConfig = computed(() => store.getActivityConfig(selectedCampId.val
 // 模板中沿用 cfg 简称
 const cfg = activityConfig;
 
-/** 更新当前营期的活动开关（'activityEnabled' = 活动总开关） */
-function updateActivityConfigSafe(key: 'activityEnabled' | 'pointsMall' | 'checkinStreak', value: boolean) {
+/** 更新当前营期的活动开关 */
+function updateActivityConfigSafe(key: 'pointsMall' | 'checkinStreak', value: boolean) {
   if (!selectedCampId.value) {
     showToast('请先选择营期');
     return;
@@ -67,18 +67,11 @@ function onCampPick(id: string) {
     <div class="p-4 space-y-4">
       <!-- 活动开关 -->
       <Card class="space-y-3">
-        <!-- 活动总开关：负责学员端活动入口是否展示（各营期独立） -->
-        <div class="flex items-center justify-between border-b pb-2">
-          <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2">
-            <Settings class="h-4 w-4 text-[#FF976A]" />
-            活动开关
-          </h3>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] text-gray-400">{{ cfg.activityEnabled ? '总开关已开启' : '总开关已关闭' }}</span>
-            <VanSwitch :model-value="!!cfg.activityEnabled" @update:model-value="updateActivityConfigSafe('activityEnabled', $event)" size="22" />
-          </div>
-        </div>
-        <p class="text-[10px] text-gray-400">总开关负责学员端活动入口的展示：开启后，若已配置下方具体活动则学员端展示入口；若未配置则显示「活动未上线」。关闭后学员端整体隐藏活动入口。</p>
+        <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2 border-b pb-2">
+          <Settings class="h-4 w-4 text-[#FF976A]" />
+          活动开关
+        </h3>
+        <p class="text-[10px] text-gray-400">关闭后学员端将隐藏对应活动模块</p>
 
         <!-- 积分商城 -->
         <div class="flex items-center justify-between py-2 border-t border-gray-50">
@@ -107,7 +100,7 @@ function onCampPick(id: string) {
 
       <!-- 说明 -->
       <div class="text-center py-3">
-        <p class="text-[10px] text-gray-300">活动总开关与积分商城、连续打卡奖励开关均按营期独立配置 · 关闭总开关后学员端整体隐藏活动；已发放奖励 / 已累计积分不受影响</p>
+        <p class="text-[10px] text-gray-300">积分商城与连续打卡奖励的开关独立配置 · 关闭后学员端即时隐藏对应模块，已发放奖励 / 已累计积分不受影响</p>
       </div>
     </div>
 

@@ -6,7 +6,7 @@ import { useAppStore } from '../store/app';
 import type { View } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { Card, GenderAvatar, StudentTabbar } from './ui';
-import { Activity, Coffee, Calendar, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, BookOpen, MessageCircle, ChevronRight, ChevronDown, TrendingDown, TrendingUp, Minus, Target, X } from 'lucide-vue-next';
+import { Activity, Coffee, Calendar, Scale, PlayCircle, LogOut, Medal, Trophy, Gift, BookOpen, MessageCircle, ChevronDown, TrendingDown, TrendingUp, Minus, Target, X } from 'lucide-vue-next';
 import { Popup as VanPopup, showToast } from 'vant';
 import { rankStudents } from '../lib/scoring';
 import { getTodayQuote } from '../lib/motivationalQuotes';
@@ -176,9 +176,6 @@ function guardCheckin(view: View) {
 
 // 活动配置（按营期独立配置，取代旧的全局 activityConfig）
 const activityConfig = computed(() => store.getActivityConfig(activeCampId.value));
-
-// 活动总开关已开、但该营期尚未配置任何具体活动 → 首页显示「活动未上线」占位提示卡
-const activityNotOnline = computed(() => store.getActivityNotOnline(activeCampId.value));
 
 // ---- 趣味活动入口（营养师开关 + 学员有打卡记录才显示） ----
 const hasAnyCheckin = computed(() => {
@@ -539,17 +536,6 @@ onActivated(() => {
     </div>
 
     <div class="flex-1 px-5 pt-5 space-y-5 relative z-20">
-      <!-- 活动未上线占位提示卡（活动总开关已开启但尚未配置任何活动） -->
-      <div v-if="activityNotOnline" class="flex items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white/60 px-4 py-4">
-        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-          <Gift class="w-5 h-5 text-gray-400" />
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-sm font-bold text-gray-700">活动未上线</div>
-          <div class="text-[11px] text-gray-400 mt-0.5">营养师正在配置活动内容，敬请期待</div>
-        </div>
-      </div>
-
       <!-- 体重 + 排名（2列卡片） -->
       <div class="grid grid-cols-2 gap-4 items-stretch">
         <!-- 最新体重卡（含体重变化 + 目标进度） -->
@@ -680,27 +666,28 @@ onActivated(() => {
             </div>
           </Card>
 
-          <Card class="col-span-2 p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('personal-journey')">
-            <div class="absolute -top-10 -right-8 w-44 h-44 bg-gradient-to-br from-[#07C160]/12 to-green-50 rounded-full blur-2xl pointer-events-none"></div>
-            <div class="absolute -bottom-14 -right-2 w-36 h-36 bg-gradient-to-br from-teal-50 to-[#07C160]/8 rounded-full blur-2xl pointer-events-none"></div>
-            <div class="relative z-10 h-full flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#07C160] to-[#04a551] flex items-center justify-center text-white shrink-0 shadow-sm">
-                  <BookOpen class="h-6 w-6" />
-                </div>
-                <div>
-                  <div class="text-sm font-bold text-gray-900">个人历程</div>
-                  <div class="text-[11px] text-gray-500 mt-0.5">营期报告 · 数据趋势 · 结营寄语</div>
-                  <div class="flex gap-1.5 mt-2">
-                    <span class="text-[9px] font-bold text-[#07C160] bg-[#07C160]/8 px-2 py-0.5 rounded-full">报告</span>
-                    <span class="text-[9px] font-bold text-[#1677FF] bg-[#1677FF]/8 px-2 py-0.5 rounded-full">趋势</span>
-                    <span class="text-[9px] font-bold text-[#FF976A] bg-[#FF976A]/8 px-2 py-0.5 rounded-full">寄语</span>
-                  </div>
-                </div>
+          <Card class="p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm flex flex-col justify-between h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('my-rewards')">
+            <div class="absolute -top-8 -right-6 w-32 h-32 bg-gradient-to-br from-red-100/50 to-orange-50 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-100 to-orange-50 flex items-center justify-center text-[#FF6B35] mb-2 shadow-sm">
+                <Gift class="h-5 w-5" />
               </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <span class="text-[10px] text-gray-400 font-medium">查看详情</span>
-                <ChevronRight class="w-4 h-4 text-gray-300" />
+              <div>
+                <div class="text-sm font-bold text-gray-900">我的奖励</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">奖品进度与领取</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card class="p-5 cursor-pointer hover:shadow-md transition-shadow border-0 shadow-sm flex flex-col justify-between h-32 bg-white relative overflow-hidden" @click="store.setCurrentView('personal-journey')">
+            <div class="absolute -top-8 -right-6 w-32 h-32 bg-gradient-to-br from-[#07C160]/12 to-green-50 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="relative z-10">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#07C160] to-teal-500 flex items-center justify-center text-white mb-2 shadow-sm">
+                <BookOpen class="h-5 w-5" />
+              </div>
+              <div>
+                <div class="text-sm font-bold text-gray-900">个人历程</div>
+                <div class="text-[11px] text-gray-500 mt-0.5">营期报告 · 数据趋势 · 结营寄语</div>
               </div>
             </div>
           </Card>

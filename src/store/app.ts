@@ -73,10 +73,6 @@ export type View =
 
 /** 趣味活动配置（营养师端可切换开关；学员端按此展示） */
 export interface ActivityConfig {
-  /** 活动总开关（营养师「活动配置」总开关）：负责学员端活动入口是否展示，各营期独立。
-   *  默认关闭 → 学员端整体隐藏活动（底部无「活动」Tab）。
-   *  开启但未配置任何具体活动时 → 仍隐藏入口，学员首页显示「活动未上线」占位提示。 */
-  activityEnabled?: boolean;
   /** 阶梯达标奖 */
   weightMilestone: boolean;
   /** 每周主题挑战 */
@@ -105,21 +101,21 @@ export const useAppStore = defineStore('app', () => {
   /** 趣味活动开关（按营期独立配置，营养师端配置，学员端按此展示） */
   /** 每周挑战默认关闭：需营养师先设置开始日期，再手动开启 */
   const activityConfigByCamp = ref<Record<string, ActivityConfig>>({
-    camp1: { activityEnabled: false, weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
-    camp2: { activityEnabled: false, weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
-    camp3: { activityEnabled: false, weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 },
+    camp1: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
+    camp2: { weightMilestone: true, weeklyChallenge: false, luckyDraw: true, pointsMall: true, checkinStreak: true, weeklyChallengeWeeks: 4 },
+    camp3: { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 },
   });
 
   /** 获取指定营期的活动配置（无配置时返回全关默认值） */
   function getActivityConfig(campId: string | null | undefined): ActivityConfig {
-    if (!campId) return { activityEnabled: false, weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
-    return activityConfigByCamp.value[campId] || { activityEnabled: false, weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
+    if (!campId) return { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
+    return activityConfigByCamp.value[campId] || { weightMilestone: false, weeklyChallenge: false, luckyDraw: false, pointsMall: false, checkinStreak: false, weeklyChallengeWeeks: 4 };
   }
 
-  /** 该营期是否「已配置了具体的活动内容」（不看总开关）。任一具体活动开启即可：
-   *  积分商城，或 连续打卡奖励且存在对应奖品档(streak tier)，或 阶梯达标/每周挑战/全勤抽奖。
-   *  用于判断：总开关开但这里为 false 时 → 学员端隐藏入口 + 首页显示「活动未上线」占位提示。 */
-  function getActivityActiveContent(campId: string | null | undefined): boolean {
+  /** 该营期是否有「实际可见」的活动（判定口径与学员端活动页空态完全一致）：
+   *  积分商城开启，或 连续打卡奖励开启且存在对应奖品档(streak tier)，任一即算有活动。
+   *  决定学员端底部菜单是否显示「活动」tab：无活动则隐藏，仅留 首页/消息/档案（三等分）。 */
+  function getHasActivity(campId: string | null | undefined): boolean {
     const cfg = getActivityConfig(campId);
     if (cfg.pointsMall) return true;
     if (cfg.checkinStreak) {
@@ -128,19 +124,7 @@ export const useAppStore = defineStore('app', () => {
         : rewardTiers.value;
       if (tiers.some((t) => t.source === 'streak' && t.active !== false)) return true;
     }
-    if (cfg.weightMilestone || cfg.weeklyChallenge || cfg.luckyDraw) return true;
     return false;
-  }
-
-  /** 该营期是否有「实际可见」的活动：活动总开关开启 且 有具体活动内容。
-   *  决定学员端底部菜单是否显示「活动」tab：不满足则隐藏，仅留 首页/消息/档案（三等分）。 */
-  function getHasActivity(campId: string | null | undefined): boolean {
-    return !!getActivityConfig(campId).activityEnabled && getActivityActiveContent(campId);
-  }
-
-  /** 学员首页是否显示「活动未上线」占位提示卡：总开关已开启、但尚未配置任何具体活动。 */
-  function getActivityNotOnline(campId: string | null | undefined): boolean {
-    return !!getActivityConfig(campId).activityEnabled && !getActivityActiveContent(campId);
   }
 
   /** 更新指定营期的活动配置 */
@@ -1207,9 +1191,7 @@ export const useAppStore = defineStore('app', () => {
     getCampMessageAuthor,
     activityConfigByCamp,
     getActivityConfig,
-    getActivityActiveContent,
     getHasActivity,
-    getActivityNotOnline,
     updateActivityConfig,
     currentView,
     init,
