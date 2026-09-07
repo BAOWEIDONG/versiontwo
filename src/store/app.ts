@@ -399,6 +399,13 @@ export const useAppStore = defineStore('app', () => {
   const DETAIL_FLOW_VIEWS: View[] = ['dietitian-student-detail', 'coach-student-detail', 'pointsDetail'];
 
   function setCurrentView(view: View) {
+    // 入营问卷强制守卫：学员未完成问卷前，任何跳转一律被拉回问卷页，
+    // 杜绝通过其它残留入口(如旧数据上传页 setCurrentView('dashboard'))绕过问卷直接进首页。
+    // 以 localStorage 的 submitted_questionnaire 为权威完成标志（提交成功后立刻写入）。
+    if (view !== 'questionnaire') {
+      const completed = !!localStorage.getItem('submitted_questionnaire');
+      if (user.value?.role === 'student' && !completed) view = 'questionnaire';
+    }
     const current = viewHistory.value[viewHistory.value.length - 1];
     if (current === view) return;
 

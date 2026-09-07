@@ -72,7 +72,7 @@ const handlePhoneSubmit = () => {
 
   if (account.role === 'coach') store.setCurrentView('coach-dashboard');
   else if (account.role === 'dietitian') store.setCurrentView('dietitian-dashboard');
-  else store.setCurrentView('questionnaire');
+  else store.setCurrentView(localStorage.getItem('submitted_questionnaire') ? 'dashboard' : 'questionnaire');
 };
 </script>
 
