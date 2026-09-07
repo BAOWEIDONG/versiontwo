@@ -240,6 +240,7 @@ const copied = ref(false);
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0 relative">
             <h3 class="font-bold text-gray-400 text-base mb-1 truncate">{{ tier.name }}</h3>
+            <p v-if="tier.description" class="text-xs text-gray-400 leading-relaxed mb-1.5 line-clamp-2">{{ tier.description }}</p>
             <div class="text-xs text-gray-400 font-medium mb-2">连续打卡 {{ tier.requiredDays }} 天解锁</div>
             <div class="flex items-center gap-1.5">
               <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -263,6 +264,7 @@ const copied = ref(false);
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0 relative">
             <h3 class="font-bold text-gray-900 text-base mb-1 truncate">{{ tier.name }}</h3>
+            <p v-if="tier.description" class="text-xs text-gray-500 leading-relaxed mb-1.5 line-clamp-2">{{ tier.description }}</p>
             <div class="text-xs text-orange-500 font-medium mb-2 flex items-center gap-1">
               <Trophy class="w-3 h-3 animate-bounce" /> 已连续打卡 {{ tier.requiredDays }} 天，恭喜解锁！
             </div>
@@ -279,6 +281,7 @@ const copied = ref(false);
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0">
             <h3 class="font-bold text-gray-500 text-base mb-1 truncate">{{ tier.name }}</h3>
+            <p v-if="tier.description" class="text-xs text-gray-400 leading-relaxed mb-1.5 line-clamp-2">{{ tier.description }}</p>
             <div class="text-xs text-gray-400 font-medium mb-2">已解锁但库存不足</div>
             <div class="text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg text-center font-medium">已领完，待补货</div>
           </div>
@@ -295,6 +298,7 @@ const copied = ref(false);
           </div>
           <div class="flex-1 flex flex-col justify-center min-w-0">
             <h3 class="font-bold text-gray-900 text-base mb-1 truncate">{{ tier.name }}</h3>
+            <p v-if="tier.description" class="text-xs text-gray-500 leading-relaxed mb-1.5 line-clamp-2">{{ tier.description }}</p>
             <div class="flex items-center gap-1.5 text-[#07C160] text-xs font-bold mb-2">
               <CheckCircle2 class="w-3.5 h-3.5" /> 已领取
             </div>
