@@ -105,7 +105,6 @@ interface UnifiedRecord {
   typeName: string;
   productName: string;
   productImage: string;
-  desc?: string;
   date: string;
   status: string;
   statusLabel: string;
@@ -177,7 +176,6 @@ const allRecords = computed<UnifiedRecord[]>(() => {
     list.push({
       id: c.id, type: 'streak', typeName: '打卡奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
-      desc: (tier && tier.description) || undefined,
       date: c.claimDate, status: c.status,
       statusLabel: s.label, statusColor: s.color, statusBg: s.bg,
       deliveryMethod: c.deliveryMethod,
@@ -196,7 +194,6 @@ const allRecords = computed<UnifiedRecord[]>(() => {
     list.push({
       id: 'claimable_' + tier.id, type: 'streak', typeName: '打卡奖励',
       productName: tier.name, productImage: tier.imageUrl,
-      desc: tier.description || undefined,
       date: new Date().toISOString().substring(0, 10),
       status: 'claimable',
       statusLabel: s.label, statusColor: s.color, statusBg: s.bg,
@@ -210,7 +207,6 @@ const allRecords = computed<UnifiedRecord[]>(() => {
     list.push({
       id: c.id, type: 'activity', typeName: '活动奖励',
       productName: tier?.name || '未知礼品', productImage: tier?.imageUrl || '',
-      desc: (tier && tier.description) || undefined,
       date: c.claimDate, status: c.status,
       statusLabel: s.label, statusColor: s.color, statusBg: s.bg,
       deliveryMethod: c.deliveryMethod,
@@ -339,9 +335,6 @@ const unreadCount = computed(() =>
                   {{ record.statusLabel }}
                 </span>
               </div>
-
-              <!-- 礼品描述（营养师配置，两行截断） -->
-              <p v-if="record.desc" class="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">{{ record.desc }}</p>
 
               <!-- 来源标签 + 积分/日期 -->
               <div class="flex items-center gap-2 mt-1 flex-wrap">
