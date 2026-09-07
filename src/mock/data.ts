@@ -434,6 +434,7 @@ export const MOCK_REWARD_TIERS: RewardTier[] = [
     imageUrl: rewardImg('运动跳绳', '🏃', '#4A90D9', '#357ABD'),
     stock: 100,
     source: 'streak',
+    description: '专业计数跳绳，防滑手柄，轴承顺滑，每日燃脂好搭档',
     deliveryMethods: ['shipped', 'in-person'],
   },
   {
@@ -444,6 +445,7 @@ export const MOCK_REWARD_TIERS: RewardTier[] = [
     imageUrl: rewardImg('运动水杯', '🥤', '#07C160', '#06A952'),
     stock: 50,
     source: 'streak',
+    description: '便携运动水杯 500ml，BPA-free 材质，健康饮水好搭档',
     deliveryMethods: ['shipped', 'in-person'],
   },
   {
@@ -454,6 +456,7 @@ export const MOCK_REWARD_TIERS: RewardTier[] = [
     imageUrl: rewardImg('瑜伽垫', '🧘', '#8B5CF6', '#7C3AED'),
     stock: 20,
     source: 'streak',
+    description: '加厚防滑瑜伽垫 6mm，TPE 环保材质，健身塑形更舒适',
     deliveryMethods: ['shipped', 'in-person'],
   },
   {
@@ -464,6 +467,7 @@ export const MOCK_REWARD_TIERS: RewardTier[] = [
     imageUrl: rewardImg('智能体脂秤', '⚖️', '#374151', '#1F2937'),
     stock: 5,
     source: 'streak',
+    description: '智能体脂秤，连接手机同步记录，28 项身体数据科学管理',
     deliveryMethods: ['shipped'],
   },
 ];

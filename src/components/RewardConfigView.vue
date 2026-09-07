@@ -318,6 +318,8 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
                   <span v-if="tier.sortValue" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ tier.sortValue }}</span>
                   <span v-if="tier.version && tier.version > 1" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">v{{ tier.version }}</span>
                 </div>
+                <!-- 礼品描述（营养师配置，与积分商品一致，单行截断） -->
+                <div v-if="tier.description" class="text-[10px] text-gray-500 mt-1 truncate">{{ tier.description }}</div>
                 <div class="flex items-center gap-2">
                   <div class="text-xs text-gray-500 font-medium">库存: <span :class="tier.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ tier.stock }}</span> 件</div>
                   <!-- 已领取橙色标识，样式与积分商品一致（位于库存右侧） -->
