@@ -277,7 +277,8 @@ const unreadCount = computed(() =>
 
 <template>
   <div class="flex min-h-full flex-col font-sans relative bg-[#F7F8FA]">
-    <VanNavBar left-arrow @click-left="store.setCurrentView('activity-hub')" title="我的奖励" :border="false"
+    <!-- 返回 = 回来源页：首页「我的奖励」卡进入则回首页，活动页进入则回活动页（勿写死 activity-hub，否则无活动营期从首页进来返回会落进「无活动」空页） -->
+    <VanNavBar left-arrow @click-left="store.goBack()" title="我的奖励" :border="false"
       class="!bg-transparent !pt-[env(safe-area-inset-top)]" />
 
     <!-- Tab 栏 -->
