@@ -215,6 +215,12 @@ const claimedCount = computed(() => {
     return tier?.source === 'streak';
   }).length;
 });
+// 打卡奖励卡底部预览：展示解锁条件最低的一档奖品描述（单行截断）——营养师配置的礼品说明
+const streakDescPreview = computed(() => {
+  const t = [...rewardTiers.value].sort((a, b) => a.requiredDays - b.requiredDays)[0];
+  if (!t) return '';
+  return t.description ? `${t.name}：${t.description}` : '';
+});
 
 // 积分商城摘要
 const mallPoints = computed(() => store.user ? store.getStudentMallPoints(store.user.id, activeCampId.value || undefined) : 0);
@@ -391,11 +397,15 @@ const unreadCount = computed(() =>
                 <span>已领{{ claimedCount }}次</span>
               </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <div v-for="tier in rewardTiers.slice(0, 3)" :key="tier.id"
-                class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-white/60">
-                <img loading="lazy" decoding="async" :src="tier.imageUrl" class="w-full h-full object-cover" />
+            <div class="flex flex-col items-end gap-1.5">
+              <div class="flex items-center gap-1.5">
+                <div v-for="tier in rewardTiers.slice(0, 3)" :key="tier.id"
+                  class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-white/60">
+                  <img loading="lazy" decoding="async" :src="tier.imageUrl" class="w-full h-full object-cover" />
+                </div>
               </div>
+              <!-- 首档奖品描述（单行截断） -->
+              <p v-if="streakDescPreview" class="text-[10px] text-gray-500 truncate max-w-[150px]">{{ streakDescPreview }}</p>
             </div>
           </div>
         </div>

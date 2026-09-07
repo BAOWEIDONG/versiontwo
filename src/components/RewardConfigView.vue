@@ -39,7 +39,7 @@ const tierRemaining = computed(() => Math.max((tierTotal.value ?? 0) - tierClaim
 const handleEdit = (tier?: RewardTier) => {
   editingTier.value = tier
     ? { ...tier }
-    : { name: '', requiredDays: 1, imageUrl: '', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
+    : { name: '', requiredDays: 1, imageUrl: '', description: '', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
   formError.value = '';
   /* 回填总数量：既有档 = 剩余 + 已领取；新建默认为 10 */
   tierTotal.value = tier ? (tier.stock + getClaimCount(tier.id)) : 10;
@@ -450,6 +450,10 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">礼品名称 <span class="text-red-500">*</span></label>
             <input type="text" placeholder="如：运动水杯" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" v-model="editingTier.name" @input="formError = ''" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700 block mb-1">礼品描述</label>
+            <textarea placeholder="如：不锈钢运动水杯，容量 500ml" rows="2" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm resize-none" v-model="editingTier.description"></textarea>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">解锁条件 (连续打卡天数) <span class="text-red-500">*</span></label>

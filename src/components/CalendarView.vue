@@ -621,6 +621,8 @@ const submitAddressEdit = () => {
           </div>
           <h3 class="text-lg font-bold mb-1"
               :class="getRewardState(selectedRewardTier) === 'locked' ? 'text-gray-400' : 'text-gray-900'">{{ selectedRewardTier.name }}</h3>
+          <!-- 礼品描述（营养师配置，两行截断） -->
+          <p v-if="selectedRewardTier.description" class="text-xs text-gray-500 leading-relaxed max-w-[260px] mb-1.5 line-clamp-2">{{ selectedRewardTier.description }}</p>
           <div class="text-xs font-medium mb-3 flex items-center gap-1"
                :class="getRewardState(selectedRewardTier) === 'claimed' ? 'text-[#07C160]' :
                        getRewardState(selectedRewardTier) === 'claimable' ? 'text-orange-500' :
