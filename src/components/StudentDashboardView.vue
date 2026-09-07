@@ -687,7 +687,7 @@ onActivated(() => {
               </div>
               <div>
                 <div class="text-sm font-bold text-gray-900">个人历程</div>
-                <div class="text-[11px] text-gray-500 mt-0.5">营期报告 · 数据趋势 · 结营寄语</div>
+                <div class="text-[11px] text-gray-500 mt-0.5 truncate">营期报告 · 数据趋势</div>
               </div>
             </div>
           </Card>

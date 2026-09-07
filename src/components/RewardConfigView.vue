@@ -318,9 +318,12 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
                   <span v-if="tier.sortValue" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ tier.sortValue }}</span>
                   <span v-if="tier.version && tier.version > 1" class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">v{{ tier.version }}</span>
                 </div>
-                <div v-if="getClaimCount(tier.id) > 0" class="text-[10px] text-gray-500 mt-1">已有 {{ getClaimCount(tier.id) }} 人领取</div>
+                <div class="flex items-center gap-2">
+                  <div class="text-xs text-gray-500 font-medium">库存: <span :class="tier.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ tier.stock }}</span> 件</div>
+                  <!-- 已领取橙色标识，样式与积分商品一致（位于库存右侧） -->
+                  <span v-if="getClaimCount(tier.id) > 0" class="text-[10px] font-bold text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full">已领取 {{ getClaimCount(tier.id) }} 件</span>
+                </div>
               </div>
-              <div class="text-xs text-gray-500 font-medium">库存: <span :class="tier.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ tier.stock }}</span> 件</div>
             </div>
           </Card>
         </div>
@@ -352,6 +355,7 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
                 <div class="flex justify-between items-start">
                   <h3 class="font-bold text-gray-900 text-base truncate pr-2">{{ product.name }}</h3>
                   <div class="flex gap-2 shrink-0">
+                    <button @click="toggleProductActive(product)" :class="['p-1', product.active ? 'text-[#FF976A]' : 'text-[#07C160]']" :title="product.active ? '下架' : '上架'"><AlertTriangle class="w-4 h-4" /></button>
                     <button @click="handleEditProduct(product)" class="text-blue-500 p-1"><Edit3 class="w-4 h-4" /></button>
                     <button @click="handleDeleteProduct(product.id)" :class="['p-1', allExchanges.some(e => e.productId === product.id && e.status !== 'cancelled') ? 'text-gray-300 cursor-not-allowed' : 'text-red-500']"><Trash2 class="w-4 h-4" /></button>
                   </div>
@@ -360,21 +364,17 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
                   <Coins class="w-3.5 h-3.5 text-[#FF976A]" />
                   <span class="text-xs font-black text-[#FF6B35]">{{ product.pointsRequired }}</span>
                   <span class="text-[10px] text-gray-400">积分</span>
+                  <!-- 上架/下架状态纯标签展示，与连续打卡一致（操作在其右侧单独按钮） -->
+                  <span class="inline-block text-[10px] px-1.5 py-0.5 rounded font-bold" :class="product.active === false ? 'bg-gray-200 text-gray-500' : 'bg-[#07C160]/10 text-[#07C160]'">{{ product.active === false ? '已下架' : '上架中' }}</span>
                   <span v-if="product.sortValue" class="ml-1 text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">排序 {{ product.sortValue }}</span>
                   <span v-if="product.productVersion && product.productVersion > 1" class="text-[10px] text-gray-400">v{{ product.productVersion }}</span>
                 </div>
                 <div v-if="product.description" class="text-[10px] text-gray-500 mt-1 truncate">{{ product.description }}</div>
               </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="text-xs text-gray-500 font-medium">库存: <span :class="product.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ product.stock }}</span> 件</div>
-                  <!-- 上架中的商品显示已领取（已兑换）数量 -->
-                  <span v-if="product.active" class="text-[10px] font-bold text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full">已领取 {{ getProductClaimCount(product.id) }} 件</span>
-                </div>
-                <button
-                  :class="['text-[10px] px-2 py-0.5 rounded-full font-bold', product.active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400']"
-                  @click="toggleProductActive(product)"
-                >{{ product.active ? '上架中' : '已下架' }}</button>
+              <div class="flex items-center gap-2">
+                <div class="text-xs text-gray-500 font-medium">库存: <span :class="product.stock > 0 ? 'text-gray-900' : 'text-red-500'">{{ product.stock }}</span> 件</div>
+                <!-- 上架中的商品显示已领取（已兑换）数量 -->
+                <span v-if="product.active" class="text-[10px] font-bold text-[#FF6B35] bg-[#FFF4ED] px-1.5 py-0.5 rounded-full">已领取 {{ getProductClaimCount(product.id) }} 件</span>
               </div>
             </div>
           </Card>
