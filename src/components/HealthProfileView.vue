@@ -42,6 +42,8 @@ const uploadInputRef = ref<HTMLInputElement | null>(null);
 const showEditBasic = ref(false);
 const showEditLifestyle = ref(false);
 const editForm = ref<any>({});
+// 编辑弹窗校验提示（口径与入营问卷一致）
+const editError = ref('');
 
 // 规范化旧版问卷数据（统一选项值）
 function normalizeQData(raw: any): any {
@@ -121,6 +123,8 @@ const openReport = (r: any) => {
 // ─── 编辑功能 ─────────────────────────────────────
 function openEditBasic() {
   editForm.value = {
+    // 与入营问卷 Step1 字段对齐：补年龄（优先回显问卷已填值，其次用户资料）
+    age: qData.value?.age || (store.user?.age ? String(store.user.age) : ''),
     gender: store.user?.gender || 'male',
     height: qData.value?.height || '',
     weight: qData.value?.weight || '',
@@ -131,6 +135,7 @@ function openEditBasic() {
     hasFoodAllergy: qData.value?.hasFoodAllergy || '无',
     foodAllergyDetails: qData.value?.foodAllergyDetails || '',
   };
+  editError.value = '';
   showEditBasic.value = true;
 }
 
@@ -148,14 +153,28 @@ function openEditLifestyle() {
     exerciseDuration: qData.value?.exerciseDuration || '',
     exerciseTypesStr: Array.isArray(types) ? types.join(', ') : (types || ''),
   };
+  editError.value = '';
   showEditLifestyle.value = true;
 }
 
 function saveBasic() {
-  // 更新性别到 store（同步 user + students + localStorage）
-  if (editForm.value.gender && editForm.value.gender !== store.user?.gender) {
-    store.updateUserProfile({ gender: editForm.value.gender });
+  // 校验口径与入营问卷 Step1/Step2 一致
+  const a = parseInt(editForm.value.age);
+  const h = parseFloat(editForm.value.height);
+  const w = parseFloat(editForm.value.weight);
+  if (!editForm.value.age || !editForm.value.height || !editForm.value.weight) {
+    editError.value = '请完善所有必填信息';
+    return;
   }
+  if (isNaN(a) || a < 1 || a > 120) { editError.value = '请输入正确的年龄'; return; }
+  if (h < 100 || h > 250) { editError.value = '身高需在100-250cm之间'; return; }
+  if (w < 20 || w > 300) { editError.value = '体重需在20-300kg之间'; return; }
+  if (editForm.value.hasChronic === '有' && !(editForm.value.chronicDetails || '').trim()) { editError.value = '请填写疾病名称'; return; }
+  if (editForm.value.hasSpecialDiet === '有' && !(editForm.value.specialDietDetails || '').trim()) { editError.value = '请说明特殊饮食内容'; return; }
+  if (editForm.value.hasFoodAllergy === '有' && !(editForm.value.foodAllergyDetails || '').trim()) { editError.value = '请列出过敏食物'; return; }
+
+  // 同步 性别/年龄/身高/体重 到 store（user + students + camp_auth），与入营问卷提交口径一致
+  store.updateUserProfile({ gender: editForm.value.gender, age: a, height: h, weight: w });
   const newQData = { ...(qData.value || {}), ...editForm.value };
   // 清理：如果选"无"，清空详情
   if (newQData.hasChronic === '无') newQData.chronicDetails = '';
@@ -163,12 +182,29 @@ function saveBasic() {
   if (newQData.hasFoodAllergy === '无') newQData.foodAllergyDetails = '';
   qData.value = newQData;
   persistQuestionnaire(newQData);
+  editError.value = '';
   showEditBasic.value = false;
 }
 
 function saveLifestyle() {
+  // 校验口径与入营问卷 Step3/Step4 一致
+  const sd = parseFloat(editForm.value.sleepDuration);
+  const dw = parseInt(editForm.value.dailyWater);
+  const ef = parseInt(editForm.value.exerciseFrequency);
+  const ed = parseInt(editForm.value.exerciseDuration);
+  if (!editForm.value.sleepTime || !editForm.value.wakeTime || !editForm.value.sleepDuration ||
+      !editForm.value.drinkAlcohol || !editForm.value.smoke || !editForm.value.snack || !editForm.value.dailyWater ||
+      !editForm.value.exerciseFrequency || !editForm.value.exerciseDuration) {
+    editError.value = '请回答所有必填问题';
+    return;
+  }
+  if (isNaN(sd) || sd < 0 || sd > 24) { editError.value = '睡眠时长需在0-24小时之间'; return; }
+  if (isNaN(dw) || dw < 0 || dw > 10000) { editError.value = '饮水量需在0-10000ml之间'; return; }
+  if (isNaN(ef) || ef < 0 || ef > 21) { editError.value = '每周运动频率需在0-21次之间'; return; }
+  if (isNaN(ed) || ed < 0 || ed > 600) { editError.value = '每次运动时长需在0-600分钟之间'; return; }
   const typesStr = editForm.value.exerciseTypesStr || '';
   const types = typesStr.split(/[,，]/).map((s: string) => s.trim()).filter(Boolean);
+  if (types.length === 0) { editError.value = '请至少填写一种运动类型'; return; }
   const newQData = {
     ...(qData.value || {}),
     sleepTime: editForm.value.sleepTime,
@@ -184,6 +220,7 @@ function saveLifestyle() {
   };
   qData.value = newQData;
   persistQuestionnaire(newQData);
+  editError.value = '';
   showEditLifestyle.value = false;
 }
 
@@ -251,6 +288,12 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
                 :class="['flex-1 py-2 rounded-lg text-sm border transition-colors', editForm.gender === opt.v ? 'border-[#07C160] bg-[#07C160]/10 text-[#07C160] font-medium' : 'border-gray-200 text-gray-600']">{{ opt.l }}</button>
             </div>
           </div>
+          <!-- 年龄（与入营问卷 Step1 一致） -->
+          <div>
+            <label class="text-sm text-gray-500 mb-1 block">年龄 <span class="text-red-500">*</span></label>
+            <input v-model="editForm.age" type="number" inputmode="numeric" placeholder="请输入年龄"
+              class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] focus:ring-1 focus:ring-[#07C160]/20 outline-none" />
+          </div>
           <!-- 身高 -->
           <div>
             <label class="text-sm text-gray-500 mb-1 block">身高 (cm)</label>
@@ -294,6 +337,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
               class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] focus:ring-1 focus:ring-[#07C160]/20 outline-none" />
           </div>
         </div>
+        <p v-if="editError" class="text-red-500 text-sm text-center mt-3">{{ editError }}</p>
         <div class="flex gap-3 mt-6">
           <button @click="showEditBasic = false" class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm">取消</button>
           <button @click="saveBasic" class="flex-1 py-2.5 rounded-lg bg-[#07C160] text-white text-sm font-medium">保存</button>
@@ -380,6 +424,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
               class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] outline-none" />
           </div>
         </div>
+        <p v-if="editError" class="text-red-500 text-sm text-center mt-3">{{ editError }}</p>
         <div class="flex gap-3 mt-6">
           <button @click="showEditLifestyle = false" class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-sm">取消</button>
           <button @click="saveLifestyle" class="flex-1 py-2.5 rounded-lg bg-[#07C160] text-white text-sm font-medium">保存</button>
@@ -412,6 +457,7 @@ function onTimePickerConfirm({ selectedValues }: { selectedValues: string[] }) {
           </h3>
           <div class="space-y-3 text-sm">
             <div class="flex justify-between border-b border-gray-50 pb-2"><span class="text-gray-500">性别</span><span class="text-gray-900">{{ store.user?.gender === 'female' ? '女' : '男' }}</span></div>
+            <div class="flex justify-between border-b border-gray-50 pb-2"><span class="text-gray-500">年龄</span><span class="text-gray-900">{{ qData?.age || store.user?.age || '--' }}</span></div>
             <div class="flex justify-between border-b border-gray-50 pb-2"><span class="text-gray-500">身高</span><span class="text-gray-900">{{ qData?.height || '--' }} cm</span></div>
             <div class="flex justify-between border-b border-gray-50 pb-2"><span class="text-gray-500">体重</span><span class="text-gray-900">{{ qData?.weight || '--' }} kg</span></div>
             <div class="flex justify-between border-b border-gray-50 pb-2"><span class="text-gray-500">疾病史/慢性疾病</span><span class="text-gray-900">{{ qData?.hasChronic === '有' ? qData.chronicDetails : '无' }}</span></div>
