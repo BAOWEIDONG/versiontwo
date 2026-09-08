@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
-import { useAppStore } from '../store/app';
+import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { MOCK_STUDENTS } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
@@ -160,7 +160,7 @@ watch(() => student.value?.id, () => {
 // ─── Questionnaire tab (read-only) ───
 const qData = ref<any>(null);
 onMounted(() => {
-  const saved = localStorage.getItem('submitted_questionnaire') || localStorage.getItem('draft_questionnaire');
+  const saved = localStorage.getItem(questionnaireStorageKey('submitted', store.selectedStudentId || 'none')) || localStorage.getItem(questionnaireStorageKey('draft', store.selectedStudentId || 'none'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);

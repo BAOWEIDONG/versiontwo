@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { showConfirmDialog, showToast, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
-import { useAppStore } from '../store/app';
+import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
 import { Button, NavBar, Card } from './ui';
@@ -25,6 +25,8 @@ const EXERCISE_OPTIONS = [
 ];
 
 const store = useAppStore();
+// 问卷本地存储键按当前学员隔离（防止新账户串用他人问卷/草稿）
+const qKey = (kind: 'submitted' | 'draft') => questionnaireStorageKey(kind, store.user?.id || 'none');
 
 // 1: 认识一下, 2: 身体小秘密, 3: 日常节奏, 4: 运动习惯, 5: 给营养师的小助手
 const step = ref(1);
@@ -56,7 +58,7 @@ const formData = reactive({
 });
 
 onMounted(() => {
-  const saved = localStorage.getItem('draft_questionnaire');
+  const saved = localStorage.getItem(qKey('draft'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -72,7 +74,7 @@ onMounted(() => {
 watch(
   [() => ({ ...formData }), step],
   () => {
-    localStorage.setItem('draft_questionnaire', JSON.stringify({ formData, step: step.value }));
+    localStorage.setItem(qKey('draft'), JSON.stringify({ formData, step: step.value }));
   },
   { deep: true },
 );
@@ -182,8 +184,8 @@ const handleSubmit = () => {
     });
   }
 
-  localStorage.setItem('submitted_questionnaire', JSON.stringify(formData));
-  localStorage.removeItem('draft_questionnaire');
+  localStorage.setItem(qKey('submitted'), JSON.stringify(formData));
+  localStorage.removeItem(qKey('draft'));
   store.setQuestionnaireAnswered(true);
   store.setCurrentView('dashboard');
 };

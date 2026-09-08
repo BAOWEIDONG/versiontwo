@@ -31,6 +31,13 @@ function formatDateTimeStr(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+/** 按学员生成"入营问卷"本地存储键（submitted_questionnaire_<id> / draft_questionnaire_<id>）。
+ *  入营问卷完成标志与提交数据必须按账户隔离——否则同一浏览器用不同账户(尤其新加的学生)
+ *  时,会串用前一个学员的 localStorage(跳过问卷直达首页、健康档案显示别人的数据)。 */
+export function questionnaireStorageKey(kind: 'submitted' | 'draft', studentId: string): string {
+  return `${kind === 'submitted' ? 'submitted_questionnaire' : 'draft_questionnaire'}_${studentId}`;
+}
+
 export type View =
   | 'login'
   | 'register'
@@ -356,8 +363,8 @@ export const useAppStore = defineStore('app', () => {
         user.value = data.user;
         // 默认展示最新营期
         applyLatestCampDefault();
-        // 恢复问卷状态
-        const qSaved = localStorage.getItem('submitted_questionnaire');
+        // 恢复问卷状态（按学员隔离，防止串用他人问卷数据）
+        const qSaved = localStorage.getItem(questionnaireStorageKey('submitted', data.user.id));
         questionnaireAnswered.value = !!qSaved;
         // 根据角色和问卷状态跳转到对应首页
         if (data.user.role === 'coach') {
@@ -403,7 +410,9 @@ export const useAppStore = defineStore('app', () => {
     // 杜绝通过其它残留入口(如旧数据上传页 setCurrentView('dashboard'))绕过问卷直接进首页。
     // 以 localStorage 的 submitted_questionnaire 为权威完成标志（提交成功后立刻写入）。
     if (view !== 'questionnaire') {
-      const completed = !!localStorage.getItem('submitted_questionnaire');
+      const completed = user.value
+        ? !!localStorage.getItem(questionnaireStorageKey('submitted', user.value.id))
+        : true;
       if (user.value?.role === 'student' && !completed) view = 'questionnaire';
     }
     const current = viewHistory.value[viewHistory.value.length - 1];

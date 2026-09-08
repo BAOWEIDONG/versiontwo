@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
-import { useAppStore } from '../store/app';
+import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
@@ -269,7 +269,7 @@ const consumePendingAnnotation = () => {
 };
 
 onMounted(() => {
-  const saved = localStorage.getItem('submitted_questionnaire') || localStorage.getItem('draft_questionnaire');
+  const saved = localStorage.getItem(questionnaireStorageKey('submitted', store.selectedStudentId || 'none')) || localStorage.getItem(questionnaireStorageKey('draft', store.selectedStudentId || 'none'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);

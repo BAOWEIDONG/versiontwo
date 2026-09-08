@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useAppStore } from '../store/app';
+import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
 import { NavBar, Card, StudentTabbar } from './ui';
@@ -10,6 +10,8 @@ import { buildMedicalData } from '../lib/medicalData';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 
 const store = useAppStore();
+// 入营问卷数据按当前学员隔离读取/写入，防止新账户串用他人问卷
+const qKey = (kind: 'submitted' | 'draft') => questionnaireStorageKey(kind, store.user?.id || 'none');
 
 // 未读批注数（tabbar badge）
 // 消息未读数（批注 + 系统通知，store 级统一，与各学员页「消息」Tab 角标一致）
@@ -59,7 +61,7 @@ function normalizeQData(raw: any): any {
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('submitted_questionnaire') || localStorage.getItem('draft_questionnaire');
+  const saved = localStorage.getItem(qKey('submitted')) || localStorage.getItem(qKey('draft'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -72,7 +74,7 @@ onMounted(() => {
 
 function persistQuestionnaire(data: any) {
   try {
-    localStorage.setItem('submitted_questionnaire', JSON.stringify(data));
+    localStorage.setItem(qKey('submitted'), JSON.stringify(data));
   } catch (e) {
     // ignore
   }
@@ -103,7 +105,7 @@ const handleConfirmUpload = () => {
   const newQData = { ...(qData.value || {}), medicalReports: updated };
   qData.value = newQData;
   try {
-    localStorage.setItem('submitted_questionnaire', JSON.stringify(newQData));
+    localStorage.setItem(qKey('submitted'), JSON.stringify(newQData));
   } catch (e) {
     // ignore
   }
