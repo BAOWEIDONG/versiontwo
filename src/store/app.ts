@@ -956,6 +956,14 @@ export const useAppStore = defineStore('app', () => {
     updateExchangeStatus(id, 'cancelled', operator || undefined, '学员取消');
   }
 
+  /** 学员修改兑换收货地址（仅待发货未邮寄时体现，不改变状态机；用于「我的奖励」发货前改地址） */
+  function updateExchangeAddress(id: string, info: { recipientName: string; recipientPhone: string; recipientAddress: string }) {
+    const exchange = pointExchanges.value.find((e) => e.id === id);
+    if (!exchange || exchange.status !== 'pending') return;
+    pointExchanges.value = pointExchanges.value.map((e) => (e.id === id ? { ...e, ...info } : e));
+    api.updatePointExchange(id, info).catch(() => {});
+  }
+
   /** 营养师发货（邮寄）或线下核销（in-person）；含审计留痕。operator 操作人 */
   function shipExchange(id: string, trackingNumber: string, method: 'shipped' | 'in-person', operator?: string) {
     const exchange = pointExchanges.value.find(e => e.id === id);
@@ -1271,6 +1279,7 @@ export const useAppStore = defineStore('app', () => {
     updateExchangeStatus,
     cancelExchange,
     shipExchange,
+    updateExchangeAddress,
     pointProducts,
     pointExchanges,
     manualScoreRecords,

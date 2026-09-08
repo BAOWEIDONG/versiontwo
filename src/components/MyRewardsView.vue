@@ -262,6 +262,39 @@ function confirmCancel() {
   showSuccessToast('已取消兑换，积分已返还');
 }
 
+// ─── 修改收货地址（积分兑换·待发货·邮寄方式） ───
+const showEditAddress = ref(false);
+const editTarget = ref<UnifiedRecord | null>(null);
+const editAddressForm = ref({ name: '', phone: '', address: '' });
+const editAddressError = ref('');
+
+function openEditAddress(record: UnifiedRecord) {
+  editTarget.value = record;
+  editAddressForm.value = {
+    name: record.recipientName || '',
+    phone: record.recipientPhone || '',
+    address: record.recipientAddress || '',
+  };
+  editAddressError.value = '';
+  showEditAddress.value = true;
+}
+
+function submitAddressEdit() {
+  if (!editTarget.value || editTarget.value.type !== 'exchange') return;
+  if (!editAddressForm.value.name.trim()) { editAddressError.value = '请输入收货人姓名'; return; }
+  if (!/^1[3-9]\d{9}$/.test(editAddressForm.value.phone.trim())) { editAddressError.value = '请输入有效的11位手机号'; return; }
+  if (!editAddressForm.value.address.trim()) { editAddressError.value = '请输入详细收货地址'; return; }
+  const raw = editTarget.value.raw as PointExchangeRecord;
+  store.updateExchangeAddress(raw.id, {
+    recipientName: editAddressForm.value.name.trim(),
+    recipientPhone: editAddressForm.value.phone.trim(),
+    recipientAddress: editAddressForm.value.address.trim(),
+  });
+  showEditAddress.value = false;
+  editTarget.value = null;
+  showSuccessToast('收货地址已更新');
+}
+
 // ─── 工具函数 ───
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -353,7 +386,7 @@ const unreadCount = computed(() =>
                   <Coins class="w-3 h-3 text-[#07C160]" />
                   <span class="font-bold text-[#07C160]">+{{ record.pointsSpent }} 已返还</span>
                 </span>
-                <span class="text-[10px] text-gray-400">{{ formatDate(record.date) }}</span>
+                <span v-if="record.status !== 'claimable'" class="text-[10px] text-gray-400">{{ formatDate(record.date) }}</span>
               </div>
 
               <!-- 配送方式 -->
@@ -389,13 +422,20 @@ const unreadCount = computed(() =>
                 </button>
               </div>
 
-              <!-- 取消按钮（仅积分兑换+待发货状态） -->
-              <div v-if="record.type === 'exchange' && record.status === 'pending'" class="mt-2">
+              <!-- 取消/改地址按钮（仅积分兑换+待发货状态） -->
+              <div v-if="record.type === 'exchange' && record.status === 'pending'" class="mt-2 flex items-center gap-2">
                 <button
                   class="text-[11px] font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
                   @click="openCancelModal(record)"
                 >
                   取消兑换
+                </button>
+                <button
+                  v-if="record.deliveryMethod === 'shipped'"
+                  class="text-[11px] font-bold text-white bg-[#1677FF] px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1"
+                  @click="openEditAddress(record)"
+                >
+                  <MapPin class="w-3 h-3" /> 修改地址
                 </button>
               </div>
             </div>
@@ -439,6 +479,58 @@ const unreadCount = computed(() =>
                   @click="confirmCancel"
                 >
                   确认取消
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- 修改收货地址弹窗（积分兑换·待发货·邮寄） -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showEditAddress" class="fixed inset-0 z-[999] bg-black/40 flex items-center justify-center p-6" @click="showEditAddress = false">
+          <div v-if="editTarget" class="bg-white rounded-3xl w-full max-w-[320px] overflow-hidden shadow-xl" @click.stop>
+            <div class="p-5">
+              <h3 class="text-base font-black text-gray-900 text-center">修改收货地址</h3>
+              <p class="text-[11px] text-gray-400 text-center mt-1">发送前可修改，已发货后不可改</p>
+              <div class="mt-3 bg-gray-50 rounded-xl p-2.5 flex items-center gap-2">
+                <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                  <img loading="lazy" decoding="async" :src="editTarget.productImage" class="w-full h-full object-cover" />
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-gray-900 truncate">{{ editTarget.productName }}</div>
+                  <div class="text-[10px] text-gray-400">{{ formatDate(editTarget.date) }}</div>
+                </div>
+              </div>
+              <div class="mt-4 space-y-3">
+                <input
+                  v-model="editAddressForm.name" placeholder="收货人姓名"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#1677FF] focus:outline-none"
+                />
+                <input
+                  v-model="editAddressForm.phone" type="tel" maxlength="11" placeholder="收货人手机号"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#1677FF] focus:outline-none"
+                />
+                <textarea
+                  v-model="editAddressForm.address" rows="2" placeholder="详细收货地址"
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-[#1677FF] focus:outline-none resize-none"
+                ></textarea>
+              </div>
+              <p v-if="editAddressError" class="text-xs text-[#FF4444] mt-2">{{ editAddressError }}</p>
+              <div class="flex gap-3 mt-4">
+                <button
+                  class="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 active:scale-95 transition-transform"
+                  @click="showEditAddress = false"
+                >
+                  取消
+                </button>
+                <button
+                  class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-[#1677FF] active:scale-95 transition-transform"
+                  @click="submitAddressEdit"
+                >
+                  保存
                 </button>
               </div>
             </div>
