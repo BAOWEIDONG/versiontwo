@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, campDaysOf } from '../lib/camps';
 import { NavBar, Card, StudentTabbar } from './ui';
-import { Trophy, TrendingDown, TrendingUp, Activity, Target, Heart, Download, Lock, MessageCircle } from 'lucide-vue-next';
+import { Trophy, TrendingDown, TrendingUp, Activity, Target, Download, Lock, MessageCircle } from 'lucide-vue-next';
 import { Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateStudentReport, weightTrendToSvgPoints } from '../lib/campReport';
@@ -84,37 +84,27 @@ const report = computed<StudentCampReport>(() =>
 // 体重趋势 SVG
 const svgPoints = computed(() => weightTrendToSvgPoints(report.value.weightTrend, 280, 100, 20));
 
-// 按分类分组的关键指标变化（改善的排前面，让学员优先看到好结果）
-const bodyCompositionMetrics = computed(() =>
-  report.value.metricChanges
-    .filter((m) => m.category === '身体测量数据')
-    .sort((a, b) => {
-      // 有前后值的排前面，改善的排前面
-      const aHas = a.beforeValue !== null || a.afterValue !== null;
-      const bHas = b.beforeValue !== null || b.afterValue !== null;
+// 指标变化合并为单模块：体成分(身体测量数据) + 化验指标统一按分类分组展示。
+// ① 无营前营后数据的指标一律不显示；② 分类名/指标名取自本期指标配置(config)，
+//    配置里改了分类或名称这里自动同步；③ 组内排序：有前后值的排前面，改善的排前面。
+const metricGroups = computed(() => {
+  const groups = new Map<string, MetricChange[]>();
+  for (const m of report.value.metricChanges) {
+    if (m.beforeValue !== null || m.afterValue !== null) {
+      if (!groups.has(m.category)) groups.set(m.category, []);
+      groups.get(m.category)!.push(m);
+    }
+  }
+  return Array.from(groups.entries()).map(([cat, items]) => [
+    cat,
+    [...items].sort((a, b) => {
+      const aHas = a.beforeValue !== null && a.afterValue !== null;
+      const bHas = b.beforeValue !== null && b.afterValue !== null;
       if (aHas !== bHas) return aHas ? -1 : 1;
-      if (aHas && bHas) {
-        if (a.isImproved !== b.isImproved) return a.isImproved ? -1 : 1;
-      }
+      if (aHas && bHas && a.isImproved !== b.isImproved) return a.isImproved ? -1 : 1;
       return 0;
     }),
-);
-
-// 化验指标（非身体测量）：仅保留有前后值的项，不做"是否改善"的相关判断
-const labMetrics = computed(() =>
-  report.value.metricChanges.filter(
-    (m) => m.category !== '身体测量数据' && (m.beforeValue !== null || m.afterValue !== null),
-  ),
-);
-
-// 按分类分组展示（与健康档案一致：肝功能/肾功能/血脂/血糖 等拆分，不汇总成一张大表）
-const labMetricGroups = computed(() => {
-  const groups = new Map<string, MetricChange[]>();
-  for (const m of labMetrics.value) {
-    if (!groups.has(m.category)) groups.set(m.category, []);
-    groups.get(m.category)!.push(m);
-  }
-  return Array.from(groups.entries());
+  ] as [string, MetricChange[]]);
 });
 
 // 营养师结营寄语（按营期存储，key = `${campId}_${studentId}`）
@@ -325,30 +315,41 @@ const exportPDF = () => {
         <div v-else class="text-center text-sm text-gray-400 py-6">暂无体重记录</div>
       </Card>
 
-      <!-- 体成分变化 -->
+      <!-- 指标变化（体成分 + 化验 合并为单模块，按分类分组；无营前营后数据则不显示） -->
       <Card>
         <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
           <Activity class="h-4 w-4 text-[#1677FF]" />
-          体成分检测变化
+          检测指标变化
         </h3>
-        <div v-if="bodyCompositionMetrics.some((m) => m.beforeValue !== null || m.afterValue !== null)" class="space-y-3">
-          <div
-            v-for="m in bodyCompositionMetrics.filter(m => m.beforeValue !== null || m.afterValue !== null)"
-            :key="m.configId"
-            class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-          >
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-gray-900">{{ m.name }}</div>
-              <div class="text-[10px] text-gray-400">{{ m.beforeValue ?? '--' }} → {{ m.afterValue ?? '--' }} {{ m.unit }}</div>
+        <div v-if="metricGroups.length" class="space-y-4">
+          <div v-for="[catName, items] in metricGroups" :key="catName">
+            <div class="text-xs font-bold text-gray-500 mb-1 flex items-center gap-1.5">
+              <Activity class="h-3 w-3 text-[#1677FF]" />
+              {{ catName }}
             </div>
-            <div class="text-right shrink-0 ml-2">
-              <div class="text-sm font-bold" :class="metricChangeColor(m)">
-                {{ metricChangeText(m) }}
+            <div class="space-y-2">
+              <div
+                v-for="m in items"
+                :key="m.configId"
+                class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+              >
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900">{{ m.name }}</div>
+                  <div class="text-[10px] text-gray-400">
+                    {{ m.beforeValue ?? '--' }} → {{ m.afterValue ?? '--' }} {{ m.unit }}
+                    <span v-if="m.normalRange" class="ml-1">参考: {{ m.normalRange }}</span>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-2">
+                  <div class="text-sm font-bold" :class="metricChangeColor(m)">
+                    {{ metricChangeText(m) }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="text-center text-sm text-gray-400 py-6">本营期暂无体成分检测数据</div>
+        <div v-else class="text-center text-sm text-gray-400 py-6">本营期暂无指标检测数据</div>
       </Card>
 
       <!-- 打卡统计 -->
@@ -391,42 +392,6 @@ const exportPDF = () => {
           <div class="flex justify-between">
             <span class="text-gray-500">饮食总得分</span>
             <span class="text-gray-900 font-medium">{{ report.checkinStats.totalDietScore }} 分</span>
-          </div>
-        </div>
-      </Card>
-
-      <!-- 化验指标变化（按分类拆分，与健康档案一致；不做"是否改善"判断文案） -->
-      <Card v-if="labMetrics.length > 0">
-        <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
-          <Heart class="h-4 w-4 text-[#1677FF]" />
-          化验指标变化
-        </h3>
-        <div class="space-y-4">
-          <div v-for="[catName, items] in labMetricGroups" :key="catName">
-            <div class="text-xs font-bold text-gray-500 mb-1 flex items-center gap-1.5">
-              <Heart class="h-3 w-3 text-[#1677FF]" />
-              {{ catName }}
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="m in items"
-                :key="m.configId"
-                class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-              >
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm font-medium text-gray-900">{{ m.name }}</div>
-                  <div class="text-[10px] text-gray-400">
-                    {{ m.beforeValue ?? '--' }} → {{ m.afterValue ?? '--' }} {{ m.unit }}
-                    <span v-if="m.normalRange" class="ml-1">参考: {{ m.normalRange }}</span>
-                  </div>
-                </div>
-                <div class="text-right shrink-0 ml-2">
-                  <div class="text-sm font-bold" :class="metricChangeColor(m)">
-                    {{ metricChangeText(m) }}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </Card>
