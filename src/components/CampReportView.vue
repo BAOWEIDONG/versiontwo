@@ -183,35 +183,24 @@ const weightTrendIcon = computed(() => {
   return Activity;
 });
 
-// 顶部鼓励语：数据自适应展示本营期「最亮的一面」——锚定本人真实进步，而非平铺全部指标；
-// 且不造假：没有身体亮点时按实际坚持程度给有依据的鼓励，而非万能套话。
+// 顶部鼓励语：固定优先级拼接——①体重减重→②肌肉增加→③脂肪减少，命中几条拼几条，
+// 皆未命中则用累计/最长连续打卡天数兜底。句式固定，以「不积跬步…不积汗水…」收尾。
+// 口径：优先级指标必须有营前营后数据且方向正确(体重/脂肪为降、肌肉为增)才取值拼接，无数据或方向不符跳过。
 const encouragement = computed(() => {
   const s = report.value.summary;
   const name = studentName.value;
-  const parts: string[] = [];
-  // 1) 体重维度：优先百分比(归一化到体型)，否则绝对公斤
-  if (s.weightLossPercent !== null && s.weightLossPercent > 0) {
-    parts.push(`体重下降${s.weightLossPercent.toFixed(1)}%`);
-  } else if (s.weightLossKg !== null && s.weightLossKg > 0) {
-    parts.push(`减重${s.weightLossKg.toFixed(1)}公斤`);
-  }
-  // 2) 体成分：肌肉增加独立成亮点(含体重未降的「减脂增肌」重塑)；体脂降仅在不与体重重复时补充，避免注水
-  if (s.muscleChangeKg !== null && s.muscleChangeKg > 0) parts.push(`肌肉增加${s.muscleChangeKg.toFixed(1)}公斤`);
-  if (s.bodyFatLossKg !== null && s.bodyFatLossKg > 0 && !(s.weightLossKg !== null && s.weightLossKg > 0)) parts.push(`体脂减少${s.bodyFatLossKg.toFixed(1)}公斤`);
-  // 3) 坚持维度：与身体数据互为补充，长连击优先、其次高完成率
-  if (s.longestStreak >= 7) parts.push(`最长连续打卡${s.longestStreak}天`);
-  else if (s.completionRate !== null && s.completionRate >= 0.8) parts.push(`打卡完成率${fmtPct(s.completionRate)}`);
+  // 第1优先：体重——有营前营后数据且降低
+  const p1 = (s.weightLossKg !== null && s.weightLossKg > 0) ? `减重${s.weightLossKg.toFixed(1)}公斤` : '';
+  // 第2优先：肌肉量——有营前营后数据且增加
+  const p2 = (s.muscleChangeKg !== null && s.muscleChangeKg > 0) ? `肌肉增加${s.muscleChangeKg.toFixed(1)}公斤` : '';
+  // 第3优先：脂肪量——有营前营后数据且降低
+  const p3 = (s.bodyFatLossKg !== null && s.bodyFatLossKg > 0) ? `脂肪量减少${s.bodyFatLossKg.toFixed(1)}公斤` : '';
 
-  if (parts.length > 0) {
-    // 最多取 3 句，避免罗列过载
-    return `恭喜你，${name}！本次营期${parts.slice(0, 3).join('，')}，这些变化的背后，是你每天的自律与坚持。`;
-  }
-  // 无身体数据亮点：肯定坚持过程(有依据、不造假)
-  if (s.totalCheckinDays > 0) {
-    return `无论如何，你在这个营期坚持打卡了${s.totalCheckinDays}天。别用一次数字否定自己的努力，改变正在习惯里悄悄发生。${name}，继续加油！`;
-  }
-  // 数据尚在累积（刚开营记录少）
-  return `${name}，你已获得了这份结营报告。请继续保持打卡习惯，每一次记录都会在积累中看到回响。`;
+  const middle = p1 || p2 || p3
+    ? [p1, p2, p3].filter(Boolean).join('，')
+    : `累计坚持打卡${s.totalCheckinDays}天，最长连续打卡${s.longestStreak}天`;
+
+  return `恭喜你，${name}！本次营期${middle}，不积跬步无以至千里，不积汗水无以塑身形。`;
 });
 
 // ─── 导出（普通浏览器=PDF，微信=长图长按保存）───
