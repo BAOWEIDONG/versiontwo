@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -98,12 +98,25 @@ export interface ActivityConfig {
 
 export const useAppStore = defineStore('app', () => {
   const user = ref<User | null>(null);
-  /** 营养师写给学员的结营寄语 { [`${campId}_${studentId}`]: text } */
-  const campMessages = ref<Record<string, string>>({
-    'camp1_s1': '坚持下来很不容易，你的自律大家都看在眼里。这段时间养成的饮食和运动习惯是最好的收获，继续保持，健康是一辈子的事！',
-  });
-  /** 结营寄语作者（营养师姓名），key 同 campMessages：{ [`${campId}_${studentId}`]: name } */
-  const campMessageAuthors = ref<Record<string, string>>({});
+  /** 结营寄语列表（支持多条：多名营养师/教练各自撰写提交，append 不覆盖）。
+   *  种子含 camp1_s1 的 3 条，演示"营养师 + 教练 多条寄语带角色姓名"的展示效果。 */
+  const campMessageList = ref<CampMessageEntry[]>([
+    {
+      id: 'cm1', campId: 'camp1', studentId: 's1', role: 'dietitian', authorName: '王营养师',
+      text: '坚持下来很不容易，你的自律大家都看在眼里。这段时间养成的饮食和运动习惯是最好的收获，继续保持，健康是一辈子的事！',
+      createdAt: '2026-09-01 09:12:00',
+    },
+    {
+      id: 'cm2', campId: 'camp1', studentId: 's1', role: 'coach', authorName: '李教练',
+      text: '力量训练动作越来越标准，核心力量提升明显！建议结营后保持每周 2 次力量训练，把肌肉练上来，基础代谢才稳。',
+      createdAt: '2026-09-02 18:30:00',
+    },
+    {
+      id: 'cm3', campId: 'camp1', studentId: 's1', role: 'dietitian', authorName: '张营养师',
+      text: '注意结营后的回弹控制：聚餐后下一餐清淡，每天 1500ml 饮水别断，2 周后回来复测体成分。',
+      createdAt: '2026-09-03 10:05:00',
+    },
+  ]);
 
   /** 趣味活动开关（按营期独立配置，营养师端配置，学员端按此展示） */
   /** 每周挑战默认关闭：需营养师先设置开始日期，再手动开启 */
@@ -145,28 +158,26 @@ export const useAppStore = defineStore('app', () => {
     api.updateActivityConfigApi(campId, merged as Record<string, unknown>).catch(() => {});
   }
 
-  function setCampMessage(campId: string, studentId: string, text: string, author = '') {
-    const key = `${campId}_${studentId}`;
-    if (text.trim()) {
-      campMessages.value = { ...campMessages.value, [key]: text.trim() };
-      if (author) campMessageAuthors.value = { ...campMessageAuthors.value, [key]: author };
-    } else {
-      const next = { ...campMessages.value };
-      delete next[key];
-      campMessages.value = next;
-      const aNext = { ...campMessageAuthors.value };
-      delete aNext[key];
-      campMessageAuthors.value = aNext;
-    }
-    api.saveCampMessage(campId, studentId, text).catch(() => {});
+  /** 追加一条结营寄语（append 而非覆盖——多名营养师/教练可各自撰写提交，历史寄语不被后写覆盖）。
+   *  空文本不写入。 */
+  function addCampMessage(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string) {
+    const t = text.trim();
+    if (!t) return;
+    campMessageList.value.push({
+      id: `cm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      campId,
+      studentId,
+      role,
+      authorName: authorName || '营养师',
+      text: t,
+      createdAt: formatDateTimeStr(),
+    });
+    api.saveCampMessage(campId, studentId, t).catch(() => {});
   }
 
-  function getCampMessage(campId: string, studentId: string): string {
-    return campMessages.value[`${campId}_${studentId}`] || '';
-  }
-
-  function getCampMessageAuthor(campId: string, studentId: string): string {
-    return campMessageAuthors.value[`${campId}_${studentId}`] || '';
+  /** 该学员该营期的全部结营寄语（按撰写先后排列，逐条展示） */
+  function getCampMessages(campId: string, studentId: string): CampMessageEntry[] {
+    return campMessageList.value.filter((m) => m.campId === campId && m.studentId === studentId);
   }
   const viewHistory = ref<View[]>(['login']);
   const currentView = computed<View>(() => viewHistory.value[viewHistory.value.length - 1]);
@@ -743,13 +754,13 @@ export const useAppStore = defineStore('app', () => {
   const BIZ_KEY = 'camp_biz_data_v1';
   const bizSources = [
     students, weightRecords, exerciseRecords, dietRecords, coachActivities,
-    rewardTiers, rewardClaims, unlockRecords, metricConfigs, camps, accounts,
+    rewardTiers, rewardClaims, unlockRecords, campMessageList, metricConfigs, camps, accounts,
     pointProducts, pointExchanges, manualScoreRecords,
     activityConfigByCamp, mealTimeConfigByCamp,
   ];
   const bizNames = [
     'students', 'weightRecords', 'exerciseRecords', 'dietRecords', 'coachActivities',
-    'rewardTiers', 'rewardClaims', 'unlockRecords', 'metricConfigs', 'camps', 'accounts',
+    'rewardTiers', 'rewardClaims', 'unlockRecords', 'campMessageList', 'metricConfigs', 'camps', 'accounts',
     'pointProducts', 'pointExchanges', 'manualScoreRecords',
     'activityConfigByCamp', 'mealTimeConfigByCamp',
   ] as const;
@@ -1254,10 +1265,9 @@ export const useAppStore = defineStore('app', () => {
 
   return {
     user,
-    campMessages,
-    setCampMessage,
-    getCampMessage,
-    getCampMessageAuthor,
+    campMessageList,
+    addCampMessage,
+    getCampMessages,
     activityConfigByCamp,
     getActivityConfig,
     getHasActivity,

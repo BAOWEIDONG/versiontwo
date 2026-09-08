@@ -101,6 +101,11 @@ const store = useAppStore();
 
 const currentComponent = computed<Component>(() => viewMap[store.currentView] || viewMap.login);
 
+// KeepAlive 缓存键：同一账户会话内按"视图"缓存（返回/切 tab 不重建，性能收益保留）；
+// 但账户切换(登录不同人)会改变 user.id → 所有视图键都变，旧账户缓存整体作废并全新挂载，
+// 杜绝"换账户后仍显示前一个人的姓名 / 问卷预填别人数据"的串账户问题。
+const viewCacheKey = computed(() => `${store.user?.id || 'anon'}:${store.currentView}`);
+
 // 同步营养师/教练角色到 <body>，用于全局复用首页浅渐变背景（学员端不挂该类）
 function syncRoleClass(role?: string | null) {
   document.body.classList.remove('role-diet', 'role-coach');
@@ -150,7 +155,7 @@ onMounted(() => {
         <!-- 视图缓存：去掉 :key 强制重建，改用 KeepAlive 缓存已访问视图。
              返回/切底部 tab 不再整个销毁重建，大幅降低导航卡顿（性能优化） -->
         <KeepAlive>
-          <component :is="currentComponent" />
+          <component :is="currentComponent" :key="viewCacheKey" />
         </KeepAlive>
       </div>
     </div>

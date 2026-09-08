@@ -310,16 +310,22 @@ function openEditAddress(record: UnifiedRecord) {
 }
 
 function submitAddressEdit() {
-  if (!editTarget.value || editTarget.value.type !== 'exchange') return;
+  if (!editTarget.value) return;
+  if (editTarget.value.type !== 'exchange' && editTarget.value.type !== 'streak') return;
   if (!editAddressForm.value.name.trim()) { editAddressError.value = '请输入收货人姓名'; return; }
   if (!/^1[3-9]\d{9}$/.test(editAddressForm.value.phone.trim())) { editAddressError.value = '请输入有效的11位手机号'; return; }
   if (!editAddressForm.value.address.trim()) { editAddressError.value = '请输入详细收货地址'; return; }
-  const raw = editTarget.value.raw as PointExchangeRecord;
-  store.updateExchangeAddress(raw.id, {
+  const info = {
     recipientName: editAddressForm.value.name.trim(),
     recipientPhone: editAddressForm.value.phone.trim(),
     recipientAddress: editAddressForm.value.address.trim(),
-  });
+  };
+  if (editTarget.value.type === 'exchange') {
+    store.updateExchangeAddress((editTarget.value.raw as PointExchangeRecord).id, info);
+  } else {
+    // 打卡奖励走 updateRewardClaim（RewardClaim 侧），并标记已编辑一次——与打卡日历"仅可改1次"同口径
+    store.updateRewardClaim((editTarget.value.raw as RewardClaim).id, { ...info, addressEdited: true });
+  }
   showEditAddress.value = false;
   editTarget.value = null;
   showSuccessToast('收货地址已更新');
@@ -462,6 +468,16 @@ const unreadCount = computed(() =>
                 </button>
                 <button
                   v-if="record.deliveryMethod === 'shipped'"
+                  class="text-[11px] font-bold text-white bg-[#1677FF] px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1"
+                  @click="openEditAddress(record)"
+                >
+                  <MapPin class="w-3 h-3" /> 修改地址
+                </button>
+              </div>
+
+              <!-- 改地址按钮（打卡奖励·待发货·邮寄方式）：营养师发货前可修改，与打卡日历同口径（仅一次） -->
+              <div v-if="record.type === 'streak' && record.status === 'pending' && record.deliveryMethod === 'shipped' && !(record.raw as RewardClaim)?.addressEdited" class="mt-2 flex items-center gap-2">
+                <button
                   class="text-[11px] font-bold text-white bg-[#1677FF] px-3 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1"
                   @click="openEditAddress(record)"
                 >

@@ -88,22 +88,22 @@ const MESSAGE_TEMPLATES = [
   '这期进步很大，下期我们继续向目标冲刺！',
 ];
 
-// 结营寄语（学员端结营报告展示；后端可用 PUT /camp/message/:studentId 持久化）
+// 结营寄语（可多条：多名营养师/教练各自撰写提交 append 不覆盖；学员端结营报告逐条展示带角色姓名；
+// 后端可用 PUT /camp/message/:studentId 持久化）
 const campMessageText = ref('');
 const campMessageSaved = ref(false);
 const showCampMessage = ref(false);
 const loadCampMessage = () => {
-  const studentId = store.selectedStudentId;
-  if (!studentId) { campMessageText.value = ''; return; }
-  // 寄语按营期存储，key = `${campId}_${studentId}`；通过 getCampMessage 读取
-  campMessageText.value = selectedCampId.value ? store.getCampMessage(selectedCampId.value, studentId) : '';
+  // 文本框即"新寄语输入框"：保存=追加一条寄语，不预填以保留历史寄语（防覆盖）
+  campMessageText.value = '';
 };
 const saveCampMessage = () => {
   const studentId = store.selectedStudentId;
   if (!studentId) return;
   if (!selectedCampId.value) return;
-  // 记录作者（营养师姓名），结营报告内展示"填写文本 + 营养师姓名"
-  store.setCampMessage(selectedCampId.value, studentId, campMessageText.value, store.user?.name || '营养师');
+  // append 一条新寄语（记角色=营养师）,不让其覆盖历史寄语
+  store.addCampMessage(selectedCampId.value, studentId, campMessageText.value, 'dietitian', store.user?.name || '营养师');
+  campMessageText.value = '';
   campMessageSaved.value = true;
   setTimeout(() => (campMessageSaved.value = false), 2000);
 };

@@ -170,6 +170,20 @@ export interface UnlockRecord {
   unlockedDate: string;
 }
 
+/** 结营寄语（可多条：多名营养师/教练各自撰写提交，append 不覆盖）。营收报告逐条展示，带角色+姓名。 */
+export interface CampMessageEntry {
+  id: string;
+  campId: string;
+  studentId: string;
+  /** 作者角色：营养师 / 教练 */
+  role: 'dietitian' | 'coach';
+  /** 作者姓名 */
+  authorName: string;
+  text: string;
+  /** yyyy-MM-dd HH:mm:ss */
+  createdAt: string;
+}
+
 export interface RewardTier {
   id: string;
   name: string;

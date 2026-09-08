@@ -107,27 +107,56 @@ const metricGroups = computed(() => {
   ] as [string, MetricChange[]]);
 });
 
-// 营养师结营寄语（按营期存储，key = `${campId}_${studentId}`）
-const campMessage = computed(() => {
-  const sid = store.user?.id;
+/** 结营留言项：来源(寄语或某类批注)、作者角色、作者姓名、正文 */
+interface ReportMessage {
+  id: string;
+  kind: '寄语' | '饮食批注' | '运动批注' | '体重批注';
+  role: 'dietitian' | 'coach';
+  name: string;
+  text: string;
+  time: string;
+}
+
+// 结营寄语 + 饮食/运动/体重批注 聚合成留言列表（多名营养师/教练各自撰写，逐条展示带角色姓名，不互相覆盖）
+const reportMessages = computed<ReportMessage[]>(() => {
+  const sid = studentId.value;
   const cid = selectedCampId.value || campInfo.value?.id;
-  if (!sid || !cid) return '';
-  return store.getCampMessage(cid, sid);
-});
-// 营养师姓名：优先取「填写结营寄语的营养师」；历史寄语未记录作者时回退到批注人
-const dietitianName = computed(() => {
-  const sid = store.user?.id;
-  const cid = selectedCampId.value || campInfo.value?.id;
-  if (sid && cid) {
-    const author = store.getCampMessageAuthor(cid, sid);
-    if (author) return author;
+  const list: ReportMessage[] = [];
+  // ① 结营寄语（campMessageList append 语义，可多条）
+  if (cid) {
+    store.getCampMessages(cid, sid).forEach((m) => {
+      list.push({
+        id: m.id, kind: '寄语', role: m.role, name: m.authorName, text: m.text, time: m.createdAt,
+      });
+    });
   }
-  const names = [campDietRecords.value, campExerciseRecords.value, campWeightRecords.value]
-    .flat()
-    .map((r) => (r as any).dietitianName || (r as any).coachName)
-    .filter(Boolean);
-  return names.length > 0 ? names[names.length - 1] : '营养师';
+  // ② 饮食批注（营养师）
+  studentDiets.value.forEach((r) => {
+    if (r.dietitianComment && r.dietitianName) {
+      list.push({
+        id: `diet_${r.id}`, kind: '饮食批注', role: 'dietitian', name: r.dietitianName, text: r.dietitianComment, time: r.dietitianCommentDate || r.date,
+      });
+    }
+  });
+  // ③ 运动批注（教练）
+  studentExercises.value.forEach((r) => {
+    if (r.coachComment && r.coachName) {
+      list.push({ id: `ex_${r.id}`, kind: '运动批注', role: 'coach', name: r.coachName, text: r.coachComment, time: r.coachCommentDate || r.date });
+    }
+  });
+  // ④ 体重批注（营养师）
+  studentWeights.value.forEach((r) => {
+    if (r.dietitianComment && r.dietitianName) {
+      list.push({
+        id: `wt_${r.id}`, kind: '体重批注', role: 'dietitian', name: r.dietitianName, text: r.dietitianComment, time: r.dietitianCommentDate || r.date,
+      });
+    }
+  });
+  // 按时间倒序（最新在前）
+  return list.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
 });
+
+const roleTag = (m: ReportMessage) => (m.role === 'coach' ? { badge: '教练', cls: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' } : { badge: '营养师', cls: 'bg-[#1677FF]/10 text-[#1677FF] border-[#1677FF]/20' });
 
 // 目标达成度（学员在体重打卡页设置的目标体重）
 const targetInfo = computed(() => {
@@ -147,6 +176,15 @@ const targetInfo = computed(() => {
 // 格式化
 const fmt = (v: number | null, digits = 1): string => v === null ? '--' : v.toFixed(digits);
 const fmtPct = (v: number | null): string => v === null ? '--' : `${(v * 100).toFixed(0)}%`;
+
+/** 留言时间：yyyy-MM-dd HH:mm:ss → M月d日 HH:mm */
+const formatMsgTime = (t: string): string => {
+  if (!t) return '';
+  const d = new Date(t.replace(/-/g, '/'));
+  if (Number.isNaN(+d)) return t;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const fmtChange = (v: number | null, unit = ''): string => {
   if (v === null) return '--';
@@ -418,17 +456,26 @@ const exportPDF = () => {
         </p>
       </Card>
 
-      <!-- 营养师寄语与保持建议 -->
-      <Card class="bg-gradient-to-br from-[#1677FF]/5 to-[#1677FF]/[0.02] border-[#1677FF]/15">
+      <!-- 营养师与教练寄语、批注（支持多名营养师/教练各自撰写提交，逐条展示带角色姓名，不互相覆盖） -->
+      <Card>
         <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b border-[#1677FF]/10 pb-2">
           <MessageCircle class="h-4 w-4 text-[#1677FF]" />
-          营养师寄语与保持建议
+          营养师与教练寄语、批注
         </h3>
-        <div v-if="campMessage" class="mb-4">
-          <p class="text-sm text-gray-700 leading-relaxed">{{ campMessage }}</p>
-          <p class="text-xs text-gray-400 mt-2 text-right">-- {{ dietitianName }}</p>
+        <div v-if="reportMessages.length > 0" class="space-y-3">
+          <div v-for="m in reportMessages" :key="m.id"
+               class="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full border', roleTag(m).cls]">{{ roleTag(m).badge }}</span>
+              <span class="text-xs font-bold text-gray-800">{{ m.name }}</span>
+              <span class="text-[10px] text-gray-400">{{ m.kind }}</span>
+              <span class="ml-auto text-[10px] text-gray-300">{{ formatMsgTime(m.time) }}</span>
+            </div>
+            <p class="text-sm text-gray-700 leading-relaxed">{{ m.text }}</p>
+          </div>
         </div>
-        <div class="space-y-3 text-sm text-gray-700 leading-relaxed">
+        <p v-else class="text-sm text-gray-400 py-2">本营期暂无营养师/教练寄语与批注</p>
+        <div class="space-y-3 text-sm text-gray-700 leading-relaxed mt-4 pt-3 border-t border-gray-100">
           <div class="flex gap-2.5">
             <span class="shrink-0">🥗</span>
             <p><span class="font-bold text-gray-900">饮食：</span>保持三餐规律，每餐蔬菜占一半、主食一拳头，聚餐后下一餐清淡即可，不必补偿性节食。</p>
