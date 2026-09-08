@@ -7,7 +7,6 @@ import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, RefreshCw } 
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { usePaged } from '../composables/usePaged';
 import { useDebounced } from '../composables/useDebounced';
-import { rankStudents } from '../lib/scoring';
 import { loadMsgSeenState, saveMsgSeenState, systemMsgUnread, type MsgSeenState } from '../lib/messageSeen';
 
 const store = useAppStore();
@@ -32,17 +31,8 @@ const seenState = ref<MsgSeenState>(loadMsgSeenState(store.user?.id || ''));
 
 function saveSeenState() {
   if (!store.user) return;
-  const uid = store.user.id;
-  const campKey = activeCampId.value || 'default';
-  let rank = 0;
-  const cs = campKey !== 'default' ? store.getStudentsByCamp(campKey) : [];
-  if (cs.length > 0) {
-    const ranked = rankStudents(cs, campDietRecs.value, campExRecs.value, campManualRecs.value);
-    const me = ranked.find(s => s.studentId === uid);
-    if (me) rank = me.rank;
-  }
-  // 记下当前排名，并刷新「最近查看时刻」——下次进入时晚于此刻的系统通知未读
-  saveMsgSeenState(uid, { ranks: { ...seenState.value.ranks, [campKey]: rank }, lastSystemSeenAt: Date.now() });
+  // 排名动态不再推送消息到消息中心，仅记录「最近查看时刻」判定后续系统通知未读
+  saveMsgSeenState(store.user.id, { ...seenState.value, lastSystemSeenAt: Date.now() });
 }
 
 onUnmounted(() => saveSeenState());
@@ -51,11 +41,8 @@ async function handleRefresh() {
   if (isRefreshing.value) return;
   isRefreshing.value = true;
   try {
-    const oldUnread = unreadCount.value;
     await store.init();
-    const newUnread = unreadCount.value;
-    const diff = newUnread - oldUnread;
-    showToast(diff > 0 ? `已刷新，发现 ${diff} 条新消息` : '已刷新，暂无新消息');
+    showToast('已刷新');
   } catch {
     showToast('刷新失败，请稍后重试');
   } finally {
@@ -74,7 +61,6 @@ const activeCampId = computed(() => {
 });
 const campDietRecs = computed(() => activeCampId.value ? store.getCampDietRecords(activeCampId.value) : store.dietRecords);
 const campExRecs = computed(() => activeCampId.value ? store.getCampExerciseRecords(activeCampId.value) : store.exerciseRecords);
-const campManualRecs = computed(() => activeCampId.value ? store.getCampManualScoreRecords(activeCampId.value) : store.manualScoreRecords);
 const campWtRecs = computed(() => activeCampId.value ? store.getCampWeightRecords(activeCampId.value) : store.weightRecords);
 const campClaims = computed(() => activeCampId.value ? store.getCampRewardClaims(activeCampId.value) : store.rewardClaims);
 const campTiers = computed(() => activeCampId.value ? store.getCampRewardTiers(activeCampId.value) : store.rewardTiers);
@@ -172,44 +158,11 @@ const exchangeMessages = computed<MessageItem[]>(() => {
     });
 });
 
-// ---- 排名变动（与昨日对比） ----
-const rankMessage = computed<MessageItem[]>(() => {
-  if (!store.user) return [];
-  const campId = activeCampId.value;
-  const campStudents = campId ? store.getStudentsByCamp(campId) : [];
-  const ranked = rankStudents(campStudents, campDietRecs.value, campExRecs.value, campManualRecs.value);
-  const me = ranked.find((s) => s.studentId === store.user!.id);
-  if (!me) return [];
-  if (me.rank === 1) {
-    const secondScore = ranked[1]?.totalScore ?? me.totalScore;
-    return [{
-      id: 'rank-top',
-      type: 'rank',
-      date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-      title: '你现在是第 1 名',
-      body: `总分 ${me.totalScore} 分，继续保持，第二名距你 ${Math.max(0, me.totalScore - secondScore)} 分`,
-      unread: seenState.value.ranks[activeCampId.value || 'default'] !== undefined && seenState.value.ranks[activeCampId.value || 'default'] !== me.rank,
-      targetView: 'ranking',
-    }];
-  }
-  const ahead = ranked.filter((s) => s.totalScore > me.totalScore).sort((a, b) => a.totalScore - b.totalScore)[0];
-  if (!ahead) return [];
-  return [{
-    id: 'rank-gap',
-    type: 'rank',
-    date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-    title: `当前排名第 ${me.rank} 位`,
-    body: `距前一名还差 ${ahead.totalScore - me.totalScore} 分，今天完成打卡就能缩小差距`,
-    unread: seenState.value.ranks[activeCampId.value || 'default'] !== undefined && seenState.value.ranks[activeCampId.value || 'default'] !== me.rank,
-    targetView: 'ranking',
-  }];
-});
-
 // ---- 汇总排序 ----
-// 同一时间按优先级：批注 > 奖励/兑换 > 排名（version2 PRD 2.9）
-const typePriority: Record<string, number> = { dietitian: 0, coach: 0, reward: 1, rank: 2 };
+// 同一时间按优先级：批注 > 奖励/兑换（排名动态不再推送消息到消息中心）
+const typePriority: Record<string, number> = { dietitian: 0, coach: 0, reward: 1 };
 const allMessages = computed<MessageItem[]>(() =>
-  [...commentMessages.value, ...rewardMessages.value, ...exchangeMessages.value, ...rankMessage.value]
+  [...commentMessages.value, ...rewardMessages.value, ...exchangeMessages.value]
     .sort((a, b) => {
       const dc = b.date.localeCompare(a.date);
       if (dc !== 0) return dc;

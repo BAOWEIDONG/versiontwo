@@ -24,6 +24,8 @@ const campRewardClaims = computed(() => store.getCampRewardClaims(selectedCampId
 const showEditModal = ref(false);
 const editingTier = ref<Partial<RewardTier> | null>(null);
 const formError = ref('');
+/** 编辑既有档位时记录的原始解锁天数；仅用于拦截"已领取后改天数"，防止学员重复领取 */
+const originalTierRequiredDays = ref<number | undefined>(undefined);
 const photoInputRef = ref<HTMLInputElement | null>(null);
 
 const getClaimCount = (tierId: string) => campRewardClaims.value.filter(c => c.tierId === tierId).length;
@@ -40,6 +42,7 @@ const handleEdit = (tier?: RewardTier) => {
   editingTier.value = tier
     ? { ...tier }
     : { name: '', requiredDays: 1, imageUrl: '', description: '', deliveryMethods: ['shipped', 'in-person'], campId: selectedCampId.value };
+  originalTierRequiredDays.value = tier ? tier.requiredDays : undefined;
   formError.value = '';
   /* 回填总数量：既有档 = 剩余 + 已领取；新建默认为 10 */
   tierTotal.value = tier ? (tier.stock + getClaimCount(tier.id)) : 10;
@@ -104,6 +107,20 @@ const saveTier = () => {
   if (editingTier.value.id) {
     const c = getClaimCount(editingTier.value.id);
     if (tierTotal.value < c) { formError.value = `总数量不能低于已领取的 ${c} 件（该奖励已有 ${c} 人领取）`; return; }
+  }
+  // 已有人领取的档位：解锁条件（连续打卡天数）锁定不可修改，防止学员按新天数重复领取
+  if (
+    editingTier.value.id
+    && tierClaimed.value > 0
+    && originalTierRequiredDays.value != null
+    && editingTier.value.requiredDays !== originalTierRequiredDays.value
+  ) {
+    formError.value = '该奖励已有学员领取，解锁条件（连续打卡天数）不可修改';
+    return;
+  }
+  // 兜底：已领取档位强制维持原天数
+  if (editingTier.value.id && tierClaimed.value > 0 && originalTierRequiredDays.value != null) {
+    editingTier.value.requiredDays = originalTierRequiredDays.value;
   }
   if (!editingTier.value.deliveryMethods || editingTier.value.deliveryMethods.length === 0) { formError.value = '请至少选择一种领取方式'; return; }
 
@@ -437,7 +454,7 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
           <AlertTriangle class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
           <div class="text-xs text-amber-700">
             <div class="font-bold mb-0.5">该奖励已有 {{ getClaimCount(editingTier.id) }} 人领取</div>
-            <div>修改会影响学员的进度计算，请谨慎操作。礼品名称和总数量可安全修改。</div>
+            <div>已领取后「解锁条件（连续打卡天数）」不可再修改（防止学员重复领取）。礼品名称、总数量可安全修改。</div>
           </div>
         </div>
         <div class="space-y-4 mb-6">
@@ -459,7 +476,14 @@ function toggleDeliveryOption(option: 'shipped' | 'in-person') {
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">解锁条件 (连续打卡天数) <span class="text-red-500">*</span></label>
-            <input type="number" inputmode="numeric" placeholder="如：10" min="1" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1677FF] text-sm" :value="editingTier.requiredDays" @input="editingTier.requiredDays = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''" />
+            <input
+              type="number" inputmode="numeric" placeholder="如：10" min="1"
+              :disabled="tierClaimed > 0"
+              :class="['w-full px-3 py-2 rounded-lg focus:outline-none text-sm', tierClaimed > 0 ? 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-50 border border-gray-200 focus:border-[#1677FF]']"
+              :value="editingTier.requiredDays"
+              @input="editingTier.requiredDays = parseInt(($event.target as HTMLInputElement).value) || 0; formError = ''"
+            />
+            <div v-if="tierClaimed > 0" class="text-[11px] text-amber-600 mt-1">已有 {{ tierClaimed }} 人领取，解锁条件不可修改</div>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1">总数量 <span class="text-red-500">*</span></label>

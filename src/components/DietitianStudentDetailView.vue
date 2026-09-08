@@ -2,12 +2,11 @@
 import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
-import { campDateRange, latestOrFirstId } from '../lib/camps';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { NavBar, Card, Button, ChartRulePopup } from './ui';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, PlayCircle, ChevronDown, ChevronUp, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
-import { Popup as VanPopup, showToast, showConfirmDialog } from 'vant';
+import { showToast, showConfirmDialog } from 'vant';
 import { buildMedicalData, isValueOutOfRange, type MedicalCategory, type Indicator } from '../lib/medicalData';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
@@ -26,29 +25,15 @@ const MEAL_TYPES = [
 const store = useAppStore();
 const student = computed(() => store.students.find((s) => s.id === store.selectedStudentId));
 
-// ─── 营期切换（学员可能在多个营期中） ───
+// ─── 营期：学员档案页不支持本地切换，只展示「当前营期」（由首页全局营期切换控制） ───
 const studentCamps = computed(() => store.selectedStudentId ? store.getStudentCamps(store.selectedStudentId) : []);
-const selectedCampId = ref<string>('');
-const showCampPicker = ref(false);
-const selectedCamp = computed(() => studentCamps.value.find((c) => c.id === selectedCampId.value) || null);
-
-// 当学员切换时，自动选择其当前营期（优先沿用详情流已选的营期，独立于全局 selectedCampId）
-watch(() => store.selectedStudentId, (id) => {
-  if (id) {
-    if (store.detailSelectedCampId && studentCamps.value.some((c) => c.id === store.detailSelectedCampId)) {
-      // 详情流已选营期 -> 继承（不影响全局）
-      selectedCampId.value = store.detailSelectedCampId;
-    } else {
-      // 详情流未选营期 -> 默认展示该学员的最新一期（不再有「全部营期」合并模式）
-      selectedCampId.value = latestOrFirstId(studentCamps.value) || '';
-    }
-  }
-}, { immediate: true });
-
-// 本地营期切换时写入独立详情流上下文（不污染全局 selectedCampId），下游 PointsDetailView 等据此继承
-watch(selectedCampId, (newId) => {
-  store.detailSelectedCampId = newId || null;
+const selectedCamp = computed(() => {
+  const gid = store.selectedCampId; // 全局当前营期（首页营期切换器控制）
+  if (gid && studentCamps.value.some((c) => c.id === gid)) return studentCamps.value.find((c) => c.id === gid) || null;
+  // 学员不在全局当前营期时，退回其 active/第一期（仅兜底展示，不提供切换）
+  return studentCamps.value.find((c) => c.status === 'active') || studentCamps.value[0] || null;
 });
+const selectedCampId = computed(() => selectedCamp.value?.id || '');
 
 // 按营期+学员过滤打卡记录
 const campDietRecords = computed(() => {
@@ -443,15 +428,14 @@ function handleDeleteManualScore(id: string) {
         </Button>
       </Card>
 
-      <!-- 营期切换（学员在多个营期时显示） -->
-      <div v-if="studentCamps.length > 1" class="bg-white px-4 py-2.5 flex items-center justify-between rounded-xl border border-gray-100">
-        <div>
+      <!-- 营期：学员档案页不支持切换，只展示当前营期（切换由首页全局营期选择器控制） -->
+      <div v-if="selectedCamp" class="bg-white px-4 py-2.5 flex items-center justify-between rounded-xl border border-gray-100">
+        <div class="flex items-center">
           <span class="text-xs text-gray-500">当前营期：</span>
-          <span class="text-sm font-medium text-gray-800">{{ selectedCamp?.name || '未选择' }}</span>
+          <span class="text-sm font-medium text-gray-800">{{ selectedCamp.name }}</span>
+          <span v-if="selectedCamp.status === 'active'" class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 ml-1.5">进行中</span>
+          <span v-else-if="selectedCamp.status === 'ended'" class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 ml-1.5">已结束</span>
         </div>
-        <button class="text-xs text-[#FF976A] border border-[#FF976A] px-2.5 py-1 rounded-full font-bold active:bg-orange-50" @click="showCampPicker = true">
-          切换
-        </button>
       </div>
 
       <Card class="p-0 overflow-hidden border-[#07C160]/20 bg-[#07C160]/[0.03] shadow-sm">
@@ -1218,39 +1202,5 @@ function handleDeleteManualScore(id: string) {
         </div>
       </template>
     </div>
-
-    <!-- 营期选择弹窗 -->
-    <VanPopup v-model:show="showCampPicker" position="bottom" round>
-      <div class="p-4">
-        <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
-        <div class="space-y-2">
-          <button
-            v-for="camp in studentCamps"
-            :key="camp.id"
-            @click="selectedCampId = camp.id; showCampPicker = false"
-            :class="[
-              'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all',
-              selectedCampId === camp.id
-                ? 'border-[#FF976A] bg-orange-50 text-[#FF976A]'
-                : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
-            ]"
-          >
-            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
-            <span
-              v-if="camp.status === 'active'"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600"
-            >进行中</span>
-            <span
-              v-else-if="camp.status === 'ended'"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500"
-            >已结束</span>
-            <span
-              v-else
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-500"
-            >未开始</span>
-          </button>
-        </div>
-      </div>
-    </VanPopup>
   </div>
 </template>
