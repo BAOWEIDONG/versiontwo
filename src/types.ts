@@ -158,6 +158,18 @@ export interface RewardTierSnapshot {
   version?: number;
 }
 
+/** 学员已解锁(达到连续天数)但尚未领取的连续打卡档位快照。
+ *  在解锁的那一刻即落盘，使营养师后续「下架」或「删除」该奖也不影响学员端已解锁记录的显示与领取（资格快照语义）。 */
+export interface UnlockRecord {
+  /** `${studentId}_${tierId}`（同一档位每学员唯一） */
+  id: string;
+  studentId: string;
+  campId?: string;
+  tierId: string;
+  snapshot: RewardTierSnapshot;
+  unlockedDate: string;
+}
+
 export interface RewardTier {
   id: string;
   name: string;

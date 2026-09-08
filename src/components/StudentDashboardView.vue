@@ -400,6 +400,8 @@ function persistShownRewards() {
 function checkNewRewardUnlocks() {
   if (!store.user) return;
   if (!campActiveForStudent.value) return;
+  // 落盘已解锁未领取档位的快照（幂等），确保营养师此后下架/删除该奖，学员端仍能显示并领取
+  store.recordUnlockSnapshots(store.user.id, activeCampId.value, unlockedUnclaimedRewards());
   const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));
   if (fresh.length === 0) return;
   fresh.forEach((t) => shownRewardTiers.value.add(t.id));
@@ -434,6 +436,8 @@ const scanRewardNotify = () => {
   if (!store.user) return;
   // 未开始/已结束/退营/禁用不主动弹出（version2 PRD 2.1.2）
   if (!campActiveForStudent.value) return;
+  // 落盘已解锁未领取档位的快照（幂等），确保档位此后下架/删除，学员端仍能显示并领取
+  store.recordUnlockSnapshots(store.user.id, activeCampId.value, unlockedUnclaimedRewards());
   let seenRewards: string[] = [];
   try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
   if (seenRewards.length > 0) {

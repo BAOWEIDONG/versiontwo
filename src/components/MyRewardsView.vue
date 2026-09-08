@@ -14,8 +14,8 @@ const store = useAppStore();
 type Tab = 'all' | 'exchange' | 'reward';
 const activeTab = ref<Tab>('all');
 // 从消息中心发货通知等跳进来时，始终回到「全部」tab（即使 KeepAlive 缓存过旧 tab）
-onMounted(() => { activeTab.value = 'all'; });
-onActivated(() => { activeTab.value = 'all'; });
+onMounted(() => { activeTab.value = 'all'; captureUnlocks(); });
+onActivated(() => { activeTab.value = 'all'; captureUnlocks(); });
 
 // ─── 学员数据 ───
 const studentId = computed(() => store.user?.id || '');
@@ -75,16 +75,46 @@ const streakClaims = computed(() => {
   });
 });
 
-const claimableStreakTiers = computed(() => {
-  const streakTiers = campTiers.value.filter(t => t.source === 'streak' && t.active !== false);
-  return streakTiers.filter(tier => {
-    if (streakClaims.value.some(c => c.tierId === tier.id)) return false;
-    // 资格快照口径：当前连续 与 营期历史最长连续 取较大（曾解锁即不回落），与 RewardView 一致
-    if (Math.max(streakData.value.currentStreak, campLongestStreak.value) < tier.requiredDays) return false;
-    if (tier.stock <= 0) return false;
-    return true;
-  });
+// 该学员已领取过的连续打卡 tierId 集合（判"未领取"直接查 rewardClaims，不依赖档位是否仍存在——被删档也可定位）
+const claimedStreakTierIds = computed(() => {
+  const claims = activeCampId.value
+    ? store.getCampRewardClaims(activeCampId.value)
+    : store.rewardClaims;
+  return new Set(claims.filter(c => c.studentId === studentId.value).map(c => c.tierId));
 });
+
+// 已解锁未领取的档位（含已被营养师下架/删除的）：以"解锁时的快照"为准渲染，
+// 任何档位状态(下架/删除)都不影响已解锁记录的展示（资格快照语义）。live 仍上架且有货时用 live 呈现。
+const claimableStreakTiers = computed(() => {
+  const records = store
+    .getStudentUnlockRecords(studentId.value, activeCampId.value)
+    .filter(r => !claimedStreakTierIds.value.has(r.tierId));
+  return records
+    .map(r => {
+      const live = campTiers.value.find(t => t.id === r.tierId);
+      // live 存在但已售罄：无法领取则暂不在此展示（RewardView 显示售罄）；live 不存在=已删除，快照兜底始终可领
+      if (live && live.stock <= 0) return null;
+      return {
+        id: r.tierId,
+        name: live?.name ?? r.snapshot.name,
+        imageUrl: live?.imageUrl ?? r.snapshot.imageUrl,
+        requiredDays: r.snapshot.requiredDays,
+      };
+    })
+    .filter((x): x is { id: string; name: string; imageUrl: string; requiredDays: number } => !!x);
+});
+
+/** 进入本页时把"已解锁未领取"的 live 档位快照落盘（幂等），确保营养师此后下架/删除该奖，学员端依赖快照仍能显示并领取。 */
+function captureUnlocks() {
+  const achieved = Math.max(streakData.value.currentStreak, campLongestStreak.value);
+  const freshUnlocked = campTiers.value.filter(t =>
+    t.source === 'streak' && t.requiredDays > 0 && t.active !== false &&
+    !claimedStreakTierIds.value.has(t.id) && achieved >= t.requiredDays,
+  );
+  if (freshUnlocked.length) {
+    store.recordUnlockSnapshots(studentId.value, activeCampId.value, freshUnlocked);
+  }
+}
 
 // 活动奖励 claims（source = activity）— 按营期过滤
 const activityClaims = computed(() => {

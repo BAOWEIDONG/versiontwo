@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -183,6 +183,8 @@ export const useAppStore = defineStore('app', () => {
   const coachDashboardTab = ref<'incomplete' | 'completed' | 'activities'>('incomplete');
   const rewardTiers = ref<RewardTier[]>([...MOCK_REWARD_TIERS]);
   const rewardClaims = ref<RewardClaim[]>([...MOCK_REWARD_CLAIMS]);
+  /** 学员已解锁(达到连续天数)但尚未领取的连续打卡档位快照。解锁即落盘,使后续下架/删除不影响已解锁记录的显示与领取（资格快照语义）。 */
+  const unlockRecords = ref<UnlockRecord[]>([]);
   /** 营养师奖品/商品配置操作审计（新增/编辑/上架/下架/删除），按时间倒序 */
   const configAudits = ref<ConfigAudit[]>([]);
   function recordConfigAudit(entry: Omit<ConfigAudit, 'id' | 'operatorTime' | 'operator'> & Partial<Pick<ConfigAudit, 'operator'>>) {
@@ -572,9 +574,45 @@ export const useAppStore = defineStore('app', () => {
     api.createRewardClaim(claim).catch(() => {});
   }
 
+  /** 从 live 档位生成"锁定时快照"（解锁记录/领奖快照共用口径；供 claimRewardTier 复用，勿另写） */
+  function snapshotOfTier(t: RewardTier): RewardTierSnapshot {
+    return {
+      name: t.name,
+      imageUrl: t.imageUrl,
+      requiredDays: t.requiredDays,
+      deliveryMethods: t.deliveryMethods,
+      version: t.version ?? 1,
+    };
+  }
+
+  /** 记录学员"已解锁未领取"的连续打卡档位快照（幂等：id = `${studentId}_${tierId}` 唯一，重复传同档位不重复建）。
+   *  在解锁的那一刻即落盘——营养师后续下架/删除该奖也不影响已解锁记录的显示与领取（资格快照语义）。 */
+  function recordUnlockSnapshots(studentId: string, campId: string | null | undefined, tiers: RewardTier[]) {
+    const existing = new Set(unlockRecords.value.map((r) => r.id));
+    const news: UnlockRecord[] = [];
+    for (const t of tiers) {
+      const id = `${studentId}_${t.id}`;
+      if (existing.has(id)) continue;
+      existing.add(id);
+      news.push({ id, studentId, campId: campId || undefined, tierId: t.id, snapshot: snapshotOfTier(t), unlockedDate: formatDateTimeStr() });
+    }
+    if (news.length) {
+      unlockRecords.value = [...unlockRecords.value, ...news];
+      persistBiz(); // 解锁是关键节点，立即落盘（避免防抖间隙丢失）
+    }
+  }
+
+  /** 该学员（可带营期过滤）的已解锁未领取档位快照列表。快照在解锁时已固化，独立于当前档位（下架/删除不影响读取）。 */
+  function getStudentUnlockRecords(studentId: string, campId?: string | null): UnlockRecord[] {
+    return unlockRecords.value.filter(
+      (r) => r.studentId === studentId && (!campId || !r.campId || r.campId === campId),
+    );
+  }
+
   /** 领取奖励单一咽喉（连续打卡领取 / 活动审核发放统一入口，仿 exchangePointProduct 加固模式）：
    *  ①按 id 实时重读 tier，校验存在与库存（剩余可发量语义）；②营期一致性（tier 绑定营期时须与领取营期一致，未绑定=全局共享）；
    *  ③once-per-tier 判重（同一学员同一 tier 仅可领取一次）；④全部通过才写 claim 记录并用 fresh tier 扣库存。
+   *  连续打卡档位的"已解锁资格"采用快照语义：已解锁未领取的记录即使后来被营养师下架/删除，仍可凭解锁快照领取（资格一旦解锁永久保留）。
    *  真实上线须由服务端做权威校验（原子+幂等）。 */
   function claimRewardTier(
     tierId: string,
@@ -591,13 +629,20 @@ export const useAppStore = defineStore('app', () => {
     },
   ): { ok: boolean; reason?: string; claim?: RewardClaim } {
     if (isStudentDisabled(studentId)) return { ok: false, reason: '该学员已退营，无法领取奖励' }; // 退营学员禁止资金/领取操作
-    // ①实时重读 tier，避免调用方传入的快照过期（已被删除 / 库存已被其它领取占用）
+    // ①实时重读 tier + 已解锁快照，避免调用方传入的快照过期（已被删除 / 库存已被其它领取占用）
     const fresh = rewardTiers.value.find((t) => t.id === tierId);
-    if (!fresh) return { ok: false, reason: '该奖励不存在或已被删除' };
-    if (fresh.active === false) return { ok: false, reason: '该奖励已下架，无法领取' };
-    if (fresh.stock <= 0) return { ok: false, reason: '该礼品库存不足' };
+    // 已解锁资格（仅连续打卡）：只要曾解锁即可凭快照领取，不依赖 live 档位是否存在/上下架
+    const unlockSnap = unlockRecords.value.find(
+      (r) => r.studentId === studentId && r.tierId === tierId && (claimInfo.campId ? r.campId === claimInfo.campId : true),
+    );
+    const reqDays = fresh ? fresh.requiredDays : unlockSnap?.snapshot.requiredDays;
+    if (reqDays === undefined) return { ok: false, reason: '该奖励不存在或已被删除' };
+    // 下架仅拦截"未解锁"的档位；已解锁的档位（含已下架/已删除）仍可领取
+    if (fresh && fresh.active === false && !unlockSnap) return { ok: false, reason: '该奖励已下架，无法领取' };
+    // 库存（剩余可发量）：live 存在且未解锁时校验；凭解锁资格的领取（下架/删除）无库存概念，凭资格发放
+    if (fresh && !unlockSnap && fresh.stock <= 0) return { ok: false, reason: '该礼品库存不足' };
     // ②营期一致性
-    if (claimInfo.campId && fresh.campId && fresh.campId !== claimInfo.campId) {
+    if (claimInfo.campId && fresh && fresh.campId && fresh.campId !== claimInfo.campId) {
       return { ok: false, reason: '该奖励不属于当前营期' };
     }
     // ③once-per-tier 判重（仅判"同一营期"：同一档位所在营期只能领取一次；跨营期不同营期各自领取）
@@ -606,7 +651,7 @@ export const useAppStore = defineStore('app', () => {
     }
     // ④连续打卡达标校验（仅连续打卡奖励）：资格快照口径 —— 已解锁未领取的档位断签后仍可领取。
     //    达标判定 = max(当前连续天数, 营期内任意历史最长连续天数) >= requiredDays，避免断签重新锁定已解锁档位。
-    if (fresh.source === 'streak') {
+    if (fresh ? fresh.source === 'streak' : true) {
       const cid = claimInfo.campId;
       const diet = (cid ? getCampDietRecords(cid) : dietRecords.value).filter((r) => r.studentId === studentId);
       const ex = (cid ? getCampExerciseRecords(cid) : exerciseRecords.value).filter((r) => r.studentId === studentId);
@@ -621,7 +666,7 @@ export const useAppStore = defineStore('app', () => {
         longest = calculateLongestStreakInRange(camp?.startDate || '2000-01-01', end, ex, diet, wt, studentId);
       }
       const achieved = Math.max(streak.currentStreak, longest);
-      if (achieved < fresh.requiredDays) {
+      if (achieved < reqDays) {
         return { ok: false, reason: '连续打卡天数未达到该奖励要求，无法领取' };
       }
     }
@@ -631,9 +676,9 @@ export const useAppStore = defineStore('app', () => {
         return { ok: false, reason: '请完整填写收件人、电话和收货地址' };
       }
     }
-    // ⑤b 领取方式必须落在营养师配置的 deliveryMethods 内（防 PWA 旧包/异常入口提交非法方式）
+    // ⑤b 领取方式必须落在配置的 deliveryMethods 内（防 PWA 旧包/异常入口提交非法方式）
     if (claimInfo.deliveryMethod) {
-      const allowed = fresh.deliveryMethods || ['shipped'];
+      const allowed = fresh?.deliveryMethods || unlockSnap?.snapshot.deliveryMethods || ['shipped'];
       if (!allowed.includes(claimInfo.deliveryMethod)) {
         return { ok: false, reason: '该奖励不支持所选领取方式' };
       }
@@ -651,19 +696,19 @@ export const useAppStore = defineStore('app', () => {
       deliveryMethod: claimInfo.deliveryMethod,
       campId: claimInfo.campId,
       activityType: claimInfo.activityType,
-      // 档位快照：锁定领取时名称/图片/门槛/领取方式/版本，之后编辑或下架档位不影响历史记录反查
+      // 档位快照：锁定领取时名称/图片/门槛/领取方式/版本，之后编辑或下架档位不影响历史记录反查（live 被删除则用解锁快照）
       tierSnapshot: {
-        name: fresh.name,
-        imageUrl: fresh.imageUrl,
-        requiredDays: fresh.requiredDays,
-        deliveryMethods: fresh.deliveryMethods,
-        version: fresh.version ?? 1,
+        name: fresh?.name ?? unlockSnap!.snapshot.name,
+        imageUrl: fresh?.imageUrl ?? unlockSnap!.snapshot.imageUrl,
+        requiredDays: fresh?.requiredDays ?? unlockSnap!.snapshot.requiredDays,
+        deliveryMethods: fresh?.deliveryMethods ?? unlockSnap!.snapshot.deliveryMethods,
+        version: fresh?.version ?? unlockSnap!.snapshot.version,
       },
     };
-    // ④写记录 + 用 fresh tier 扣库存
+    // ④写记录 + 用 fresh tier 扣库存（live 被删除时无库存可扣，凭解锁资格发放）
     rewardClaims.value.push(claim);
     api.createRewardClaim(claim).catch(() => {});
-    updateRewardTier(fresh.id, { stock: fresh.stock - 1 });
+    if (fresh) updateRewardTier(fresh.id, { stock: fresh.stock - 1 });
     return { ok: true, claim };
   }
 
@@ -698,13 +743,13 @@ export const useAppStore = defineStore('app', () => {
   const BIZ_KEY = 'camp_biz_data_v1';
   const bizSources = [
     students, weightRecords, exerciseRecords, dietRecords, coachActivities,
-    rewardTiers, rewardClaims, metricConfigs, camps, accounts,
+    rewardTiers, rewardClaims, unlockRecords, metricConfigs, camps, accounts,
     pointProducts, pointExchanges, manualScoreRecords,
     activityConfigByCamp, mealTimeConfigByCamp,
   ];
   const bizNames = [
     'students', 'weightRecords', 'exerciseRecords', 'dietRecords', 'coachActivities',
-    'rewardTiers', 'rewardClaims', 'metricConfigs', 'camps', 'accounts',
+    'rewardTiers', 'rewardClaims', 'unlockRecords', 'metricConfigs', 'camps', 'accounts',
     'pointProducts', 'pointExchanges', 'manualScoreRecords',
     'activityConfigByCamp', 'mealTimeConfigByCamp',
   ] as const;
@@ -1260,6 +1305,9 @@ export const useAppStore = defineStore('app', () => {
     rewardTiers,
     rewardClaims,
     configAudits,
+    unlockRecords,
+    recordUnlockSnapshots,
+    getStudentUnlockRecords,
     addRewardTier,
     updateRewardTier,
     toggleRewardTierActive,

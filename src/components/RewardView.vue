@@ -42,7 +42,31 @@ const totalDays = computed(() => streakData.value.totalDays);
 const myClaims = computed(() => campRewardClaims.value.filter(c => c.studentId === store.user?.id));
 // 新版口径：防重复领取 = 同一档位所在营期只能领取一次（不再跨营期合并卡相同档位）
 const shippedClaims = computed(() => myClaims.value.filter(c => c.status === 'shipped'));
-const sortedTiers = computed(() => [...campRewardTiers.value].filter(t => t.source !== 'activity' && t.active !== false).sort((a, b) => a.requiredDays - b.requiredDays));
+/** 该学员已领取过的 tierId 集合（判"未领取"直接查领取记录，不依赖档位是否仍存在——被删档也可定位） */
+const myClaimedTierIds = computed(() => new Set(myClaims.value.map(c => c.tierId)));
+/** 已解锁未领取的连续打卡档位快照（含被营养师下架/删除的）。解锁时落盘，任何档位状态不影响其可见可领（资格快照语义）。 */
+const unlockedUnclaimedRecords = computed(() =>
+  store.getStudentUnlockRecords(store.user?.id || '', activeCampId.value).filter(r => !myClaimedTierIds.value.has(r.tierId)),
+);
+const sortedTiers = computed(() => {
+  const base = [...campRewardTiers.value].filter(t => t.source !== 'activity' && t.active !== false).sort((a, b) => a.requiredDays - b.requiredDays);
+  // 已解锁但 live 已售罄/已下架/已删除的档位：用解锁快照兜底补进可领列表，保证"资格一旦解锁仍可见可领"
+  for (const r of unlockedUnclaimedRecords.value) {
+    const live = campRewardTiers.value.find(t => t.id === r.tierId);
+    if (live) {
+      // live 仍存在（含被下架）：有货则可领（getTierState 只看库存，不看 active）
+      if (live.stock > 0 && !base.some(t => t.id === live.id)) base.push(live);
+    } else {
+      // live 被删除：物化成一张可领档位（stock 哨兵>0；claimRewardTier 走解锁快照发放，不扣 live 库存）
+      base.push({
+        id: r.tierId, name: r.snapshot.name, requiredDays: r.snapshot.requiredDays,
+        imageUrl: r.snapshot.imageUrl, stock: 9999, active: true, source: 'streak',
+        deliveryMethods: r.snapshot.deliveryMethods,
+      });
+    }
+  }
+  return base.sort((a, b) => a.requiredDays - b.requiredDays);
+});
 const maxRequiredDays = computed(() => Math.max(...sortedTiers.value.map(t => t.requiredDays), 1));
 
 // ─── 资格快照：营期内任意历史最长连续完成天数（断签后已解锁未领取档位不回落） ──────────────
@@ -137,6 +161,13 @@ const submitClaim = () => {
 // 卡片入场动画延迟
 const visibleCards = ref<number[]>([]);
 onMounted(() => {
+  // 把已解锁未领取的 live 档位快照落盘（幂等），确保此后营养师下架/删除该奖，学员端仍能显示并领取
+  const unlockedLive = campRewardTiers.value.filter(
+    (t) => t.source === 'streak' && t.active !== false && !myClaimedTierIds.value.has(t.id) && snapshotDays.value >= t.requiredDays,
+  );
+  if (unlockedLive.length) {
+    store.recordUnlockSnapshots(store.user?.id || '', activeCampId.value, unlockedLive);
+  }
   sortedTiers.value.forEach((_, idx) => {
     setTimeout(() => visibleCards.value.push(idx), 120 * idx);
   });
