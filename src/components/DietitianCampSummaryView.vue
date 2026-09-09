@@ -215,22 +215,15 @@ const fmtChange = (v: number | null, unit = ''): string => {
               >有效</span>
               <span class="flex items-center gap-0.5 text-[10px] text-gray-500 ml-auto shrink-0">
                 <TrendingDown class="w-3 h-3" :class="report.summary.weightLossKg !== null && report.summary.weightLossKg > 0 ? 'text-[#07C160]' : 'text-gray-400'" />
-                {{ report.summary.weightLossKg !== null ? `${fmt(report.summary.weightLossKg)}kg` : '--' }}
+                体重变化 <span class="text-gray-700 font-medium">{{ report.summary.weightLossKg !== null ? `${fmt(report.summary.weightLossKg)}kg` : '--' }}</span>
               </span>
               <ChevronRight class="w-4 h-4 text-gray-300 shrink-0" />
             </div>
-            <!-- 打卡频率条（合并自原「打卡频率统计」）+ 连续天数 -->
-            <div class="flex items-center gap-2 mt-2">
-              <div class="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
-                <div
-                  class="absolute left-0 top-0 h-full rounded-full transition-all"
-                  :class="report.checkinStats.completionRate >= 0.8 ? 'bg-[#07C160]' : report.checkinStats.completionRate >= 0.5 ? 'bg-[#FF976A]' : 'bg-gray-300'"
-                  :style="{ width: `${Math.min(report.checkinStats.completionRate * 100, 100)}%` }"
-                ></div>
-              </div>
-              <span class="text-[10px] font-medium text-gray-600 shrink-0">
-                {{ report.checkinStats.completeDays }}/{{ report.checkinStats.campDays }}天 · 连续{{ report.summary.longestStreak }}天
-              </span>
+            <!-- 打卡统计一行条目：打卡频率(X/Y天·%) / 完成率% / 最长连续打卡 -->
+            <div class="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[10px] text-gray-500">
+              <span>打卡频率 <span class="text-gray-700 font-medium">{{ report.checkinStats.totalCheckinDays }}/{{ report.checkinStats.campDays }}天 {{ fmtPct(report.checkinStats.campDays > 0 ? report.checkinStats.totalCheckinDays / report.checkinStats.campDays : 0) }}</span></span>
+              <span>完成率 <span class="text-gray-700 font-medium">{{ fmtPct(report.checkinStats.completionRate) }}</span></span>
+              <span>最长连续打卡<span class="text-gray-700 font-medium">{{ report.checkinStats.longestStreak }}</span>天</span>
             </div>
           </div>
         </div>
