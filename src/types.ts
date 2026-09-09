@@ -48,6 +48,18 @@ export interface User {
   medicalReports?: MedicalReport[];
 }
 
+/** 打卡记录上的单条批注（同一记录可有多名同角色人员分别批注，逐条展示不覆盖；作者带角色+姓名） */
+export interface CheckinComment {
+  id: string;
+  /** 作者角色：营养师 / 教练 */
+  role: 'dietitian' | 'coach';
+  /** 作者姓名 */
+  name: string;
+  text: string;
+  /** yyyy-MM-dd HH:mm:ss */
+  date: string;
+}
+
 export interface WeightRecord {
   id: string;
   date: string; // YYYY-MM-DD HH:mm:ss
@@ -57,7 +69,9 @@ export interface WeightRecord {
   campId?: string;
   /** 打卡照片 */
   photos?: string[];
-  /** 营养师对该条体重记录的批注 */
+  /** 全部营养师批注（多名营养师各自撰写，逐条展示；新增优先，同时镜像到 dietitian* 单字段以兼容消息/计数） */
+  comments?: CheckinComment[];
+  /** 营养师对该条体重记录的批注（最新一条的镜像） */
   dietitianComment?: string;
   /** 批注营养师姓名 */
   dietitianName?: string;
@@ -82,7 +96,9 @@ export interface ExerciseRecord {
   photos?: string[];
   /** 运动视频 URL 列表 */
   videoUrls?: string[];
-  /** 教练对该条运动记录的批注 */
+  /** 全部教练批注（多名教练各自撰写，逐条展示；新增优先，同时镜像到 coach* 单字段以兼容消息/计数） */
+  comments?: CheckinComment[];
+  /** 教练对该条运动记录的批注（最新一条的镜像） */
   coachComment?: string;
   coachName?: string;
   coachCommentDate?: string;
@@ -103,6 +119,8 @@ export interface DietRecord {
   photos: string[];
   /** 所属营期 ID */
   campId?: string;
+  /** 全部营养师批注（多名营养师各自撰写，逐条展示；新增优先，同时镜像到 dietitian* 单字段以兼容消息/计数） */
+  comments?: CheckinComment[];
   dietitianComment?: string;
   dietitianName?: string;
   dietitianCommentDate?: string;

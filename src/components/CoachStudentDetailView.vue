@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { campDateRange } from '../lib/camps';
 import { MOCK_STUDENTS } from '../mock/data';
-import { NavBar, Card, Button, ChartRulePopup } from './ui';
+import { NavBar, Card, Button, ChartRulePopup, CheckinComments } from './ui';
+import { recordComments } from '../lib/comments';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import ExerciseTrendCard from './ExerciseTrendCard.vue';
 import { UserCircle, Activity, Scale, MessageCircle, PlayCircle, ChevronDown, Stethoscope, ClipboardList, AlertCircle, FileText, TrendingUp } from 'lucide-vue-next';
@@ -92,11 +93,15 @@ const cancelExerciseComment = () => {
   exerciseScore.value = 1;
 };
 const handleSaveExerciseComment = (recordId: string) => {
+  store.addRecordComment('exercise', recordId, {
+    id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    role: 'coach',
+    name: store.user?.name || '教练',
+    text: exerciseCommentText.value,
+    date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+  });
   store.updateExerciseRecord(recordId, {
-    coachComment: exerciseCommentText.value,
     coachScore: exerciseScore.value,
-    coachName: store.user?.name || '教练',
-    coachCommentDate: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
     // 新批注/新评分需重置已读，学员端才会亮"新批注"并计入未读数（与营养师批注口径一致）
     commentRead: false,
   });
@@ -401,12 +406,10 @@ onActivated(consumePendingAnnotation);
                         +{{ record.coachScore }}
                       </span>
                     </div>
-                    <span v-if="record.coachCommentDate" class="text-[10px] text-gray-400">{{ record.coachCommentDate }}</span>
                   </div>
-                  <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.coachComment }}</p>
+                  <CheckinComments :comments="recordComments(record)" />
                   <div class="flex items-center gap-2 mt-1">
                     <button @click="startExerciseComment(record)" class="text-xs text-[#07C160]">编辑</button>
-                    <span v-if="record.coachName" class="text-[10px] text-gray-400">批注人：{{ record.coachName }}</span>
                   </div>
                 </div>
                 <button v-else @click="startExerciseComment(record)" class="flex items-center gap-1 text-sm text-[#07C160] font-medium">

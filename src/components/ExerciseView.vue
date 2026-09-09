@@ -7,7 +7,8 @@ import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
 import { compressVideo } from '../lib/videoCompress';
-import { NavBar, Card, Button, Input, ChartRulePopup } from './ui';
+import { NavBar, Card, Button, Input, ChartRulePopup, CheckinComments } from './ui';
+import { recordComments } from '../lib/comments';
 import { Plus, X, Camera, Video, PlayCircle, Loader, MessageCircle, ChevronDown, Dumbbell, TrendingUp } from 'lucide-vue-next';
 import { showToast } from 'vant';
 import { computeExerciseTrends } from '../lib/journey';
@@ -847,13 +848,13 @@ const handleSubmit = () => {
                 <div v-if="record.coachComment" class="mt-3 p-2.5 rounded-lg bg-[#07C160]/5 border border-[#07C160]/10">
                   <div class="flex items-center gap-1.5 mb-1">
                     <MessageCircle class="w-3 h-3 text-[#07C160]" />
-                    <span class="text-[11px] font-bold text-[#07C160]">{{ record.coachName || '教练' }}批注</span>
+                    <span class="text-[11px] font-bold text-[#07C160]">教练批注</span>
                     <span v-if="record.coachScore === 2" class="text-[10px] font-bold text-white bg-[#07C160] px-1.5 py-0.5 rounded">+2</span>
                     <span v-else-if="record.coachScore === 1" class="text-[10px] font-bold text-white bg-[#FF976A] px-1.5 py-0.5 rounded">+1</span>
                     <span v-else-if="record.coachScore === 0" class="text-[10px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded">0</span>
                     <span v-if="!record.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                   </div>
-                  <p class="text-xs text-gray-700 leading-relaxed">{{ record.coachComment }}</p>
+                  <CheckinComments :comments="recordComments(record)" />
                 </div>
               </div>
             </Card>

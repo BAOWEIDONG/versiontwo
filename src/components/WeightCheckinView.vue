@@ -6,7 +6,8 @@ import { celebrateCheckin, celebrateReward } from '../lib/confetti';
 import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
-import { NavBar, Button, Card, ChartRulePopup } from './ui';
+import { NavBar, Button, Card, ChartRulePopup, CheckinComments } from './ui';
+import { recordComments } from '../lib/comments';
 import { Scale, TrendingUp, TrendingDown, Minus, Camera, X, ChevronDown, Target, Pencil } from 'lucide-vue-next';
 import { showToast } from 'vant';
 import { formatDateTime } from '../lib/utils';
@@ -757,12 +758,11 @@ function handleChartTouchMove(e: TouchEvent) {
                   <div v-if="w.dietitianComment" class="mt-2 ml-11 bg-[#1677FF]/5 rounded-lg p-3 border border-[#1677FF]/10">
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-xs font-bold text-[#1677FF] flex items-center gap-1.5">
-                        {{ w.dietitianName || '营养师' }}批注
+                        营养师批注
                         <span v-if="!w.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       </span>
-                      <span v-if="w.dietitianCommentDate" class="text-[10px] text-gray-400">{{ w.dietitianCommentDate }}</span>
                     </div>
-                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ w.dietitianComment }}</p>
+                    <CheckinComments :comments="recordComments(w)" />
                   </div>
                 </div>
               </div>

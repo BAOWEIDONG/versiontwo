@@ -117,12 +117,12 @@ interface ReportMessage {
   time: string;
 }
 
-// 结营寄语 + 饮食/运动/体重批注 聚合成留言列表（多名营养师/教练各自撰写，逐条展示带角色姓名，不互相覆盖）
+// 结营寄语留言列表（可能多名营养师各自撰写寄语，逐条展示带角色姓名，不互相覆盖）
 const reportMessages = computed<ReportMessage[]>(() => {
   const sid = studentId.value;
   const cid = selectedCampId.value || campInfo.value?.id;
   const list: ReportMessage[] = [];
-  // ① 结营寄语（campMessageList append 语义，可多条）
+  // 结营寄语（campMessageList append 语义，可多条）
   if (cid) {
     store.getCampMessages(cid, sid).forEach((m) => {
       list.push({
@@ -130,28 +130,6 @@ const reportMessages = computed<ReportMessage[]>(() => {
       });
     });
   }
-  // ② 饮食批注（营养师）
-  studentDiets.value.forEach((r) => {
-    if (r.dietitianComment && r.dietitianName) {
-      list.push({
-        id: `diet_${r.id}`, kind: '饮食批注', role: 'dietitian', name: r.dietitianName, text: r.dietitianComment, time: r.dietitianCommentDate || r.date,
-      });
-    }
-  });
-  // ③ 运动批注（教练）
-  studentExercises.value.forEach((r) => {
-    if (r.coachComment && r.coachName) {
-      list.push({ id: `ex_${r.id}`, kind: '运动批注', role: 'coach', name: r.coachName, text: r.coachComment, time: r.coachCommentDate || r.date });
-    }
-  });
-  // ④ 体重批注（营养师）
-  studentWeights.value.forEach((r) => {
-    if (r.dietitianComment && r.dietitianName) {
-      list.push({
-        id: `wt_${r.id}`, kind: '体重批注', role: 'dietitian', name: r.dietitianName, text: r.dietitianComment, time: r.dietitianCommentDate || r.date,
-      });
-    }
-  });
   // 按时间倒序（最新在前）
   return list.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
 });
@@ -456,11 +434,11 @@ const exportPDF = () => {
         </p>
       </Card>
 
-      <!-- 营养师与教练寄语、批注（支持多名营养师/教练各自撰写提交，逐条展示带角色姓名，不互相覆盖） -->
+      <!-- 结营寄语（支持多名营养师各自撰写提交，逐条展示带角色姓名，不互相覆盖） -->
       <Card>
         <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b border-[#1677FF]/10 pb-2">
           <MessageCircle class="h-4 w-4 text-[#1677FF]" />
-          营养师与教练寄语、批注
+          营养师结营寄语
         </h3>
         <div v-if="reportMessages.length > 0" class="space-y-3">
           <div v-for="m in reportMessages" :key="m.id"
@@ -468,13 +446,12 @@ const exportPDF = () => {
             <div class="flex items-center gap-2 mb-1.5 flex-wrap">
               <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full border', roleTag(m).cls]">{{ roleTag(m).badge }}</span>
               <span class="text-xs font-bold text-gray-800">{{ m.name }}</span>
-              <span class="text-[10px] text-gray-400">{{ m.kind }}</span>
               <span class="ml-auto text-[10px] text-gray-300">{{ formatMsgTime(m.time) }}</span>
             </div>
             <p class="text-sm text-gray-700 leading-relaxed">{{ m.text }}</p>
           </div>
         </div>
-        <p v-else class="text-sm text-gray-400 py-2">本营期暂无营养师/教练寄语与批注</p>
+        <p v-else class="text-sm text-gray-400 py-2">本营期暂无营养师结营寄语</p>
         <div class="space-y-3 text-sm text-gray-700 leading-relaxed mt-4 pt-3 border-t border-gray-100">
           <div class="flex gap-2.5">
             <span class="shrink-0">🥗</span>

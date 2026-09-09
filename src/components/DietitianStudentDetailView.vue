@@ -3,7 +3,8 @@ import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
-import { NavBar, Card, Button, ChartRulePopup } from './ui';
+import { NavBar, Card, Button, ChartRulePopup, CheckinComments } from './ui';
+import { recordComments } from '../lib/comments';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import { UserCircle, Coffee, MessageCircle, Stethoscope, ClipboardList, AlertCircle, FileText, Activity, Scale, PlayCircle, ChevronDown, ChevronUp, Eye, Plus, Minus, Trash2, Award } from 'lucide-vue-next';
 import { showToast, showConfirmDialog } from 'vant';
@@ -177,11 +178,12 @@ const cancelWeightComment = () => {
   weightCommentText.value = '';
 };
 const handleSaveWeightComment = (recordId: string) => {
-  store.updateWeightRecord(recordId, {
-    dietitianComment: weightCommentText.value,
-    dietitianName: store.user?.name || '营养师',
-    dietitianCommentDate: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
-    commentRead: false,
+  store.addRecordComment('weight', recordId, {
+    id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    role: 'dietitian',
+    name: store.user?.name || '营养师',
+    text: weightCommentText.value,
+    date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
   });
   cancelWeightComment();
 };
@@ -287,11 +289,15 @@ const cancelComment = () => {
 };
 
 const handleSaveComment = (recordId: string) => {
+  store.addRecordComment('diet', recordId, {
+    id: `cc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    role: 'dietitian',
+    name: store.user?.name || '营养师',
+    text: commentText.value,
+    date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+  });
   store.updateDietRecord(recordId, {
-    dietitianComment: commentText.value,
     dietitianScore: commentScore.value,
-    dietitianName: store.user?.name || '营养师',
-    dietitianCommentDate: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
     commentRead: false,
     hasStaple: commentStaple.value,
     hasProtein: commentProtein.value,
@@ -648,11 +654,8 @@ function handleDeleteManualScore(id: string) {
                       <template v-else>未打分</template>
                     </span>
                   </div>
-                  <span v-if="record.dietitianCommentDate" class="text-[10px] text-gray-500">{{ record.dietitianCommentDate }}</span>
                 </div>
-                <p v-if="record.dietitianComment" class="text-sm text-gray-700 whitespace-pre-wrap">
-                  {{ record.dietitianComment }}
-                </p>
+                <CheckinComments :comments="recordComments(record)" />
                 <div class="flex items-center gap-2 mt-2">
                   <button @click="startComment(record)" class="text-xs text-[#1677FF]">
                     编辑
@@ -758,11 +761,9 @@ function handleDeleteManualScore(id: string) {
                       +{{ record.coachScore }}
                     </span>
                   </div>
-                  <span v-if="record.coachCommentDate" class="text-[10px] text-gray-400">{{ record.coachCommentDate }}</span>
                 </div>
-                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.coachComment }}</p>
+                <CheckinComments :comments="recordComments(record)" />
                 <div class="flex items-center gap-2 mt-1">
-                  <span v-if="record.coachName" class="text-[10px] text-gray-400">批注人：{{ record.coachName }}</span>
                   <span v-if="record.coachComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     <Eye class="w-3 h-3" />
                     学员已读未回
@@ -911,9 +912,8 @@ function handleDeleteManualScore(id: string) {
                           <div class="flex items-center gap-2">
                             <span class="text-xs font-bold text-[#07C160]">批注</span>
                           </div>
-                          <span v-if="rec.dietitianCommentDate" class="text-[10px] text-gray-400">{{ rec.dietitianCommentDate }}</span>
                         </div>
-                        <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ rec.dietitianComment }}</p>
+                        <CheckinComments :comments="recordComments(rec)" />
                         <div class="flex items-center gap-2 mt-1">
                           <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">编辑</button>
                           <span v-if="rec.dietitianComment && rec.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">

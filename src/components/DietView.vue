@@ -7,10 +7,11 @@ import { calculateStreak } from '../lib/streak';
 import { uploadFile } from '../lib/api';
 import { compressImage } from '../lib/imageCompress';
 import { Checkbox as VanCheckbox, showToast } from 'vant';
-import { NavBar, Card, Button } from './ui';
+import { NavBar, Card, Button, CheckinComments } from './ui';
 import { Camera, X, ChevronDown, UtensilsCrossed } from 'lucide-vue-next';
 import { formatDateTime } from '../lib/utils';
 import { thumbUrl } from '../lib/imageThumb';
+import { recordComments } from '../lib/comments';
 import type { DietRecord } from '../types';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import { useTabSwipe } from '../lib/useTabSwipe';
@@ -408,17 +409,14 @@ onActivated(processPendingDeepLink);
 
               <div v-if="record.dietitianComment || typeof record.dietitianScore === 'number'" class="bg-[#07C160]/5 p-4 relative">
                 <div class="absolute top-0 left-0 w-1 min-h-full bg-[#07C160]"></div>
-                <div class="flex items-center justify-between mb-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-[#07C160]">{{ record.dietitianName || '营养师' }}批注</span>
-                    <span v-if="record.dietitianScore === 2" class="text-[10px] font-bold text-white bg-[#07C160] px-1.5 py-0.5 rounded">+2</span>
-                    <span v-else-if="record.dietitianScore === 1" class="text-[10px] font-bold text-white bg-[#FF976A] px-1.5 py-0.5 rounded">+1</span>
-                    <span v-else-if="record.dietitianScore === 0" class="text-[10px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded">0</span>
-                    <span v-if="record.dietitianComment && !record.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                  </div>
-                  <span v-if="record.dietitianCommentDate" class="text-[10px] text-gray-500">{{ record.dietitianCommentDate }}</span>
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-xs font-bold text-[#07C160]">营养师批注</span>
+                  <span v-if="record.dietitianScore === 2" class="text-[10px] font-bold text-white bg-[#07C160] px-1.5 py-0.5 rounded">+2</span>
+                  <span v-else-if="record.dietitianScore === 1" class="text-[10px] font-bold text-white bg-[#FF976A] px-1.5 py-0.5 rounded">+1</span>
+                  <span v-else-if="record.dietitianScore === 0" class="text-[10px] font-bold text-white bg-gray-400 px-1.5 py-0.5 rounded">0</span>
+                  <span v-if="record.dietitianComment && !record.commentRead" class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                 </div>
-                <p v-if="record.dietitianComment" class="text-sm text-gray-700 whitespace-pre-wrap">{{ record.dietitianComment }}</p>
+                <CheckinComments :comments="recordComments(record)" />
               </div>
             </Card>
           </div>

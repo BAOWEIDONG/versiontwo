@@ -5,3 +5,4 @@ export { default as NavBar } from './NavBar.vue';
 export { default as ChartRulePopup } from './ChartRulePopup.vue';
 export { default as GenderAvatar } from './GenderAvatar.vue';
 export { default as StudentTabbar } from './StudentTabbar.vue';
+export { default as CheckinComments } from './CheckinComments.vue';

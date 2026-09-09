@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CheckinComment, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -501,6 +501,37 @@ export const useAppStore = defineStore('app', () => {
   function updateDietRecord(id: string, updates: Partial<DietRecord>) {
     dietRecords.value = dietRecords.value.map((r) => (r.id === id ? { ...r, ...updates } : r));
     api.updateDietRecord(id, updates).catch(() => {});
+  }
+
+  /**
+   * 给打卡记录追加一条批注（可多名同角色人员分别批注，append 不覆盖）。
+   * 同时镜像到单字段（dietitian 系 / coach 系 最新一条），保证消息中心/未读计数等仍按单品逻辑工作。
+   */
+  function addRecordComment(type: 'diet' | 'weight' | 'exercise', recordId: string, entry: CheckinComment) {
+    const arr = type === 'diet' ? dietRecords.value : type === 'weight' ? weightRecords.value : exerciseRecords.value;
+    const idx = arr.findIndex((r) => r.id === recordId);
+    if (idx < 0) return;
+    const r = arr[idx];
+    const list: CheckinComment[] = Array.isArray((r as any).comments) ? [...((r as any).comments as CheckinComment[])] : [];
+    const last = list[list.length - 1];
+    // 同作者同内容的再次保存视为更新时间（防重复）；否则追加为新批注
+    if (last && last.name === entry.name && last.role === entry.role && last.text === entry.text) {
+      list[list.length - 1] = { ...last, date: entry.date };
+    } else {
+      list.push(entry);
+    }
+    const latest = list[list.length - 1];
+    (r as any).comments = list;
+    (r as any).commentRead = false;
+    if (type === 'exercise') {
+      (r as any).coachComment = latest.text;
+      (r as any).coachName = latest.name;
+      (r as any).coachCommentDate = latest.date;
+    } else {
+      (r as any).dietitianComment = latest.text;
+      (r as any).dietitianName = latest.name;
+      (r as any).dietitianCommentDate = latest.date;
+    }
   }
 
 
@@ -1304,6 +1335,7 @@ export const useAppStore = defineStore('app', () => {
     updateExerciseRecord,
     addDietRecord,
     updateDietRecord,
+    addRecordComment,
     addCoachActivity,
     updateCoachActivity,
     deleteCoachActivity,
