@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CheckinComment, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry, CampReportAdvice } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CheckinComment, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -107,11 +107,6 @@ export const useAppStore = defineStore('app', () => {
       createdAt: '2026-09-01 09:12:00',
     },
     {
-      id: 'cm2', campId: 'camp1', studentId: 's1', role: 'coach', authorName: '李教练',
-      text: '力量训练动作越来越标准，核心力量提升明显！建议结营后保持每周 2 次力量训练，把肌肉练上来，基础代谢才稳。',
-      createdAt: '2026-09-02 18:30:00',
-    },
-    {
       id: 'cm3', campId: 'camp1', studentId: 's1', role: 'dietitian', authorName: '张营养师',
       text: '注意结营后的回弹控制：聚餐后下一餐清淡，每天 1500ml 饮水别断，2 周后回来复测体成分。',
       createdAt: '2026-09-03 10:05:00',
@@ -189,30 +184,6 @@ export const useAppStore = defineStore('app', () => {
     if (!t) { campMessageList.value.splice(idx, 1); return; }
     campMessageList.value.splice(idx, 1, { ...campMessageList.value[idx], text: t });
     api.saveCampMessage(campMessageList.value[idx].campId, campMessageList.value[idx].studentId, t).catch(() => {});
-  }
-
-  // 报告底部「结营建议」（每营期+学员一套单块大段），营养师在学员档案填写
-  const campReportAdviceList = ref<CampReportAdvice[]>([]);
-
-  /** 该学员该营期的结营建议（无则返回 null，报告该卡隐藏） */
-  function getCampReportAdvice(campId: string, studentId: string): CampReportAdvice | null {
-    return campReportAdviceList.value.find((a) => a.campId === campId && a.studentId === studentId) || null;
-  }
-
-  /** 保存/更新结营建议（upsert，单块共享字段，最近填写者覆盖）。空文本则删除该条。 */
-  function saveCampReportAdvice(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string) {
-    const t = text.trim();
-    const idx = campReportAdviceList.value.findIndex((a) => a.campId === campId && a.studentId === studentId);
-    if (!t) {
-      if (idx >= 0) campReportAdviceList.value.splice(idx, 1);
-      return;
-    }
-    if (idx >= 0) {
-      campReportAdviceList.value.splice(idx, 1, { ...campReportAdviceList.value[idx], text: t, authorName: authorName || '营养师', role, updatedAt: formatDateTimeStr() });
-    } else {
-      campReportAdviceList.value.push({ id: `adv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, campId, studentId, text: t, authorName: authorName || '营养师', role, updatedAt: formatDateTimeStr() });
-    }
-    api.saveCampMessage(campId, studentId, t).catch(() => {});
   }
 
   /** 将某学员的全部打卡批注标记为已读（进入学员端消息中心时调用，清底栏未读角标）。 */
@@ -830,13 +801,13 @@ export const useAppStore = defineStore('app', () => {
   const bizSources = [
     students, weightRecords, exerciseRecords, dietRecords, coachActivities,
     rewardTiers, rewardClaims, unlockRecords, campMessageList, metricConfigs, camps, accounts,
-    pointProducts, pointExchanges, manualScoreRecords, campReportAdviceList,
+    pointProducts, pointExchanges, manualScoreRecords,
     activityConfigByCamp, mealTimeConfigByCamp,
   ];
   const bizNames = [
     'students', 'weightRecords', 'exerciseRecords', 'dietRecords', 'coachActivities',
     'rewardTiers', 'rewardClaims', 'unlockRecords', 'campMessageList', 'metricConfigs', 'camps', 'accounts',
-    'pointProducts', 'pointExchanges', 'manualScoreRecords', 'campReportAdviceList',
+    'pointProducts', 'pointExchanges', 'manualScoreRecords',
     'activityConfigByCamp', 'mealTimeConfigByCamp',
   ] as const;
   function persistBiz() {
@@ -1344,9 +1315,6 @@ export const useAppStore = defineStore('app', () => {
     addCampMessage,
     getCampMessages,
     updateCampMessage,
-    campReportAdviceList,
-    getCampReportAdvice,
-    saveCampReportAdvice,
     markAllCommentsRead,
     activityConfigByCamp,
     getActivityConfig,

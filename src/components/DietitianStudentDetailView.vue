@@ -90,7 +90,6 @@ const loadCampMessage = () => {
   // 文本框即"新寄语输入框"：保存=追加一条寄语，不预填以保留历史寄语（防覆盖）
   campMessageText.value = '';
   editingMessageId.value = '';
-  adviceText.value = store.getCampReportAdvice(selectedCampId.value, store.selectedStudentId || '')?.text || '';
 };
 const startEditMessage = (m: { id: string; text: string }) => {
   editingMessageId.value = m.id;
@@ -118,17 +117,7 @@ const saveCampMessage = () => {
   setTimeout(() => (campMessageSaved.value = false), 2000);
 };
 
-// 报告底部「结营建议」：按（营期+学员）单块大段，营养师填写
-const showCampAdvice = ref(false);
-const adviceText = ref('');
-const adviceSaved = ref(false);
-const saveCampAdvice = () => {
-  if (!store.selectedStudentId || !selectedCampId.value) return;
-  store.saveCampReportAdvice(selectedCampId.value, store.selectedStudentId, adviceText.value, 'dietitian', store.user?.name || '营养师');
-  adviceSaved.value = true;
-  setTimeout(() => (adviceSaved.value = false), 2000);
-};
-
+// 报告底部「结营建议」已移除：寄语已足够，营养师/学员端均不再展示结营建议。
 const activeTab = ref<'diet' | 'exercise' | 'weight' | 'medical' | 'questionnaire' | 'score'>('diet');
 
 // Diet tab - filtered by studentId AND campId
@@ -542,38 +531,6 @@ function handleDeleteManualScore(id: string) {
               @click="saveCampMessage"
               :class="['px-4 py-1.5 rounded-lg text-xs font-bold transition-all', campMessageSaved ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white active:scale-95']"
             >{{ campMessageSaved ? '已保存 ✓' : editingMessageId ? '保存修改' : '保存寄语' }}</button>
-          </div>
-        </div>
-      </Card>
-
-      <!-- 结营建议：个人营期报告底部内容，营养师按学员填写（未填则学员端报告整卡隐藏） -->
-      <Card class="p-0 overflow-hidden border-[#07C160]/20 bg-[#07C160]/[0.03] shadow-sm">
-        <button
-          @click="showCampAdvice = !showCampAdvice"
-          class="w-full flex items-center justify-between px-4 py-3"
-        >
-          <div class="flex items-center gap-2">
-            <FileText class="w-4 h-4 text-[#07C160]" />
-            <h3 class="text-sm font-bold text-gray-900">结营建议</h3>
-            <span v-if="adviceText.trim()" class="text-[10px] text-[#07C160] bg-[#07C160]/10 px-1.5 py-0.5 rounded">已填写</span>
-            <span v-else class="text-[10px] text-gray-400">未填写</span>
-          </div>
-          <component :is="showCampAdvice ? ChevronUp : ChevronDown" class="w-4 h-4 text-gray-400 transition-transform" />
-        </button>
-        <div v-show="showCampAdvice" class="px-4 pb-4 space-y-3">
-          <textarea
-            v-model="adviceText"
-            rows="5"
-            maxlength="500"
-            placeholder="写给学员的结营建议（饮食/运动/监测/作息等），显示在学员个人营期报告底部，未填写则不显示"
-            class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] focus:ring-1 focus:ring-[#07C160]/20 outline-none resize-none bg-white"
-          ></textarea>
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] text-gray-400">{{ adviceText.length }}/500</span>
-            <button
-              @click="saveCampAdvice"
-              :class="['px-4 py-1.5 rounded-lg text-xs font-bold transition-all', adviceSaved ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white active:scale-95']"
-            >{{ adviceSaved ? '已保存 ✓' : '保存建议' }}</button>
           </div>
         </div>
       </Card>

@@ -122,9 +122,9 @@ const reportMessages = computed<ReportMessage[]>(() => {
   const sid = studentId.value;
   const cid = selectedCampId.value || campInfo.value?.id;
   const list: ReportMessage[] = [];
-  // 结营寄语（campMessageList append 语义，可多条）
+  // 结营寄语（campMessageList append 语义，可多条）；仅营养师可填写，教练寄语一律不展示
   if (cid) {
-    store.getCampMessages(cid, sid).forEach((m) => {
+    store.getCampMessages(cid, sid).filter((m) => m.role === 'dietitian').forEach((m) => {
       list.push({
         id: m.id, kind: '寄语', role: m.role, name: m.authorName, text: m.text, time: m.createdAt,
       });
@@ -136,12 +136,7 @@ const reportMessages = computed<ReportMessage[]>(() => {
 
 const roleTag = (m: ReportMessage) => (m.role === 'coach' ? { badge: '教练', cls: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' } : { badge: '营养师', cls: 'bg-[#1677FF]/10 text-[#1677FF] border-[#1677FF]/20' });
 
-// 报告底部「结营建议」：营养师在学员档案按学员填写，未填则整卡不显示
-const reportAdvice = computed(() => {
-  const sid = studentId.value;
-  const cid = selectedCampId.value || campInfo.value?.id;
-  return cid ? store.getCampReportAdvice(cid, sid) : null;
-});
+// 「结营建议」已移除：结营寄语已足够，学员端报告不再展示结营建议。
 
 // 目标达成度（学员在体重打卡页设置的目标体重）
 const targetInfo = computed(() => {
@@ -445,7 +440,7 @@ const exportPDF = () => {
       <Card>
         <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b border-[#1677FF]/10 pb-2">
           <MessageCircle class="h-4 w-4 text-[#1677FF]" />
-          营养师结营寄语
+          结营寄语
         </h3>
         <div v-if="reportMessages.length > 0" class="space-y-3">
           <div v-for="m in reportMessages" :key="m.id"
@@ -458,17 +453,7 @@ const exportPDF = () => {
             <p class="text-sm text-gray-700 leading-relaxed">{{ m.text }}</p>
           </div>
         </div>
-        <p v-else class="text-sm text-gray-400 py-2">本营期暂无营养师结营寄语</p>
-      </Card>
-
-      <!-- 营养师结营建议（按学员填写；未填则整卡隐藏） -->
-      <Card v-if="reportAdvice">
-        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b border-[#1677FF]/10 pb-2">
-          <MessageCircle class="h-4 w-4 text-[#1677FF]" />
-          营养师结营建议
-          <span class="ml-auto text-[10px] font-normal text-gray-400">{{ reportAdvice.authorName }} · {{ formatMsgTime(reportAdvice.updatedAt) }}</span>
-        </h3>
-        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ reportAdvice.text }}</p>
+        <p v-else class="text-sm text-gray-400 py-2">本营期暂无结营寄语</p>
       </Card>
 
       <!-- 底部鼓励语 -->

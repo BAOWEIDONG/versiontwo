@@ -204,19 +204,6 @@ export interface CampMessageEntry {
   createdAt: string;
 }
 
-/** 个人营期报告底部的「结营建议」：每（营期+学员）一套单块大段文字，由营养师在学员档案填写，未填则报告不展示 */
-export interface CampReportAdvice {
-  id: string;
-  campId: string;
-  studentId: string;
-  text: string;
-  /** 最近一次填写作者 */
-  authorName: string;
-  role: 'dietitian' | 'coach';
-  /** yyyy-MM-dd HH:mm:ss */
-  updatedAt: string;
-}
-
 export interface RewardTier {
   id: string;
   name: string;
