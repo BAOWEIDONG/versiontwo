@@ -202,29 +202,35 @@ const fmtChange = (v: number | null, unit = ''): string => {
           <div
             v-for="report in summary.studentReports"
             :key="report.studentId"
-            class="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+            class="p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
             @click="openStudent(report.studentId)"
           >
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-bold text-gray-900 text-sm">{{ report.studentName }}</span>
-                <span class="text-[10px] text-gray-500">{{ report.gender === 'male' ? '男' : '女' }}</span>
-                <span
-                  v-if="report.metricChanges.filter(m => m.category === '身体测量数据' && typeof m.beforeValue === 'number' && typeof m.afterValue === 'number').length > 0"
-                  class="text-[9px] bg-[#07C160]/10 text-[#07C160] px-1.5 py-0.5 rounded font-medium"
-                >有效</span>
-              </div>
-              <div class="flex flex-wrap gap-2 text-[10px] text-gray-500">
-                <span class="flex items-center gap-0.5">
-                  <TrendingDown class="w-3 h-3" :class="report.summary.weightLossKg !== null && report.summary.weightLossKg > 0 ? 'text-[#07C160]' : 'text-gray-400'" />
-                  {{ report.summary.weightLossKg !== null ? `${fmt(report.summary.weightLossKg)}kg` : '--' }}
-                </span>
-                <span>完成率 {{ fmtPct(report.checkinStats.completionRate) }}</span>
-                <span>连续{{ report.summary.longestStreak }}天</span>
-              </div>
+            <!-- 头部：姓名 / 性别 / 有效 + 体重变化 + 箭头 -->
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-gray-900 text-sm truncate">{{ report.studentName }}</span>
+              <span class="text-[10px] text-gray-500 shrink-0">{{ report.gender === 'male' ? '男' : '女' }}</span>
+              <span
+                v-if="report.metricChanges.filter(m => m.category === '身体测量数据' && typeof m.beforeValue === 'number' && typeof m.afterValue === 'number').length > 0"
+                class="text-[9px] bg-[#07C160]/10 text-[#07C160] px-1.5 py-0.5 rounded font-medium shrink-0"
+              >有效</span>
+              <span class="flex items-center gap-0.5 text-[10px] text-gray-500 ml-auto shrink-0">
+                <TrendingDown class="w-3 h-3" :class="report.summary.weightLossKg !== null && report.summary.weightLossKg > 0 ? 'text-[#07C160]' : 'text-gray-400'" />
+                {{ report.summary.weightLossKg !== null ? `${fmt(report.summary.weightLossKg)}kg` : '--' }}
+              </span>
+              <ChevronRight class="w-4 h-4 text-gray-300 shrink-0" />
             </div>
-            <div class="flex items-center shrink-0 ml-2">
-              <ChevronRight class="w-4 h-4 text-gray-300" />
+            <!-- 打卡频率条（合并自原「打卡频率统计」）+ 连续天数 -->
+            <div class="flex items-center gap-2 mt-2">
+              <div class="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
+                <div
+                  class="absolute left-0 top-0 h-full rounded-full transition-all"
+                  :class="report.checkinStats.completionRate >= 0.8 ? 'bg-[#07C160]' : report.checkinStats.completionRate >= 0.5 ? 'bg-[#FF976A]' : 'bg-gray-300'"
+                  :style="{ width: `${Math.min(report.checkinStats.completionRate * 100, 100)}%` }"
+                ></div>
+              </div>
+              <span class="text-[10px] font-medium text-gray-600 shrink-0">
+                {{ report.checkinStats.completeDays }}/{{ report.checkinStats.campDays }}天 · 连续{{ report.summary.longestStreak }}天
+              </span>
             </div>
           </div>
         </div>
@@ -269,33 +275,6 @@ const fmtChange = (v: number | null, unit = ''): string => {
               </tr>
             </tbody>
           </table>
-        </div>
-      </Card>
-
-      <!-- 打卡频率统计 -->
-      <Card>
-        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b pb-2">
-          <BarChart3 class="h-4 w-4 text-[#FF976A]" />
-          打卡频率统计
-        </h3>
-        <div class="space-y-2.5">
-          <div
-            v-for="report in summary.studentReports"
-            :key="report.studentId"
-            class="flex items-center gap-2.5"
-          >
-            <span class="text-xs text-gray-700 w-12 shrink-0 truncate">{{ report.studentName }}</span>
-            <div class="flex-1 bg-gray-100 rounded-full h-5 relative overflow-hidden">
-              <div
-                class="absolute left-0 top-0 h-full rounded-full transition-all"
-                :class="report.checkinStats.completionRate >= 0.8 ? 'bg-[#07C160]' : report.checkinStats.completionRate >= 0.5 ? 'bg-[#FF976A]' : 'bg-gray-300'"
-                :style="{ width: `${Math.min(report.checkinStats.completionRate * 100, 100)}%` }"
-              ></div>
-            </div>
-            <span class="text-[10px] font-medium text-gray-600 w-20 text-right shrink-0">
-              {{ report.checkinStats.completeDays }}/{{ report.checkinStats.campDays }}天 {{ fmtPct(report.checkinStats.completionRate) }}
-            </span>
-          </div>
         </div>
       </Card>
     </div>
