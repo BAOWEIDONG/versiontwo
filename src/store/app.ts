@@ -214,6 +214,34 @@ export const useAppStore = defineStore('app', () => {
     systemSeenAt.value = Date.now();
     if (user.value) saveMsgSeenState(user.value.id, { lastSystemSeenAt: systemSeenAt.value });
   }
+
+  // 已点开读过的「系统通知」id 列表（响应式镜像 seenState.readNotif）。只读不自动清：点开某条才算已读。
+  // 各页角标(系统通知分支)与消息页内红点共用，markNotifRead 刷新后所有缓存页角标同步扣减。
+  const readNotifIds = ref<string[]>([]);
+  watch(() => user.value?.id, (id) => {
+    readNotifIds.value = id ? (loadMsgSeenState(id).readNotif || []) : [];
+  }, { immediate: true });
+
+  /** 把某条系统通知标记为已读(点开它即读)，并持久化(跨页角标响应式)。 */
+  function markNotifRead(notifId: string) {
+    if (!user.value || !notifId) return;
+    if (!readNotifIds.value.includes(notifId)) {
+      readNotifIds.value = [...readNotifIds.value, notifId];
+      saveMsgSeenState(user.value.id, { readNotif: readNotifIds.value });
+    }
+  }
+
+  /** 某条系统通知是否未读 = 事件晚于查看基线 且 未被点开读过（与消息页红点口径一致）。 */
+  function isNotifUnread(date: string | undefined | null, notifId?: string): boolean {
+    return systemMsgUnread({ ranks: {}, lastSystemSeenAt: systemSeenAt.value, readNotif: readNotifIds.value }, date, notifId);
+  }
+
+  /** 把某条打卡记录的批注标记为已读（学生点开该批注消息时调用，仅清这一条，勿整体清）。 */
+  function markCommentRead(type: 'diet' | 'weight' | 'exercise', recordId: string) {
+    const arr = type === 'diet' ? dietRecords.value : type === 'weight' ? weightRecords.value : exerciseRecords.value;
+    const r = arr.find((item) => item.id === recordId);
+    if (r) (r as any).commentRead = true;
+  }
   const viewHistory = ref<View[]>(['login']);
   const currentView = computed<View>(() => viewHistory.value[viewHistory.value.length - 1]);
 
@@ -1069,7 +1097,7 @@ export const useAppStore = defineStore('app', () => {
     );
     const batch = diet.length + ex.length + wt.length;
 
-    const seen = { ranks: {}, lastSystemSeenAt: systemSeenAt.value };
+    const seen = { ranks: {}, lastSystemSeenAt: systemSeenAt.value, readNotif: readNotifIds.value };
     const claims = (cid ? getCampRewardClaims(cid) : rewardClaims.value).filter((c) => c.studentId === studentId);
     const exchanges = getStudentExchanges(studentId).filter((e) => !cid || !e.campId || e.campId === cid);
 
@@ -1077,12 +1105,12 @@ export const useAppStore = defineStore('app', () => {
     for (const c of claims) {
       // 与 MessagesView rewardMessages.date 一致：已发/已线下取发货日，否则领取日
       const d = (c.status === 'shipped' && c.shipDate) || (c.status === 'in-person' && c.deliveredAt) || c.claimDate;
-      if (systemMsgUnread(seen, d)) sys++;
+      if (systemMsgUnread(seen, d, `reward-${c.id}`)) sys++;
     }
     for (const e of exchanges) {
       // 与 MessagesView exchangeMessages.date 一致
       const d = (e.status === 'fulfilled' && e.shipDate) || e.exchangeDate;
-      if (systemMsgUnread(seen, d)) sys++;
+      if (systemMsgUnread(seen, d, `exch-${e.id}`)) sys++;
     }
     return batch + sys;
   }
@@ -1423,6 +1451,9 @@ export const useAppStore = defineStore('app', () => {
     addDietRecord,
     updateDietRecord,
     addRecordComment,
+    markCommentRead,
+    markNotifRead,
+    isNotifUnread,
     tryLockAnnotation,
     releaseAnnotationLock,
     annotationLockInfo,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onActivated, onDeactivated, onUnmounted } from 'vue';
+import { computed, ref } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { NavBar, StudentTabbar } from './ui';
@@ -7,7 +7,6 @@ import { MessageCircle, Gift, Trophy, Bell, ChevronRight, Activity, RefreshCw } 
 import { useTabSwipe } from '../lib/useTabSwipe';
 import { usePaged } from '../composables/usePaged';
 import { useDebounced } from '../composables/useDebounced';
-import { loadMsgSeenState, saveMsgSeenState, systemMsgUnread, type MsgSeenState } from '../lib/messageSeen';
 
 const store = useAppStore();
 const isMine = (r: { studentId?: string }) => r.studentId === store.user?.id;
@@ -22,31 +21,6 @@ function showToast(text: string) {
   toastVisible.value = true;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toastVisible.value = false; }, 2500);
-}
-
-// ─── 消息已读追踪：系统通知(奖励/兑换)用「最近查看时刻」时间戳模型，排名用变动检测 ───
-// 持久化结构见 lib/messageSeen：{ [userId]: { ranks, lastSystemSeenAt } }。
-// lastSystemSeenAt 在离开消息中心时更新；晚于该时刻产生的系统通知在下次进入时标记未读。
-const seenState = ref<MsgSeenState>(loadMsgSeenState(store.user?.id || ''));
-
-function saveSeenState() {
-  if (!store.user) return;
-  // 排名动态不再推送消息到消息中心，仅记录「最近查看时刻」判定后续系统通知未读
-  saveMsgSeenState(store.user.id, { ...seenState.value, lastSystemSeenAt: Date.now() });
-}
-
-// 进入消息界面即清零底栏未读角标：批注消息整体标记已读 + 系统通知归入"最近查看时刻"起点。
-// KeepAlive 下 onActivated 每次可见均触发；为兼容非缓存场景补 onDeactivated 兜底持久化。
-onActivated(() => considerAllRead());
-onDeactivated(() => saveSeenState());
-onUnmounted(() => saveSeenState());
-
-function considerAllRead() {
-  if (!store.user) return;
-  store.markAllCommentsRead(store.user.id);
-  seenState.value = { ...seenState.value, lastSystemSeenAt: Date.now() };
-  store.markSystemSeenAt(); // 刷新 store 内响应式系统通知时刻，让所有缓存页角标同时重算为 0
-  saveSeenState();
 }
 
 async function handleRefresh() {
@@ -86,6 +60,9 @@ interface MessageItem {
   unread: boolean;
   targetView: 'diet' | 'exercise' | 'weight-checkin' | 'reward' | 'ranking' | 'camp-activities' | 'points-mall' | 'my-rewards';
   targetDate?: string; // yyyy-MM-dd for scroll-to-record
+  recType?: 'diet' | 'weight' | 'exercise'; // 批注消息：点开时按此清该条 commentRead
+  recordId?: string; // 批注消息对应记录 id
+  notifId?: string; // 系统通知消息：点开时按此记已读
 }
 
 // ---- 批注消息（营养师：饮食/体重；教练：运动） ----
@@ -99,6 +76,8 @@ const commentMessages = computed<MessageItem[]>(() => {
     unread: !r.commentRead,
     targetView: type === 'diet' ? 'diet' : 'weight-checkin',
     targetDate: (r.date || '').substring(0, 10),
+    recType: type,
+    recordId: r.id,
   });
   const coachWrap = (r: any): MessageItem => ({
     id: `ex-${r.id}`,
@@ -109,6 +88,8 @@ const commentMessages = computed<MessageItem[]>(() => {
     unread: !r.commentRead,
     targetView: 'exercise',
     targetDate: (r.date || '').substring(0, 10),
+    recType: 'exercise',
+    recordId: r.id,
   });
   return [
     ...campDietRecs.value.filter((r) => isMine(r) && r.dietitianComment).map((r) => dietitianWrap(r, 'diet')),
@@ -141,7 +122,8 @@ const rewardMessages = computed<MessageItem[]>(() => {
               : c.deliveryMethod === 'in-person'
                 ? `恭喜达成「${tier?.name || '奖励'}」，已为你安排线下领取，请等待营养师联系`
                 : `恭喜达成「${tier?.name || '奖励'}」，礼品将尽快寄出`,
-        unread: systemMsgUnread(seenState.value, date),
+        unread: store.isNotifUnread(date, `reward-${c.id}`),
+        notifId: `reward-${c.id}`,
         targetView: confirmed ? 'camp-activities' : 'my-rewards',
       };
     });
@@ -164,7 +146,8 @@ const exchangeMessages = computed<MessageItem[]>(() => {
         body: fulfilled
           ? `「${e.productName}」已寄出${e.trackingNumber ? `，快递单号 ${e.trackingNumber}` : ''}，请注意查收`
           : `你使用 ${e.pointsSpent} 积分兑换了「${e.productName}」，礼品将尽快寄出`,
-        unread: systemMsgUnread(seenState.value, date),
+        unread: store.isNotifUnread(date, `exch-${e.id}`),
+        notifId: `exch-${e.id}`,
         targetView: 'my-rewards',
       };
     });
@@ -226,6 +209,12 @@ const typeMeta = (type: MessageItem['type']) =>
         : { icon: Trophy, cls: 'bg-yellow-50 text-yellow-600', tag: '排名动态', tagCls: 'bg-yellow-50 text-yellow-600' };
 
 const openMessage = (m: MessageItem) => {
+  // 点开才读才清：批注清该记录 commentRead，系统通知记该 notifId 已读
+  if (m.recType && m.recordId) {
+    store.markCommentRead(m.recType, m.recordId);
+  } else if (m.notifId) {
+    store.markNotifRead(m.notifId);
+  }
   if (m.targetDate) {
     store.setSelectedDateStr(m.targetDate);
   }
