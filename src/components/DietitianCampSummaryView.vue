@@ -4,7 +4,7 @@ import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
 import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
 import { useDeferred } from '../composables/useDeferred';
-import { NavBar, Card } from './ui';
+import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings, Flame } from 'lucide-vue-next';
 import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
@@ -198,10 +198,21 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
 
       <!-- 学员列表 -->
       <Card>
-        <h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b pb-2">
-          <BarChart3 class="h-4 w-4 text-[#FF976A]" />
-          学员结营概况
-        </h3>
+        <div class="flex items-center justify-between mb-4 border-b pb-2">
+          <h3 class="font-bold text-gray-900 flex items-center gap-2">
+            <BarChart3 class="h-4 w-4 text-[#FF976A]" />
+            学员结营概况
+          </h3>
+          <ChartRulePopup title="学员结营概况计算规则" button-text="规则说明">
+            <p><span class="font-bold text-gray-900">有效：</span>该学员有营前+营后体测数据（身体测量数据分类至少一项指标同时有前后数值），可作前后对比；仅有体重记录而无前后体测数据不标该标签。</p>
+            <p><span class="font-bold text-gray-900">体重变化：</span>营期末体重 − 营期初体重（负值=减重），按有体重记录的学员统计。</p>
+            <p><span class="font-bold text-gray-900">打卡率：</span>有打卡记录的天数 / 营期天数（当天有饮食/运动/体重任一项即算打卡一天，含部分打卡）。</p>
+            <p><span class="font-bold text-gray-900">打卡全部完成率：</span>每天完成全部打卡（早+午+晚餐、运动、体重五项全齐）的天数 / 营期天数。</p>
+            <p><span class="font-bold text-gray-900">进度条颜色：</span>打卡率 ≥80% 绿色、50%–80% 橙色、&lt;50% 灰色。</p>
+            <p><span class="font-bold text-gray-900">最长连续打卡：</span>营期内连续完成全部打卡（五项全齐，中断即重新计）的最长天数。</p>
+            <p><span class="font-bold text-gray-900">交互：</span>点击学员整行跳转该学员详情。</p>
+          </ChartRulePopup>
+        </div>
         <div class="space-y-3">
           <div
             v-for="report in summary.studentReports"
