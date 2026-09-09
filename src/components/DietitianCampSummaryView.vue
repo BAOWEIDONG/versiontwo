@@ -233,7 +233,7 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
                 ></div>
               </div>
               <span class="text-[10px] text-gray-600 shrink-0">
-                总打卡 {{ report.checkinStats.totalCheckinDays }}/{{ report.checkinStats.campDays }}天 · 打卡完成率{{ fmtPct(freqRate(report)) }}
+                总打卡 {{ report.checkinStats.totalCheckinDays }}/{{ report.checkinStats.campDays }}天 · 打卡率{{ fmtPct(freqRate(report)) }}
               </span>
             </div>
             <!-- 打卡全部完成率（每天完成所有项目）+ 最长连续打卡 -->
