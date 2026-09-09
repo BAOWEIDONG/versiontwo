@@ -197,9 +197,24 @@ export interface CampMessageEntry {
   role: 'dietitian' | 'coach';
   /** 作者姓名 */
   authorName: string;
+  /** 作者账号 ID（用于"仅本人可编辑自己的寄语"判定；教练/营养师端对非本人寄语只读） */
+  authorId?: string;
   text: string;
   /** yyyy-MM-dd HH:mm:ss */
   createdAt: string;
+}
+
+/** 个人营期报告底部的「结营建议」：每（营期+学员）一套单块大段文字，由营养师在学员档案填写，未填则报告不展示 */
+export interface CampReportAdvice {
+  id: string;
+  campId: string;
+  studentId: string;
+  text: string;
+  /** 最近一次填写作者 */
+  authorName: string;
+  role: 'dietitian' | 'coach';
+  /** yyyy-MM-dd HH:mm:ss */
+  updatedAt: string;
 }
 
 export interface RewardTier {

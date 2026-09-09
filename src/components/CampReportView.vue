@@ -136,6 +136,13 @@ const reportMessages = computed<ReportMessage[]>(() => {
 
 const roleTag = (m: ReportMessage) => (m.role === 'coach' ? { badge: '教练', cls: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20' } : { badge: '营养师', cls: 'bg-[#1677FF]/10 text-[#1677FF] border-[#1677FF]/20' });
 
+// 报告底部「结营建议」：营养师在学员档案按学员填写，未填则整卡不显示
+const reportAdvice = computed(() => {
+  const sid = studentId.value;
+  const cid = selectedCampId.value || campInfo.value?.id;
+  return cid ? store.getCampReportAdvice(cid, sid) : null;
+});
+
 // 目标达成度（学员在体重打卡页设置的目标体重）
 const targetInfo = computed(() => {
   const target = store.user?.targetWeight;
@@ -452,24 +459,16 @@ const exportPDF = () => {
           </div>
         </div>
         <p v-else class="text-sm text-gray-400 py-2">本营期暂无营养师结营寄语</p>
-        <div class="space-y-3 text-sm text-gray-700 leading-relaxed mt-4 pt-3 border-t border-gray-100">
-          <div class="flex gap-2.5">
-            <span class="shrink-0">🥗</span>
-            <p><span class="font-bold text-gray-900">饮食：</span>保持三餐规律，每餐蔬菜占一半、主食一拳头，聚餐后下一餐清淡即可，不必补偿性节食。</p>
-          </div>
-          <div class="flex gap-2.5">
-            <span class="shrink-0">🏃</span>
-            <p><span class="font-bold text-gray-900">运动：</span>每周保持 3 次以上、每次 40 分钟的运动习惯，快走、游泳、骑车都可以，选你能坚持的。</p>
-          </div>
-          <div class="flex gap-2.5">
-            <span class="shrink-0">⚖️</span>
-            <p><span class="font-bold text-gray-900">监测：</span>每周固定一天早晨空腹称重，体重回升超过 2kg 时及时调整饮食和运动。</p>
-          </div>
-          <div class="flex gap-2.5">
-            <span class="shrink-0">😴</span>
-            <p><span class="font-bold text-gray-900">作息：</span>保证 7 小时以上睡眠，熬夜会促进食欲激素分泌，是反弹的隐形推手。</p>
-          </div>
-        </div>
+      </Card>
+
+      <!-- 营养师结营建议（按学员填写；未填则整卡隐藏） -->
+      <Card v-if="reportAdvice">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2 border-b border-[#1677FF]/10 pb-2">
+          <MessageCircle class="h-4 w-4 text-[#1677FF]" />
+          营养师结营建议
+          <span class="ml-auto text-[10px] font-normal text-gray-400">{{ reportAdvice.authorName }} · {{ formatMsgTime(reportAdvice.updatedAt) }}</span>
+        </h3>
+        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ reportAdvice.text }}</p>
       </Card>
 
       <!-- 底部鼓励语 -->

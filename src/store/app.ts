@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { showImagePreview } from 'vant';
-import type { User, WeightRecord, ExerciseRecord, DietRecord, CheckinComment, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry } from '../types';
+import type { User, WeightRecord, ExerciseRecord, DietRecord, CheckinComment, CoachActivityRecord, RewardTier, RewardClaim, MealTimeConfig, MetricConfig, Camp, Account, PointProduct, PointExchangeRecord, ManualScoreRecord, ExchangeAuditEntry, ConfigAudit, RewardTierSnapshot, UnlockRecord, CampMessageEntry, CampReportAdvice } from '../types';
 import {
   MOCK_REWARD_TIERS,
   MOCK_REWARD_CLAIMS,
@@ -102,7 +102,7 @@ export const useAppStore = defineStore('app', () => {
    *  种子含 camp1_s1 的 3 条，演示"营养师 + 教练 多条寄语带角色姓名"的展示效果。 */
   const campMessageList = ref<CampMessageEntry[]>([
     {
-      id: 'cm1', campId: 'camp1', studentId: 's1', role: 'dietitian', authorName: '王营养师',
+      id: 'cm1', campId: 'camp1', studentId: 's1', role: 'dietitian', authorName: '王营养师', authorId: 'd1',
       text: '坚持下来很不容易，你的自律大家都看在眼里。这段时间养成的饮食和运动习惯是最好的收获，继续保持，健康是一辈子的事！',
       createdAt: '2026-09-01 09:12:00',
     },
@@ -159,8 +159,8 @@ export const useAppStore = defineStore('app', () => {
   }
 
   /** 追加一条结营寄语（append 而非覆盖——多名营养师/教练可各自撰写提交，历史寄语不被后写覆盖）。
-   *  空文本不写入。 */
-  function addCampMessage(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string) {
+   *  空文本不写入。authorId 记作者账号，供"仅本人可编辑自己的寄语"判定。 */
+  function addCampMessage(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string, authorId?: string) {
     const t = text.trim();
     if (!t) return;
     campMessageList.value.push({
@@ -169,6 +169,7 @@ export const useAppStore = defineStore('app', () => {
       studentId,
       role,
       authorName: authorName || '营养师',
+      authorId,
       text: t,
       createdAt: formatDateTimeStr(),
     });
@@ -178,6 +179,48 @@ export const useAppStore = defineStore('app', () => {
   /** 该学员该营期的全部结营寄语（按撰写先后排列，逐条展示） */
   function getCampMessages(campId: string, studentId: string): CampMessageEntry[] {
     return campMessageList.value.filter((m) => m.campId === campId && m.studentId === studentId);
+  }
+
+  /** 编辑本人撰写的一条结营寄语（仅作者本人触发；非本人寄语各端只读不提供编辑入口）。空文本删除该条。 */
+  function updateCampMessage(messageId: string, text: string) {
+    const t = text.trim();
+    const idx = campMessageList.value.findIndex((m) => m.id === messageId);
+    if (idx < 0) return;
+    if (!t) { campMessageList.value.splice(idx, 1); return; }
+    campMessageList.value.splice(idx, 1, { ...campMessageList.value[idx], text: t });
+    api.saveCampMessage(campMessageList.value[idx].campId, campMessageList.value[idx].studentId, t).catch(() => {});
+  }
+
+  // 报告底部「结营建议」（每营期+学员一套单块大段），营养师在学员档案填写
+  const campReportAdviceList = ref<CampReportAdvice[]>([]);
+
+  /** 该学员该营期的结营建议（无则返回 null，报告该卡隐藏） */
+  function getCampReportAdvice(campId: string, studentId: string): CampReportAdvice | null {
+    return campReportAdviceList.value.find((a) => a.campId === campId && a.studentId === studentId) || null;
+  }
+
+  /** 保存/更新结营建议（upsert，单块共享字段，最近填写者覆盖）。空文本则删除该条。 */
+  function saveCampReportAdvice(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string) {
+    const t = text.trim();
+    const idx = campReportAdviceList.value.findIndex((a) => a.campId === campId && a.studentId === studentId);
+    if (!t) {
+      if (idx >= 0) campReportAdviceList.value.splice(idx, 1);
+      return;
+    }
+    if (idx >= 0) {
+      campReportAdviceList.value.splice(idx, 1, { ...campReportAdviceList.value[idx], text: t, authorName: authorName || '营养师', role, updatedAt: formatDateTimeStr() });
+    } else {
+      campReportAdviceList.value.push({ id: `adv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, campId, studentId, text: t, authorName: authorName || '营养师', role, updatedAt: formatDateTimeStr() });
+    }
+    api.saveCampMessage(campId, studentId, t).catch(() => {});
+  }
+
+  /** 将某学员的全部打卡批注标记为已读（进入学员端消息中心时调用，清底栏未读角标）。 */
+  function markAllCommentsRead(studentId: string) {
+    const touch = (arr: any[]) => { for (const r of arr) {
+      if (r.studentId === studentId && r.commentRead === false) r.commentRead = true;
+    } };
+    touch(dietRecords.value); touch(weightRecords.value); touch(exerciseRecords.value);
   }
   const viewHistory = ref<View[]>(['login']);
   const currentView = computed<View>(() => viewHistory.value[viewHistory.value.length - 1]);
@@ -786,13 +829,13 @@ export const useAppStore = defineStore('app', () => {
   const bizSources = [
     students, weightRecords, exerciseRecords, dietRecords, coachActivities,
     rewardTiers, rewardClaims, unlockRecords, campMessageList, metricConfigs, camps, accounts,
-    pointProducts, pointExchanges, manualScoreRecords,
+    pointProducts, pointExchanges, manualScoreRecords, campReportAdviceList,
     activityConfigByCamp, mealTimeConfigByCamp,
   ];
   const bizNames = [
     'students', 'weightRecords', 'exerciseRecords', 'dietRecords', 'coachActivities',
     'rewardTiers', 'rewardClaims', 'unlockRecords', 'campMessageList', 'metricConfigs', 'camps', 'accounts',
-    'pointProducts', 'pointExchanges', 'manualScoreRecords',
+    'pointProducts', 'pointExchanges', 'manualScoreRecords', 'campReportAdviceList',
     'activityConfigByCamp', 'mealTimeConfigByCamp',
   ] as const;
   function persistBiz() {
@@ -1299,6 +1342,11 @@ export const useAppStore = defineStore('app', () => {
     campMessageList,
     addCampMessage,
     getCampMessages,
+    updateCampMessage,
+    campReportAdviceList,
+    getCampReportAdvice,
+    saveCampReportAdvice,
+    markAllCommentsRead,
     activityConfigByCamp,
     getActivityConfig,
     getHasActivity,

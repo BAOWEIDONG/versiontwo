@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue';
+import { computed, ref, onActivated, onDeactivated, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { NavBar, StudentTabbar } from './ui';
@@ -35,7 +35,18 @@ function saveSeenState() {
   saveMsgSeenState(store.user.id, { ...seenState.value, lastSystemSeenAt: Date.now() });
 }
 
+// 进入消息界面即清零底栏未读角标：批注消息整体标记已读 + 系统通知归入"最近查看时刻"起点。
+// KeepAlive 下 onActivated 每次可见均触发；为兼容非缓存场景补 onDeactivated 兜底持久化。
+onActivated(() => considerAllRead());
+onDeactivated(() => saveSeenState());
 onUnmounted(() => saveSeenState());
+
+function considerAllRead() {
+  if (!store.user) return;
+  store.markAllCommentsRead(store.user.id);
+  seenState.value = { ...seenState.value, lastSystemSeenAt: Date.now() };
+  saveSeenState();
+}
 
 async function handleRefresh() {
   if (isRefreshing.value) return;
