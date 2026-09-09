@@ -197,8 +197,8 @@ const weightCommentText = ref('');
 
 const startWeightComment = (record: WeightRecord) => {
   weightCommentingId.value = record.id;
-  // 预填我(当前营养师)自己的批注，编辑不误改他人
-  weightCommentText.value = (myDietitianComment(record)?.text ?? record.dietitianComment) || '';
+  // 预填我(当前营养师)自己的批注：编辑自己的才带出原内容；新批注(他营养师批过)从空白开始写
+  weightCommentText.value = myDietitianComment(record)?.text || '';
 };
 const cancelWeightComment = () => {
   weightCommentingId.value = null;
@@ -302,8 +302,8 @@ const myDietitianComment = (rec: { comments?; dietitianComment?: string; dietiti
 
 const startComment = (record: DietRecord) => {
   commentingId.value = record.id;
-  // 预填"我(当前营养师)自己的批注"，避免把他人批注当成自己在下一次保存时误改
-  commentText.value = (myDietitianComment(record)?.text ?? record.dietitianComment) || '';
+  // 预填"我(当前营养师)自己的批注"：编辑自己的才带出原内容；新批注从空白开始写，不带走他人批注
+  commentText.value = myDietitianComment(record)?.text || '';
   commentScore.value = (record.dietitianScore ?? 1) as 0 | 1 | 2;
   commentStaple.value = !!record.hasStaple;
   commentProtein.value = !!record.hasProtein;
