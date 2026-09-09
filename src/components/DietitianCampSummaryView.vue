@@ -208,7 +208,7 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
             <p><span class="font-bold text-gray-900">体重变化：</span>营期末体重 − 营期初体重（负值=减重），按有体重记录的学员统计。</p>
             <p><span class="font-bold text-gray-900">打卡率：</span>有打卡记录的天数 / 营期天数（当天有饮食/运动/体重任一项即算打卡一天，含部分打卡）。</p>
             <p><span class="font-bold text-gray-900">打卡全部完成率：</span>每天完成全部打卡（早+午+晚餐、运动、体重五项全齐）的天数 / 营期天数。</p>
-            <p><span class="font-bold text-gray-900">进度条颜色：</span>打卡率 ≥80% 绿色、50%–80% 橙色、&lt;50% 灰色。</p>
+            <p><span class="font-bold text-gray-900">进度条颜色：</span>统一绿色，条长表示打卡率（越长打卡越勤）。</p>
             <p><span class="font-bold text-gray-900">最长连续打卡：</span>营期内连续完成全部打卡（五项全齐，中断即重新计）的最长天数。</p>
             <p><span class="font-bold text-gray-900">交互：</span>点击学员整行跳转该学员详情。</p>
           </ChartRulePopup>
@@ -238,8 +238,7 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
             <div class="flex items-center gap-2 mt-2.5">
               <div class="flex-1 bg-gray-100 rounded-full h-2.5 relative overflow-hidden">
                 <div
-                  class="absolute left-0 top-0 h-full rounded-full transition-all"
-                  :class="freqRate(report) >= 0.8 ? 'bg-[#07C160]' : freqRate(report) >= 0.5 ? 'bg-[#FF976A]' : 'bg-gray-300'"
+                  class="absolute left-0 top-0 h-full rounded-full transition-all bg-[#07C160]"
                   :style="{ width: `${Math.min(freqRate(report) * 100, 100)}%` }"
                 ></div>
               </div>
