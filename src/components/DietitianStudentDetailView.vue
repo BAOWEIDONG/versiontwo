@@ -709,7 +709,7 @@ function handleDeleteManualScore(id: string) {
                 <CheckinComments :comments="recordComments(record)" />
                 <div class="flex items-center gap-2 mt-2">
                   <button @click="startComment(record)" class="text-xs text-[#1677FF]">
-                    编辑
+                    {{ myDietitianComment(record) ? '编辑' : '批注' }}
                   </button>
                   <span v-if="record.dietitianComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     <Eye class="w-3 h-3" />
@@ -966,7 +966,7 @@ function handleDeleteManualScore(id: string) {
                         </div>
                         <CheckinComments :comments="recordComments(rec)" />
                         <div class="flex items-center gap-2 mt-1">
-                          <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">编辑</button>
+                          <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">{{ myDietitianComment(rec) ? '编辑' : '批注' }}</button>
                           <span v-if="rec.dietitianComment && rec.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                             <Eye class="w-3 h-3" />
                             学员已读未回

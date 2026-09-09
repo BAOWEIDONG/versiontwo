@@ -410,7 +410,7 @@ onActivated(consumePendingAnnotation);
                   </div>
                   <CheckinComments :comments="recordComments(record)" />
                   <div class="flex items-center gap-2 mt-1">
-                    <button @click="startExerciseComment(record)" class="text-xs text-[#07C160]">编辑</button>
+                    <button @click="startExerciseComment(record)" class="text-xs text-[#07C160]">{{ recordComments(record).some((c) => c.role === 'coach' && c.name === store.user?.name) ? '编辑' : '批注' }}</button>
                   </div>
                 </div>
                 <button v-else @click="startExerciseComment(record)" class="flex items-center gap-1 text-sm text-[#07C160] font-medium">
