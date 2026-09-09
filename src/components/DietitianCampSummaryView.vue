@@ -2,11 +2,11 @@
 import { computed, ref } from 'vue';
 import { useAppStore } from '../store/app';
 import { useDietitianCounts } from '../lib/dietitianCounts';
-import { campDateRange, latestOrFirstId, campDaysOf } from '../lib/camps';
+import { campDaysOf } from '../lib/camps';
 import { useDeferred } from '../composables/useDeferred';
 import { NavBar, Card, ChartRulePopup } from './ui';
 import { BarChart3, TrendingDown, Users, Activity, ChevronRight, Download, UserCheck, Building2, FileText, Settings, Flame } from 'lucide-vue-next';
-import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem, Popup as VanPopup } from 'vant';
+import { Tabbar as VanTabbar, TabbarItem as VanTabbarItem } from 'vant';
 import { MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
 import { generateDietitianSummary } from '../lib/campReport';
 import { exportReport } from '../lib/exportPDF';
@@ -16,17 +16,15 @@ const store = useAppStore();
 // 底部 Tabbar 角标：批注=待批注数，配置=发放中心待发货数（各营养师页面共用口径）
 const { unannotatedCount, fulfillmentPendingCount } = useDietitianCounts();
 
-// ─── 营期切换（默认最新一期） ───
-const selectedCampId = ref<string>(latestOrFirstId(store.camps) || '');
-const showCampPicker = ref(false);
-const selectedCamp = computed(() => store.camps.find((c) => c.id === selectedCampId.value));
+// ─── 营期：仅展示当前营期，由首页全局营期控制（无本地切换） ───
+const selectedCamp = computed(() => store.selectedCampId ? store.camps.find((c) => c.id === store.selectedCampId) : null);
 const campDays = computed(() => campDaysOf(selectedCamp.value));
 
-// 按营期过滤学员和记录
-const campStudents = computed(() => selectedCampId.value ? store.getStudentsByCamp(selectedCampId.value) : store.getAllStudents());
-const campDietRecords = computed(() => selectedCampId.value ? store.getCampDietRecords(selectedCampId.value) : store.dietRecords);
-const campExerciseRecords = computed(() => selectedCampId.value ? store.getCampExerciseRecords(selectedCampId.value) : store.exerciseRecords);
-const campWeightRecords = computed(() => selectedCampId.value ? store.getCampWeightRecords(selectedCampId.value) : store.weightRecords);
+// 按当前营期过滤学员和记录
+const campStudents = computed(() => store.selectedCampId ? store.getStudentsByCamp(store.selectedCampId) : store.getAllStudents());
+const campDietRecords = computed(() => store.selectedCampId ? store.getCampDietRecords(store.selectedCampId) : store.dietRecords);
+const campExerciseRecords = computed(() => store.selectedCampId ? store.getCampExerciseRecords(store.selectedCampId) : store.exerciseRecords);
+const campWeightRecords = computed(() => store.selectedCampId ? store.getCampWeightRecords(store.selectedCampId) : store.weightRecords);
 
 // 生成结营统计（使用营期过滤后的数据）
 // 首次进入全校聚合较慢：用 useDeferred 延迟到首帧后空闲计算，先出骨架屏，避免阻塞首绘
@@ -108,15 +106,10 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
       </template>
     </NavBar>
 
-    <!-- 营期切换 -->
-    <div class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-100">
-      <div>
-        <div class="text-xs text-gray-500">当前营期</div>
-        <div class="text-sm font-medium text-gray-800">{{ selectedCamp?.name || '未选择' }}</div>
-      </div>
-      <button class="text-xs text-[#FF976A] border border-[#FF976A] px-3 py-1.5 rounded-full font-bold active:bg-orange-50" @click="showCampPicker = true">
-        切换营期
-      </button>
+    <!-- 当前营期（由首页全局切换） -->
+    <div class="bg-white px-4 py-3 border-b border-gray-100 flex items-center gap-1.5">
+      <div class="text-xs text-gray-500">当前营期</div>
+      <div class="text-sm font-medium text-gray-800">{{ selectedCamp?.name || '未选择' }}</div>
     </div>
 
     <!-- 首次聚合计算完成前的骨架屏，避免全校统计同步计算阻塞首帧 -->
@@ -297,40 +290,6 @@ const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: numbe
         </div>
       </Card>
     </div>
-
-    <!-- 营期选择弹窗 -->
-    <VanPopup v-model:show="showCampPicker" position="bottom" round>
-      <div class="p-4">
-        <h3 class="font-bold text-gray-900 text-base mb-3 text-center">选择营期</h3>
-        <div class="space-y-2">
-          <button
-            v-for="camp in store.camps"
-            :key="camp.id"
-            @click="selectedCampId = camp.id; showCampPicker = false"
-            :class="[
-              'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all',
-              selectedCampId === camp.id
-                ? 'border-[#FF976A] bg-orange-50 text-[#FF976A]'
-                : 'border-gray-200 bg-white text-gray-700 active:bg-gray-50',
-            ]"
-          >
-            <div class="flex-1 text-left min-w-0"><span class="font-medium">{{ camp.name }}</span><div class="text-[10px] text-gray-400 mt-0.5">{{ campDateRange(camp) }}</div></div>
-            <span
-              v-if="camp.status === 'active'"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600"
-            >进行中</span>
-            <span
-              v-else-if="camp.status === 'ended'"
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500"
-            >已结束</span>
-            <span
-              v-else
-              class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-500"
-            >未开始</span>
-          </button>
-        </div>
-      </div>
-    </VanPopup>
 
     <VanTabbar class="custom-tabbar tabbar-orange print:hidden" :model-value="2">
       <VanTabbarItem @click="store.setCurrentView('dietitian-dashboard')">
