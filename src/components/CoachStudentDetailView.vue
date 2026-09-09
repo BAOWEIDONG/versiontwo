@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { campDateRange } from '../lib/camps';
@@ -9,7 +9,7 @@ import { recordComments } from '../lib/comments';
 import WeightTrendChart from './ui/WeightTrendChart.vue';
 import ExerciseTrendCard from './ExerciseTrendCard.vue';
 import { UserCircle, Activity, Scale, MessageCircle, PlayCircle, ChevronDown, Stethoscope, ClipboardList, AlertCircle, FileText, TrendingUp } from 'lucide-vue-next';
-import { Popup as VanPopup } from 'vant';
+import { Popup as VanPopup, showToast } from 'vant';
 import { formatDateTime } from '../lib/utils';
 import { useDateGrouping } from '../composables/useDateGrouping';
 import type { ExerciseRecord } from '../types';
@@ -82,13 +82,40 @@ const EXERCISE_TEMPLATES = [
   '运动后记得拉伸放松',
 ];
 
+// ─── 批注编辑锁（并发串行）：打开批注编辑器即持锁，保存/取消/离开释放，避免两人同时批注同一学员互相覆盖（先后提交） ───
+const heldLocks: { type: 'diet' | 'weight' | 'exercise'; recordId: string }[] = [];
+function tryAcquireLock(type: 'diet' | 'weight' | 'exercise', recordId: string): boolean {
+  const res = store.tryLockAnnotation(type, recordId, store.user?.id || '', store.user?.name || '教练');
+  if (!res.ok) {
+    showToast(`${res.byName} 正在编辑此条批注，请稍后再试`);
+    return false;
+  }
+  if (!heldLocks.some((h) => h.type === type && h.recordId === recordId)) heldLocks.push({ type, recordId });
+  return true;
+}
+function releaseLock(type: 'diet' | 'weight' | 'exercise', recordId: string) {
+  const i = heldLocks.findIndex((h) => h.type === type && h.recordId === recordId);
+  if (i >= 0) heldLocks.splice(i, 1);
+  store.releaseAnnotationLock(type, recordId);
+}
+function releaseAllLocks() {
+  heldLocks.slice().forEach((h) => store.releaseAnnotationLock(h.type, h.recordId));
+  heldLocks.length = 0;
+}
+onBeforeUnmount(releaseAllLocks);
+onDeactivated(releaseAllLocks);
+
 const startExerciseComment = (record: ExerciseRecord) => {
+  // 切换编辑对象时释放上一对象锁，防残留占用
+  if (exerciseCommentingId.value && exerciseCommentingId.value !== record.id) releaseLock('exercise', exerciseCommentingId.value);
+  if (!tryAcquireLock('exercise', record.id)) return;
   exerciseCommentingId.value = record.id;
-  // 预填我(当前教练)自己的批注：编辑自己的才带出原内容；新批注从空白开始写，不带走他人批注
-  exerciseCommentText.value = recordComments(record).find((c) => c.role === 'coach' && c.name === store.user?.name)?.text || '';
+  // 单一批注：预填当前共享批注（不管谁写的都是同一条，共同编辑）
+  exerciseCommentText.value = recordComments(record).find((c) => c.role === 'coach')?.text || '';
   exerciseScore.value = (record.coachScore ?? 1) as 0 | 1 | 2;
 };
 const cancelExerciseComment = () => {
+  if (exerciseCommentingId.value) releaseLock('exercise', exerciseCommentingId.value);
   exerciseCommentingId.value = null;
   exerciseCommentText.value = '';
   exerciseScore.value = 1;
@@ -106,6 +133,7 @@ const handleSaveExerciseComment = (recordId: string) => {
     // 新批注/新评分需重置已读，学员端才会亮"新批注"并计入未读数（与营养师批注口径一致）
     commentRead: false,
   });
+  releaseLock('exercise', recordId);
   cancelExerciseComment();
 };
 
@@ -410,7 +438,7 @@ onActivated(consumePendingAnnotation);
                   </div>
                   <CheckinComments :comments="recordComments(record)" />
                   <div class="flex items-center gap-2 mt-1">
-                    <button @click="startExerciseComment(record)" class="text-xs text-[#07C160]">{{ recordComments(record).some((c) => c.role === 'coach' && c.name === store.user?.name) ? '编辑' : '批注' }}</button>
+                    <button @click="startExerciseComment(record)" class="text-xs text-[#07C160]">编辑</button>
                   </div>
                 </div>
                 <button v-else @click="startExerciseComment(record)" class="flex items-center gap-1 text-sm text-[#07C160] font-medium">

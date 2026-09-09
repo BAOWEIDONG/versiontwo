@@ -539,35 +539,83 @@ export const useAppStore = defineStore('app', () => {
   }
 
   /**
-   * 给打卡记录添加/更新批注（同一作者(role+name)只保留一条，作者再批注=编辑更新该条而非新增；
-   * 不同作者各自一条，逐条展示不覆盖）。同时镜像最新一条到单字段（dietitian 系 / coach 系），
-   * 保证消息中心/未读计数等仍按单品逻辑工作。
+   * 给打卡记录写批注（恢复「单一批注」语义）：一条记录营养师/教练**各只有一条批注**，
+   * 谁编辑都改这同一条（保留最新内容，作者=最后编辑者），**不再为不同作者各新增一条**。
+   * 同时镜像到单字段（dietitian 系 / coach 系），保证消息中心/未读计数等仍按单品逻辑工作。
+   * ★并发：由 annotationLock 编辑锁保证「先后提交」，此处直接覆写为单条最新。
    */
   function addRecordComment(type: 'diet' | 'weight' | 'exercise', recordId: string, entry: CheckinComment) {
     const arr = type === 'diet' ? dietRecords.value : type === 'weight' ? weightRecords.value : exerciseRecords.value;
     const idx = arr.findIndex((r) => r.id === recordId);
     if (idx < 0) return;
     const r = arr[idx];
-    const list: CheckinComment[] = Array.isArray((r as any).comments) ? [...((r as any).comments as CheckinComment[])] : [];
-    // 该作者已批注→更新该条文案（保留 id，不再新增）；新作者→追加为新批注
-    const mine = list.findIndex((c) => c.role === entry.role && c.name === entry.name);
-    if (mine >= 0) {
-      list[mine] = { ...list[mine], text: entry.text, date: entry.date };
-    } else {
-      list.push(entry);
-    }
-    const latest = list[list.length - 1];
-    (r as any).comments = list;
+    // 覆盖为单条最新（幂等：同一作者重复编辑/不同作者编辑都只留下最新这一条）
+    (r as any).comments = [{ ...entry }];
     (r as any).commentRead = false;
     if (type === 'exercise') {
-      (r as any).coachComment = latest.text;
-      (r as any).coachName = latest.name;
-      (r as any).coachCommentDate = latest.date;
+      (r as any).coachComment = entry.text;
+      (r as any).coachName = entry.name;
+      (r as any).coachCommentDate = entry.date;
     } else {
-      (r as any).dietitianComment = latest.text;
-      (r as any).dietitianName = latest.name;
-      (r as any).dietitianCommentDate = latest.date;
+      (r as any).dietitianComment = entry.text;
+      (r as any).dietitianName = entry.name;
+      (r as any).dietitianCommentDate = entry.date;
     }
+  }
+
+  // ─── 批注编辑锁（并发串行）──────────────────────────────────────────────
+  // 同一浏览器多 Tab/账号共享 localStorage，避免两人同时对同一学员同一条记录批注互相覆盖（看不到对方批注）。
+  // 打开批注编辑器即持锁，保存/取消/离开释放；持锁期间其他人打开→提示「X 正在编辑…请稍后再试」，实现先后提交。
+  // TTL 3 分钟：持锁人异常离开（杀 Tab/崩溃）自动过期，防锁死。
+  interface AnnotationLock { byId: string; byName: string; at: number; expiresAt: number }
+  const ANNO_LOCK_KEY = 'camp_annotation_locks';
+  const ANNO_LOCK_TTL = 3 * 60 * 1000;
+  const annLockKey = (type: string, recordId: string) => `${type}:${recordId}`;
+  function loadAnnLocks(): Record<string, AnnotationLock> {
+    try {
+      const raw = localStorage.getItem(ANNO_LOCK_KEY);
+      if (!raw) return {};
+      const m = JSON.parse(raw) || {};
+      const now = Date.now();
+      const clean: Record<string, AnnotationLock> = {};
+      for (const k in m) { const l = m[k]; if (l && l.expiresAt > now) clean[k] = l; }
+      return clean;
+    } catch { return {}; }
+  }
+  function persistAnnLocks(m: Record<string, AnnotationLock>) {
+    const now = Date.now();
+    const clean: Record<string, AnnotationLock> = {};
+    for (const k in m) { const l = m[k]; if (l && l.expiresAt > now) clean[k] = l; }
+    try { clean ? localStorage.setItem(ANNO_LOCK_KEY, JSON.stringify(clean)) : localStorage.removeItem(ANNO_LOCK_KEY); } catch {}
+  }
+
+  /** 尝试对某条记录批注持锁。成功→已持锁可编辑；失败→他人正在编辑(返回 byName)。同一人重复调(=编辑中刷新)视为延长不视为冲突。 */
+  function tryLockAnnotation(type: 'diet' | 'weight' | 'exercise', recordId: string, editorId: string, editorName: string) {
+    const k = annLockKey(type, recordId);
+    const m = loadAnnLocks();
+    const cur = m[k];
+    const now = Date.now();
+    if (cur && cur.expiresAt > now && cur.byId !== editorId && cur.byName !== editorName) {
+      return { ok: false, byName: cur.byName };
+    }
+    m[k] = { byId: editorId, byName: editorName, at: now, expiresAt: now + ANNO_LOCK_TTL };
+    persistAnnLocks(m);
+    return { ok: true, byName: editorName };
+  }
+
+  /** 释放某条记录的批注编辑锁（保存/取消/离开时调用）。 */
+  function releaseAnnotationLock(type: 'diet' | 'weight' | 'exercise', recordId: string) {
+    const k = annLockKey(type, recordId);
+    const m = loadAnnLocks();
+    if (m[k]) { delete m[k]; persistAnnLocks(m); }
+  }
+
+  /** 查看某条记录是否被他人持锁（只读场景提示用）。 */
+  function annotationLockInfo(type: 'diet' | 'weight' | 'exercise', recordId: string) {
+    const k = annLockKey(type, recordId);
+    const cur = loadAnnLocks()[k];
+    if (cur && cur.expiresAt > Date.now()) return { locked: true, byName: cur.byName };
+    return { locked: false, byName: '' };
   }
 
 
@@ -1375,6 +1423,9 @@ export const useAppStore = defineStore('app', () => {
     addDietRecord,
     updateDietRecord,
     addRecordComment,
+    tryLockAnnotation,
+    releaseAnnotationLock,
+    annotationLockInfo,
     addCoachActivity,
     updateCoachActivity,
     deleteCoachActivity,

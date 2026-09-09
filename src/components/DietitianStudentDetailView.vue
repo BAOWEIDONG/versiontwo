@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onActivated, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
 import { MOCK_METRIC_VALUES, MOCK_STUDENT_METRIC_VALUES } from '../mock/data';
@@ -191,16 +191,43 @@ const getPrevWeight = (rec: WeightRecord, group: { date: string; records: Weight
   return allRecs[idx - 1].weight;
 };
 
+// ─── 批注编辑锁（并发串行）：打开批注编辑器即持锁，保存/取消/离开释放，避免两人同时批注同一学员互相覆盖（先后提交） ───
+const heldLocks: { type: 'diet' | 'weight' | 'exercise'; recordId: string }[] = [];
+function tryAcquireLock(type: 'diet' | 'weight' | 'exercise', recordId: string): boolean {
+  const res = store.tryLockAnnotation(type, recordId, store.user?.id || '', store.user?.name || '营养师');
+  if (!res.ok) {
+    showToast(`${res.byName} 正在编辑此条批注，请稍后再试`);
+    return false;
+  }
+  if (!heldLocks.some((h) => h.type === type && h.recordId === recordId)) heldLocks.push({ type, recordId });
+  return true;
+}
+function releaseLock(type: 'diet' | 'weight' | 'exercise', recordId: string) {
+  const i = heldLocks.findIndex((h) => h.type === type && h.recordId === recordId);
+  if (i >= 0) heldLocks.splice(i, 1);
+  store.releaseAnnotationLock(type, recordId);
+}
+function releaseAllLocks() {
+  heldLocks.slice().forEach((h) => store.releaseAnnotationLock(h.type, h.recordId));
+  heldLocks.length = 0;
+}
+onBeforeUnmount(releaseAllLocks);
+onDeactivated(releaseAllLocks);
+
 // Weight comment (营养师体重批注)
 const weightCommentingId = ref<string | null>(null);
 const weightCommentText = ref('');
 
 const startWeightComment = (record: WeightRecord) => {
+  // 切换编辑对象时释放上一对象锁，防残留占用
+  if (weightCommentingId.value && weightCommentingId.value !== record.id) releaseLock('weight', weightCommentingId.value);
+  if (!tryAcquireLock('weight', record.id)) return;
   weightCommentingId.value = record.id;
-  // 预填我(当前营养师)自己的批注：编辑自己的才带出原内容；新批注(他营养师批过)从空白开始写
+  // 单一批注：预填当前共享批注（不管谁写的都是同一条，共同编辑）
   weightCommentText.value = myDietitianComment(record)?.text || '';
 };
 const cancelWeightComment = () => {
+  if (weightCommentingId.value) releaseLock('weight', weightCommentingId.value);
   weightCommentingId.value = null;
   weightCommentText.value = '';
 };
@@ -212,6 +239,7 @@ const handleSaveWeightComment = (recordId: string) => {
     text: weightCommentText.value,
     date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
   });
+  releaseLock('weight', recordId);
   cancelWeightComment();
 };
 
@@ -298,11 +326,14 @@ onMounted(() => {
 onActivated(consumePendingAnnotation);
 
 const myDietitianComment = (rec: { comments?; dietitianComment?: string; dietitianName?: string }) =>
-  recordComments(rec).find((c) => c.role === 'dietitian' && c.name === store.user?.name) || null;
+  recordComments(rec).find((c) => c.role === 'dietitian') || null;
 
 const startComment = (record: DietRecord) => {
+  // 切换编辑对象时释放上一对象锁，防残留占用
+  if (commentingId.value && commentingId.value !== record.id) releaseLock('diet', commentingId.value);
+  if (!tryAcquireLock('diet', record.id)) return;
   commentingId.value = record.id;
-  // 预填"我(当前营养师)自己的批注"：编辑自己的才带出原内容；新批注从空白开始写，不带走他人批注
+  // 单一批注：预填当前共享批注（不管谁写的都是同一条，共同编辑）
   commentText.value = myDietitianComment(record)?.text || '';
   commentScore.value = (record.dietitianScore ?? 1) as 0 | 1 | 2;
   commentStaple.value = !!record.hasStaple;
@@ -311,6 +342,7 @@ const startComment = (record: DietRecord) => {
 };
 
 const cancelComment = () => {
+  if (commentingId.value) releaseLock('diet', commentingId.value);
   commentingId.value = null;
   commentText.value = '';
   commentScore.value = 1;
@@ -334,6 +366,7 @@ const handleSaveComment = (recordId: string) => {
     hasProtein: commentProtein.value,
     hasVegetable: commentVegetable.value,
   });
+  releaseLock('diet', recordId);
   cancelComment();
 };
 
@@ -713,7 +746,7 @@ function handleDeleteManualScore(id: string) {
                 <CheckinComments :comments="recordComments(record)" />
                 <div class="flex items-center gap-2 mt-2">
                   <button @click="startComment(record)" class="text-xs text-[#1677FF]">
-                    {{ myDietitianComment(record) ? '编辑' : '批注' }}
+                    编辑
                   </button>
                   <span v-if="record.dietitianComment && record.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                     <Eye class="w-3 h-3" />
@@ -970,7 +1003,7 @@ function handleDeleteManualScore(id: string) {
                         </div>
                         <CheckinComments :comments="recordComments(rec)" />
                         <div class="flex items-center gap-2 mt-1">
-                          <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">{{ myDietitianComment(rec) ? '编辑' : '批注' }}</button>
+                          <button @click="startWeightComment(rec)" class="text-xs text-[#07C160]">编辑</button>
                           <span v-if="rec.dietitianComment && rec.commentRead" class="flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                             <Eye class="w-3 h-3" />
                             学员已读未回
