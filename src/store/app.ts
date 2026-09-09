@@ -153,21 +153,29 @@ export const useAppStore = defineStore('app', () => {
     api.updateActivityConfigApi(campId, merged as Record<string, unknown>).catch(() => {});
   }
 
-  /** 追加一条结营寄语（append 而非覆盖——多名营养师/教练可各自撰写提交，历史寄语不被后写覆盖）。
-   *  空文本不写入。authorId 记作者账号，供"仅本人可编辑自己的寄语"判定。 */
+  /** 发布/编辑一条结营寄语（每个营养师对同一 营期+学员 只发布一条：本人已发布则"编辑更新该条"，未发布才新增；authorId 记作者账号）。
+   *  空文本不写入。 */
   function addCampMessage(campId: string, studentId: string, text: string, role: 'dietitian' | 'coach', authorName: string, authorId?: string) {
     const t = text.trim();
     if (!t) return;
-    campMessageList.value.push({
-      id: `cm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      campId,
-      studentId,
-      role,
-      authorName: authorName || '营养师',
-      authorId,
-      text: t,
-      createdAt: formatDateTimeStr(),
-    });
+    const authorMatch = (m: CampMessageEntry) => m.campId === campId && m.studentId === studentId
+      && (authorId ? m.authorId === authorId : (m.role === role && m.authorName === (authorName || '营养师')));
+    const idx = campMessageList.value.findIndex(authorMatch);
+    if (idx >= 0) {
+      // 已发布：编辑更新该条（保留 id/发布作者，替换文案）
+      campMessageList.value.splice(idx, 1, { ...campMessageList.value[idx], text: t });
+    } else {
+      campMessageList.value.push({
+        id: `cm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        campId,
+        studentId,
+        role,
+        authorName: authorName || '营养师',
+        authorId,
+        text: t,
+        createdAt: formatDateTimeStr(),
+      });
+    }
     api.saveCampMessage(campId, studentId, t).catch(() => {});
   }
 

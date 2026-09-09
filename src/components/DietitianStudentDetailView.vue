@@ -86,8 +86,10 @@ const existingMessages = computed(() => {
 });
 // 是否本人撰写（authorId 匹配登录账号）；非本人寄语只读，不提供编辑入口
 const isMyMessage = (m: { authorId?: string }) => !!m.authorId && m.authorId === store.user?.id;
+// 本人是否已发布结营寄语（每人对该学员最多发布一条；已发布则只通过上方「编辑」修改，不显示"新建"框）
+const hasMyMessage = computed(() => existingMessages.value.some(isMyMessage));
 const loadCampMessage = () => {
-  // 文本框即"新寄语输入框"：保存=追加一条寄语，不预填以保留历史寄语（防覆盖）
+  // 打开卡片：清空编辑态。本人已发布过的只通过列表里「编辑」修改；未发布才显示"首次发布"输入框。
   campMessageText.value = '';
   editingMessageId.value = '';
 };
@@ -504,34 +506,36 @@ function handleDeleteManualScore(id: string) {
               <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ m.text }}</p>
             </div>
           </div>
-          <!-- 正在编辑本人寄语提示 -->
-          <div v-if="editingMessageId" class="flex items-center justify-between rounded-lg bg-[#07C160]/10 px-3 py-2 text-[11px] text-[#07C160]">
-            <span>正在编辑你的寄语，保存将更新该条</span>
-            <button @click="cancelEditMessage" class="font-semibold underline">取消编辑</button>
-          </div>
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="tpl in MESSAGE_TEMPLATES"
-              :key="tpl"
-              class="px-2.5 py-1 rounded-full text-[11px] border border-[#07C160]/30 text-[#07C160] bg-white hover:bg-[#07C160]/5 transition-colors"
-              @click="campMessageText = campMessageText ? campMessageText + tpl : tpl"
-            >{{ tpl.length > 12 ? tpl.slice(0, 12) + '…' : tpl }}</button>
-          </div>
-          <textarea
-            :value="campMessageText"
-            @input="campMessageText = ($event.target as HTMLTextAreaElement).value"
-            rows="3"
-            maxlength="200"
-            :placeholder="editingMessageId ? '修改你的结营寄语' : '写给学员的结营寄语，将显示在学员结营报告中'"
-            class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] focus:ring-1 focus:ring-[#07C160]/20 outline-none resize-none bg-white"
-          ></textarea>
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] text-gray-400">{{ campMessageText.length }}/200</span>
-            <button
-              @click="saveCampMessage"
-              :class="['px-4 py-1.5 rounded-lg text-xs font-bold transition-all', campMessageSaved ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white active:scale-95']"
-            >{{ campMessageSaved ? '已保存 ✓' : editingMessageId ? '保存修改' : '保存寄语' }}</button>
-          </div>
+          <!-- 结营寄语输入框：本人已发布过则只通过上方「编辑」修改，不显示"新建"框，保证一营一人一条 -->
+          <template v-if="editingMessageId || !hasMyMessage">
+            <div v-if="editingMessageId" class="flex items-center justify-between rounded-lg bg-[#07C160]/10 px-3 py-2 text-[11px] text-[#07C160]">
+              <span>正在编辑你的寄语，保存将更新该条</span>
+              <button @click="cancelEditMessage" class="font-semibold underline">取消编辑</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="tpl in MESSAGE_TEMPLATES"
+                :key="tpl"
+                class="px-2.5 py-1 rounded-full text-[11px] border border-[#07C160]/30 text-[#07C160] bg-white hover:bg-[#07C160]/5 transition-colors"
+                @click="campMessageText = campMessageText ? campMessageText + tpl : tpl"
+              >{{ tpl.length > 12 ? tpl.slice(0, 12) + '…' : tpl }}</button>
+            </div>
+            <textarea
+              :value="campMessageText"
+              @input="campMessageText = ($event.target as HTMLTextAreaElement).value"
+              rows="3"
+              maxlength="200"
+              :placeholder="editingMessageId ? '修改你的结营寄语' : '首次发布你的结营寄语，将显示在学员结营报告中'"
+              class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-[#07C160] focus:ring-1 focus:ring-[#07C160]/20 outline-none resize-none bg-white"
+            ></textarea>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-gray-400">{{ campMessageText.length }}/200</span>
+              <button
+                @click="saveCampMessage"
+                :class="['px-4 py-1.5 rounded-lg text-xs font-bold transition-all', campMessageSaved ? 'bg-[#07C160]/10 text-[#07C160]' : 'bg-[#07C160] text-white active:scale-95']"
+              >{{ campMessageSaved ? '已保存 ✓' : editingMessageId ? '保存修改' : '发布寄语' }}</button>
+            </div>
+          </template>
         </div>
       </Card>
     </div>
