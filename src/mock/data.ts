@@ -31,7 +31,9 @@ export const MOCK_STUDENTS: { id: string; name: string; age: number; gender: 'ma
   { id: 's8', name: '王强', age: 35, gender: 'male', phone: '13800000008' },
   { id: 's9', name: '刘梅', age: 33, gender: 'female', phone: '13800000009' },
   { id: 's10', name: '孙悟空', age: 30, gender: 'male', phone: '13800000010' },
-  { id: 's11', name: '钱多多', age: 27, gender: 'male', phone: '13800000011' }
+  { id: 's11', name: '钱多多', age: 27, gender: 'male', phone: '13800000011' },
+  // s12：演示用——每天只完成部分打卡(1-2项)，用于展示「打卡率」与「打卡全部完成率」区别
+  { id: 's12', name: '陈曦', age: 30, gender: 'female', phone: '13800000012' },
 ];
 
 // 完整打卡天数：今天往前连续 N 天，三餐+运动都完成
@@ -382,6 +384,30 @@ for (let i = -(PAST_DAYS_S8 - 1); i <= 0; i++) {
   MOCK_EXERCISE_RECORDS.push({ id: `e_${idSuffix}`, studentId: 's8', campId: 'camp2', date: iso(i, '20:00:00'), type: '游泳', duration: 45, intensity: 3, coachScore: 2 });
   const w = parseFloat((78.0 - (i + PAST_DAYS_S8 - 1) * 0.15).toFixed(1));
   MOCK_WEIGHT_RECORDS.push({ id: `w_${idSuffix}`, date: iso(i, '07:40:00'), weight: w, studentId: 's8', campId: 'camp2' });
+}
+
+// s12 (camp2)：演示用——每天只完成部分打卡。偶数天补全 5 项(算「打卡全部完成」)，奇数天仅 早餐+运动 2 项(算「打卡」但不算全部完成)
+// 目的：让学员结营概况里「打卡率(任意打卡)」与「打卡全部完成率(每天完成所有项目)」出现可见差异
+const S12_RANGE_END = 9; // 周期 -9..+9，共 19 个打卡日(9 天全完成 + 10 天部分)
+for (let i = -(S12_RANGE_END); i <= S12_RANGE_END; i++) {
+  const idSuffix = `s12_${(i >= 0 ? 'p' : 'n') + Math.abs(i).toString().padStart(2, '0')}`;
+  const complete = Math.abs(i) % 2 === 0; // 偶数天全完成
+  if (complete) {
+    MOCK_DIET_RECORDS.push(
+      { id: `d_b_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '07:20:00'), meal: 'breakfast', description: '燕麦+鸡蛋+牛奶', photos: [], dietitianScore: 2 },
+      { id: `d_l_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '12:00:00'), meal: 'lunch', description: '鸡胸肉+糙米饭+蔬菜', photos: [], dietitianScore: 2 },
+      { id: `d_d_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '18:20:00'), meal: 'dinner', description: '清蒸鱼+西兰花', photos: [], dietitianScore: 2 },
+    );
+    MOCK_EXERCISE_RECORDS.push({ id: `e_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '19:30:00'), type: '瑜伽', duration: 40, intensity: 3, coachScore: 2 });
+    const w = parseFloat((63.0 - (i + S12_RANGE_END) * 0.06).toFixed(1)); // 随时间递减模拟减重
+    MOCK_WEIGHT_RECORDS.push({ id: `w_${idSuffix}`, date: iso(i, '07:10:00'), weight: w, studentId: 's12', campId: 'camp2' });
+  } else {
+    // 部分打卡：只打 早餐 + 运动 两项（计入打卡，但不算全部完成）
+    MOCK_DIET_RECORDS.push(
+      { id: `d_b_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '07:20:00'), meal: 'breakfast', description: '燕麦+鸡蛋+牛奶', photos: [], dietitianScore: 2 },
+    );
+    MOCK_EXERCISE_RECORDS.push({ id: `e_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '19:30:00'), type: '瑜伽', duration: 40, intensity: 3, coachScore: 2 });
+  }
 }
 
 export const MOCK_COACH_ACTIVITIES: CoachActivityRecord[] = [
@@ -796,6 +822,8 @@ export const MOCK_ACCOUNTS: Account[] = [
   { id: 's10', phone: '13800000010', name: '孙悟空', role: 'student', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-15, '08:00:00') },
   // 仅属于未开营营期（camp3）的学员，用于演示"营期未开始禁止打卡"
   { id: 's11', phone: '13800000011', name: '钱多多', role: 'student', campIds: ['camp3'], active: true, createdAt: iso(7, '08:00:00') },
+  // s12 演示用：仅部分打卡，展示打卡率与打卡全部完成率区别
+  { id: 's12', phone: '13800000012', name: '陈曦', role: 'student', campIds: ['camp2'], active: true, createdAt: iso(-10, '08:00:00') },
 ];
 
 /** 积分商城商品 */
