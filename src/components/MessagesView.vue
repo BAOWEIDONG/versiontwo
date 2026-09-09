@@ -45,6 +45,7 @@ function considerAllRead() {
   if (!store.user) return;
   store.markAllCommentsRead(store.user.id);
   seenState.value = { ...seenState.value, lastSystemSeenAt: Date.now() };
+  store.markSystemSeenAt(); // 刷新 store 内响应式系统通知时刻，让所有缓存页角标同时重算为 0
   saveSeenState();
 }
 

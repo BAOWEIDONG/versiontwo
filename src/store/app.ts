@@ -22,7 +22,7 @@ import * as api from '../lib/api';
 import { calculateTotalScore } from '../lib/scoring';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
-import { loadMsgSeenState, systemMsgUnread } from '../lib/messageSeen';
+import { loadMsgSeenState, saveMsgSeenState, systemMsgUnread } from '../lib/messageSeen';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
 function formatDateTimeStr(): string {
@@ -200,6 +200,19 @@ export const useAppStore = defineStore('app', () => {
       if (r.studentId === studentId && r.commentRead === false) r.commentRead = true;
     } };
     touch(dietRecords.value); touch(weightRecords.value); touch(exerciseRecords.value);
+  }
+
+  // 当前登录学员「系统通知最近查看时刻」的响应式版本。各页面角标统一读它，进入消息中心(considerAllRead)时 markSystemSeenAt 刷新，
+  // 使所有 KeepAlive 缓存页的角标 computed 同时重算为 0，根治「进消息中心不清、且各页显示不一致」。
+  const systemSeenAt = ref<number>(0);
+  watch(() => user.value?.id, (id) => {
+    systemSeenAt.value = id ? loadMsgSeenState(id).lastSystemSeenAt : 0;
+  }, { immediate: true });
+
+  /** 把当前登录学员的系统通知查看时刻置为现在并持久化（跨页角标响应式刷新）。 */
+  function markSystemSeenAt() {
+    systemSeenAt.value = Date.now();
+    if (user.value) saveMsgSeenState(user.value.id, { lastSystemSeenAt: systemSeenAt.value });
   }
   const viewHistory = ref<View[]>(['login']);
   const currentView = computed<View>(() => viewHistory.value[viewHistory.value.length - 1]);
@@ -1008,7 +1021,7 @@ export const useAppStore = defineStore('app', () => {
     );
     const batch = diet.length + ex.length + wt.length;
 
-    const seen = loadMsgSeenState(studentId);
+    const seen = { ranks: {}, lastSystemSeenAt: systemSeenAt.value };
     const claims = (cid ? getCampRewardClaims(cid) : rewardClaims.value).filter((c) => c.studentId === studentId);
     const exchanges = getStudentExchanges(studentId).filter((e) => !cid || !e.campId || e.campId === cid);
 
@@ -1324,6 +1337,7 @@ export const useAppStore = defineStore('app', () => {
     getCampMessages,
     updateCampMessage,
     markAllCommentsRead,
+    markSystemSeenAt,
     activityConfigByCamp,
     getActivityConfig,
     getHasActivity,
