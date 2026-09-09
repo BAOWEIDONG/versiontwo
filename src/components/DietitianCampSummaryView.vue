@@ -92,6 +92,10 @@ const fmtChange = (v: number | null, unit = ''): string => {
   const sign = v > 0 ? '+' : '';
   return `${sign}${v.toFixed(1)}${unit ? ' ' + unit : ''}`;
 };
+
+// 打卡频率（打卡完成率·有打卡就算）= 任意打卡天数 totalCheckinDays / 营期天数
+const freqRate = (r: { checkinStats: { totalCheckinDays: number; campDays: number } }): number =>
+  r.checkinStats.campDays > 0 ? r.checkinStats.totalCheckinDays / r.checkinStats.campDays : 0;
 </script>
 
 <template>
@@ -219,11 +223,23 @@ const fmtChange = (v: number | null, unit = ''): string => {
               </span>
               <ChevronRight class="w-4 h-4 text-gray-300 shrink-0" />
             </div>
-            <!-- 打卡统计一行条目：打卡频率(X/Y天·%) / 完成率% / 最长连续打卡 -->
-            <div class="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[10px] text-gray-500">
-              <span>打卡频率 <span class="text-gray-700 font-medium">{{ report.checkinStats.totalCheckinDays }}/{{ report.checkinStats.campDays }}天 {{ fmtPct(report.checkinStats.campDays > 0 ? report.checkinStats.totalCheckinDays / report.checkinStats.campDays : 0) }}</span></span>
-              <span>完成率 <span class="text-gray-700 font-medium">{{ fmtPct(report.checkinStats.completionRate) }}</span></span>
-              <span>最长连续打卡<span class="text-gray-700 font-medium">{{ report.checkinStats.longestStreak }}</span>天</span>
+            <!-- 打卡频率进度条：总打卡 X/Y天 + 打卡完成率Z%（有打卡就算） -->
+            <div class="flex items-center gap-2 mt-2.5">
+              <div class="flex-1 bg-gray-100 rounded-full h-2.5 relative overflow-hidden">
+                <div
+                  class="absolute left-0 top-0 h-full rounded-full transition-all"
+                  :class="freqRate(report) >= 0.8 ? 'bg-[#07C160]' : freqRate(report) >= 0.5 ? 'bg-[#FF976A]' : 'bg-gray-300'"
+                  :style="{ width: `${Math.min(freqRate(report) * 100, 100)}%` }"
+                ></div>
+              </div>
+              <span class="text-[10px] text-gray-600 shrink-0">
+                总打卡 {{ report.checkinStats.totalCheckinDays }}/{{ report.checkinStats.campDays }}天 · 打卡完成率{{ fmtPct(freqRate(report)) }}
+              </span>
+            </div>
+            <!-- 打卡全部完成率（每天完成所有项目）+ 最长连续打卡 -->
+            <div class="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
+              <span>打卡全部完成率 <span class="text-gray-700 font-medium">{{ fmtPct(report.checkinStats.completionRate) }}</span><span class="text-gray-400">（每天完成所有项目）</span></span>
+              <span class="ml-auto shrink-0">最长连续打卡<span class="text-gray-700 font-medium">{{ report.checkinStats.longestStreak }}</span>天</span>
             </div>
           </div>
         </div>
