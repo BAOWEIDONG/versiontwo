@@ -206,7 +206,8 @@ const weightCommentText = ref('');
 
 const startWeightComment = (record: WeightRecord) => {
   weightCommentingId.value = record.id;
-  weightCommentText.value = record.dietitianComment || '';
+  // 预填我(当前营养师)自己的批注，编辑不误改他人
+  weightCommentText.value = (myDietitianComment(record)?.text ?? record.dietitianComment) || '';
 };
 const cancelWeightComment = () => {
   weightCommentingId.value = null;
@@ -305,9 +306,13 @@ onMounted(() => {
 });
 onActivated(consumePendingAnnotation);
 
+const myDietitianComment = (rec: { comments?; dietitianComment?: string; dietitianName?: string }) =>
+  recordComments(rec).find((c) => c.role === 'dietitian' && c.name === store.user?.name) || null;
+
 const startComment = (record: DietRecord) => {
   commentingId.value = record.id;
-  commentText.value = record.dietitianComment || '';
+  // 预填"我(当前营养师)自己的批注"，避免把他人批注当成自己在下一次保存时误改
+  commentText.value = (myDietitianComment(record)?.text ?? record.dietitianComment) || '';
   commentScore.value = (record.dietitianScore ?? 1) as 0 | 1 | 2;
   commentStaple.value = !!record.hasStaple;
   commentProtein.value = !!record.hasProtein;

@@ -547,8 +547,9 @@ export const useAppStore = defineStore('app', () => {
   }
 
   /**
-   * 给打卡记录追加一条批注（可多名同角色人员分别批注，append 不覆盖）。
-   * 同时镜像到单字段（dietitian 系 / coach 系 最新一条），保证消息中心/未读计数等仍按单品逻辑工作。
+   * 给打卡记录添加/更新批注（同一作者(role+name)只保留一条，作者再批注=编辑更新该条而非新增；
+   * 不同作者各自一条，逐条展示不覆盖）。同时镜像最新一条到单字段（dietitian 系 / coach 系），
+   * 保证消息中心/未读计数等仍按单品逻辑工作。
    */
   function addRecordComment(type: 'diet' | 'weight' | 'exercise', recordId: string, entry: CheckinComment) {
     const arr = type === 'diet' ? dietRecords.value : type === 'weight' ? weightRecords.value : exerciseRecords.value;
@@ -556,10 +557,10 @@ export const useAppStore = defineStore('app', () => {
     if (idx < 0) return;
     const r = arr[idx];
     const list: CheckinComment[] = Array.isArray((r as any).comments) ? [...((r as any).comments as CheckinComment[])] : [];
-    const last = list[list.length - 1];
-    // 同作者同内容的再次保存视为更新时间（防重复）；否则追加为新批注
-    if (last && last.name === entry.name && last.role === entry.role && last.text === entry.text) {
-      list[list.length - 1] = { ...last, date: entry.date };
+    // 该作者已批注→更新该条文案（保留 id，不再新增）；新作者→追加为新批注
+    const mine = list.findIndex((c) => c.role === entry.role && c.name === entry.name);
+    if (mine >= 0) {
+      list[mine] = { ...list[mine], text: entry.text, date: entry.date };
     } else {
       list.push(entry);
     }

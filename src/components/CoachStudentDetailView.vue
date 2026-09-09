@@ -84,7 +84,8 @@ const EXERCISE_TEMPLATES = [
 
 const startExerciseComment = (record: ExerciseRecord) => {
   exerciseCommentingId.value = record.id;
-  exerciseCommentText.value = record.coachComment || '';
+  // 预填我(当前教练)自己的批注，编辑不误改他人
+  exerciseCommentText.value = (recordComments(record).find((c) => c.role === 'coach' && c.name === store.user?.name)?.text ?? record.coachComment) || '';
   exerciseScore.value = (record.coachScore ?? 1) as 0 | 1 | 2;
 };
 const cancelExerciseComment = () => {
