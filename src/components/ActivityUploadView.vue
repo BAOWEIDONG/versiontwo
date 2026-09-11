@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore } from '../store/app';
 import { uploadFile } from '../lib/api';
@@ -46,9 +46,19 @@ const editingActivity = computed(() => store.editingActivity);
 const editingId = computed(() => editingActivity.value?.id);
 const isEditing = computed(() => Boolean(editingId.value));
 
-(function prefill() {
-  const record = store.editingActivity;
-  if (!record) return;
+// ★视图被 KeepAlive 缓存，setup 只在首次创建时执行——改用 watch 监听 editingActivity，
+//   每次进入编辑（含从缓存激活）都重新预填；置 null（发布新活动/取消编辑）时重置表单。
+watch(() => store.editingActivity, (record) => {
+  if (!record) {
+    formData.title = '';
+    formData.description = '';
+    imageFiles.value = [];
+    videoUrls.value = [];
+    mediaType.value = 'image';
+    selectedCampIds.value = [];
+    error.value = '';
+    return;
+  }
   formData.title = record.title || '';
   formData.description = record.description || '';
   const imgs = record.imageUrls || [];
@@ -56,13 +66,16 @@ const isEditing = computed(() => Boolean(editingId.value));
   if (vids.length > 0) {
     mediaType.value = 'video';
     videoUrls.value = [...vids];
+    imageFiles.value = [];
   } else {
     mediaType.value = 'image';
     imageFiles.value = [...imgs];
+    videoUrls.value = [];
   }
   // 仅预填用户可见营期内的 id（不在可选营期的自动落入全部营期）
   selectedCampIds.value = record.campIds ? record.campIds.filter((id) => camps.value.some((c) => c.id === id)) : [];
-})();
+  error.value = '';
+}, { immediate: true });
 
 const handleBack = () => {
   store.setEditingActivity(null);
