@@ -34,6 +34,8 @@ export const MOCK_STUDENTS: { id: string; name: string; age: number; gender: 'ma
   { id: 's11', name: '钱多多', age: 27, gender: 'male', phone: '13800000011' },
   // s12：演示用——每天只完成部分打卡(1-2项)，用于展示「打卡率」与「打卡全部完成率」区别
   { id: 's12', name: '陈曦', age: 30, gender: 'female', phone: '13800000012' },
+  // 体验账号：同一手机号可按学员/营养师/教练三种角色登录（登录时选择角色）
+  { id: 's13', name: '体验学员', age: 30, gender: 'female', phone: '13900000009' },
 ];
 
 // 完整打卡天数：今天往前连续 N 天，三餐+运动都完成
@@ -805,10 +807,14 @@ export const MOCK_ACCOUNTS: Account[] = [
   { id: 'd0', phone: '18888888888', name: '管理员', role: 'dietitian', active: true, createdAt: iso(-30, '09:00:00') },
   { id: 'd1', phone: '13900000001', name: '王营养师', role: 'dietitian', active: true, createdAt: iso(-30, '09:00:00') },
   { id: 'd2', phone: '13900000002', name: '李营养师', role: 'dietitian', active: true, createdAt: iso(-20, '09:00:00') },
+  // 体验营养师：同号不同角色
+  { id: 'd3', phone: '13900000009', name: '体验营养师', role: 'dietitian', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-30, '09:00:00') },
   // 教练
   { id: 'c1', phone: '13700000001', name: '李教练', role: 'coach', campIds: ['camp1'], active: true, createdAt: iso(-28, '10:00:00') },
   { id: 'c2', phone: '13700000002', name: '王教练', role: 'coach', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-28, '10:00:00') },
   { id: 'c3', phone: '13700000003', name: '张教练', role: 'coach', active: true, createdAt: iso(-28, '10:00:00') },
+  // 体验教练：同号不同角色
+  { id: 'c4', phone: '13900000009', name: '体验教练', role: 'coach', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-28, '10:00:00') },
   // 学员（id 与 MOCK_STUDENTS 一致，确保登录后能关联到打卡/体重/检测数据）
   { id: 's1', phone: '13800000001', name: '李明', role: 'student', campIds: ['camp1'], active: true, createdAt: iso(-15, '08:00:00') },
   { id: 's2', phone: '13800000002', name: '王丽', role: 'student', campIds: ['camp1'], active: true, createdAt: iso(-15, '08:00:00') },
@@ -822,6 +828,8 @@ export const MOCK_ACCOUNTS: Account[] = [
   { id: 's10', phone: '13800000010', name: '孙悟空', role: 'student', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-15, '08:00:00') },
   // 仅属于未开营营期（camp3）的学员，用于演示"营期未开始禁止打卡"
   { id: 's11', phone: '13800000011', name: '钱多多', role: 'student', campIds: ['camp3'], active: true, createdAt: iso(7, '08:00:00') },
+  // 体验学员：同号不同角色
+  { id: 's13', phone: '13900000009', name: '体验学员', role: 'student', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-15, '08:00:00') },
   // s12 演示用：仅部分打卡，展示打卡率与打卡全部完成率区别
   { id: 's12', phone: '13800000012', name: '陈曦', role: 'student', campIds: ['camp2'], active: true, createdAt: iso(-10, '08:00:00') },
 ];

@@ -197,18 +197,12 @@ const saveAccount = () => {
     return;
   }
 
-  // 检查手机号唯一
+  // 检查手机号 + 角色唯一：同一手机号允许存在不同角色的账户（登录时按角色匹配）
   const dup = store.accounts.find(
-    (a) => a.phone === phone.trim() && a.id !== editingAccount.value!.id,
+    (a) => a.phone === phone.trim() && a.role === role && a.id !== editingAccount.value!.id,
   );
   if (dup) {
-    // 同手机号已存在：如果是同学员角色，合并营期；如果是不同角色，报错
-    if (dup.role !== role) {
-      const roleLabel = dup.role === 'dietitian' ? '营养师' : dup.role === 'coach' ? '教练' : '学员';
-      accountFormError.value = `该手机号已注册为${roleLabel}，不能重复注册其他角色`;
-      return;
-    }
-    // 同角色：把新选的营期追加到已有账户
+    // 同手机号同角色：把新选的营期追加到已有账户
     if (role === 'student' && campIds && campIds.length > 0) {
       const existingCamps = dup.campIds || [];
       const newCamps = campIds.filter((id) => !existingCamps.includes(id));
