@@ -390,8 +390,9 @@ for (let i = -(PAST_DAYS_S8 - 1); i <= 0; i++) {
 
 // s12 (camp2)：演示用——每天只完成部分打卡。偶数天补全 5 项(算「打卡全部完成」)，奇数天仅 早餐+运动 2 项(算「打卡」但不算全部完成)
 // 目的：让学员结营概况里「打卡率(任意打卡)」与「打卡全部完成率(每天完成所有项目)」出现可见差异
-const S12_RANGE_END = 9; // 周期 -9..+9，共 19 个打卡日(9 天全完成 + 10 天部分)
-for (let i = -(S12_RANGE_END); i <= S12_RANGE_END; i++) {
+const S12_RANGE_END = 0; // 仅生成到今天的记录，避免未来/跨期脏数据
+const S12_RANGE_START = -11; // -11..0 共 12 个打卡日(6 天全完成 + 6 天部分)
+for (let i = S12_RANGE_START; i <= S12_RANGE_END; i++) {
   const idSuffix = `s12_${(i >= 0 ? 'p' : 'n') + Math.abs(i).toString().padStart(2, '0')}`;
   const complete = Math.abs(i) % 2 === 0; // 偶数天全完成
   if (complete) {
@@ -401,7 +402,7 @@ for (let i = -(S12_RANGE_END); i <= S12_RANGE_END; i++) {
       { id: `d_d_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '18:20:00'), meal: 'dinner', description: '清蒸鱼+西兰花', photos: [], dietitianScore: 2 },
     );
     MOCK_EXERCISE_RECORDS.push({ id: `e_${idSuffix}`, studentId: 's12', campId: 'camp2', date: iso(i, '19:30:00'), type: '瑜伽', duration: 40, intensity: 3, coachScore: 2 });
-    const w = parseFloat((63.0 - (i + S12_RANGE_END) * 0.06).toFixed(1)); // 随时间递减模拟减重
+    const w = parseFloat((63.0 - (i - S12_RANGE_START) * 0.06).toFixed(1)); // 随时间递减模拟减重
     MOCK_WEIGHT_RECORDS.push({ id: `w_${idSuffix}`, date: iso(i, '07:10:00'), weight: w, studentId: 's12', campId: 'camp2' });
   } else {
     // 部分打卡：只打 早餐 + 运动 两项（计入打卡，但不算全部完成）
@@ -797,7 +798,7 @@ Object.values(MOCK_STUDENT_WEIGHTS).forEach((records) => {
 /** 营期/期列表 */
 export const MOCK_CAMPS: Camp[] = [
   { id: 'camp1', name: '第一期', startDate: dateStr(-15), endDate: dateStr(13), status: 'active' },
-  { id: 'camp2', name: '第二期', startDate: dateStr(-2), endDate: dateStr(26), status: 'active' },
+  { id: 'camp2', name: '第二期', startDate: dateStr(-12), endDate: dateStr(16), status: 'active' },
   { id: 'camp3', name: '第三期', startDate: dateStr(7), endDate: dateStr(35), status: 'upcoming' },
 ];
 
