@@ -11,6 +11,8 @@ interface EdgeSwipeOptions {
   edge?: number;
   /** 触发返回的滑动距离（px） */
   threshold?: number;
+  /** iOS 是否也启用自定义手势（默认关闭，交给系统/微信原生边缘返回，避免双重返回） */
+  enableOnIOS?: boolean;
 }
 
 /**
@@ -23,6 +25,11 @@ interface EdgeSwipeOptions {
 export function useEdgeSwipeBack(options: EdgeSwipeOptions) {
   const edge = options.edge ?? 24;
   const threshold = options.threshold ?? 90;
+
+  // iOS：系统/微信自带边缘返回手势，自定义手势会与原生手势冲突（可能一次滑动返回两层），默认不接管
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS && !options.enableOnIOS) return;
 
   let tracking = false;
   let active = false;
