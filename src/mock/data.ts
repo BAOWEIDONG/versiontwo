@@ -881,7 +881,7 @@ export const MOCK_MANUAL_SCORES: ManualScoreRecord[] = [
         const date = iso(off, time);
         const rec: any = {
           id: `d_${meal}_${key}`, studentId: 's13', campId, date, meal,
-          description: desc, photos: [], dietitianScore: idx % 3 === 0 ? 2 : 1,
+          description: desc, photos: [rewardImg(meal === 'breakfast' ? '营养早餐' : meal === 'lunch' ? '均衡午餐' : '轻食晚餐', meal === 'breakfast' ? '🥣' : meal === 'lunch' ? '🍱' : '🥗', '#FFF2E8', '#FFD8BF')], dietitianScore: idx % 3 === 0 ? 2 : 1,
         };
         if (idx % 3 === 0 && mi !== 1) {
           rec.dietitianComment = '搭配不错，主食再控制一点，晚餐尽量在 19 点前';
@@ -900,7 +900,7 @@ export const MOCK_MANUAL_SCORES: ManualScoreRecord[] = [
           duration: [45, 50, 40, 60, 35][idx % 5],
           intensity: 2 + (idx % 3),
           notes: exNotes[idx % exNotes.length],
-          photos: [], videoUrls: [],
+          photos: [rewardImg('运动打卡', '🏃', '#E8FFF2', '#B7F5D3')], videoUrls: [],
           coachScore: (idx % 3 === 0 ? 2 : 1) as 0 | 1 | 2,
         };
         if (idx % 2 === 0) {

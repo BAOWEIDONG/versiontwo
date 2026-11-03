@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useAppStore } from '../store/app';
-import { ChevronRight, Coins, Gift, Package, Sparkles } from 'lucide-vue-next';
+import { ChevronRight, Coins, Gift, Package, Sparkles, X } from 'lucide-vue-next';
+import { Popup as VanPopup } from 'vant';
 import { StudentTabbar } from './ui';
 import { calculateStreak } from '../lib/streak';
 
@@ -40,6 +41,12 @@ interface PrizePoolItem {
   tag: string;
   tagColor: string;
   category: 'streak' | 'milestone' | 'weekly' | 'lucky' | 'mall';
+  description: string;
+  howTo: string;
+  require: string;
+  stock: number;
+  delivery?: string[];
+  limit?: string;
 }
 
 const prizePool = computed<PrizePoolItem[]>(() => {
@@ -60,6 +67,10 @@ const prizePool = computed<PrizePoolItem[]>(() => {
         tag: isMilestone ? '阶梯达标' : isWeekly ? '每周挑战' : '全勤抽奖',
         tagColor: isMilestone ? '#07C160' : isWeekly ? '#1677FF' : '#FF976A',
         category: isMilestone ? 'milestone' : isWeekly ? 'weekly' : 'lucky',
+        description: t.description || (isMilestone ? '完成阶梯减重目标即可解锁的奖品' : isWeekly ? '完成每周主题挑战即可解锁的奖品' : '全勤参与幸运抽奖的奖品'),
+        howTo: '达成活动条件后，在「我的奖励」中领取',
+        require: isMilestone ? '达到阶梯减重目标（如 3% / 5%）' : isWeekly ? '完成当周主题挑战' : '全勤参与抽奖',
+        stock: t.stock, delivery: t.deliveryMethods,
       });
     } else {
       // 连续打卡奖励：受 checkinStreak 开关控制
@@ -68,6 +79,10 @@ const prizePool = computed<PrizePoolItem[]>(() => {
         id: t.id, name: t.name, imageUrl: t.imageUrl,
         tag: `坚持${t.requiredDays}天`,
         tagColor: '#07C160', category: 'streak',
+        description: t.description || `连续完成全部打卡满 ${t.requiredDays} 天可领取`,
+        howTo: '连续打卡达标后，在「我的奖励」中领取',
+        require: `连续全项打卡 ${t.requiredDays} 天`,
+        stock: t.stock, delivery: t.deliveryMethods,
       });
     }
   }
@@ -79,6 +94,12 @@ const prizePool = computed<PrizePoolItem[]>(() => {
         id: p.id, name: p.name, imageUrl: p.imageUrl,
         tag: `${p.pointsRequired}积分`,
         tagColor: '#FF6B35', category: 'mall',
+        description: p.description || '积分商城在售商品',
+        howTo: '在积分商城使用积分兑换',
+        require: `${p.pointsRequired} 积分`,
+        stock: p.stock,
+        delivery: (p.deliveryOptions || []).map((d: string) => (d === 'shipped' ? 'shipped' : 'in-person')),
+        limit: p.maxExchange && p.maxExchange > 0 ? `每人限兑 ${p.maxExchange} 次` : '不限兑换次数',
       });
     }
   }
@@ -87,6 +108,26 @@ const prizePool = computed<PrizePoolItem[]>(() => {
 
 const hasPrizes = computed(() => prizePool.value.length > 0);
 
+// ─── 奖品详情弹层 ───
+const selectedPrize = ref<PrizePoolItem | null>(null);
+const showPrizeDetail = ref(false);
+const deliveryText = (d?: string[]) => {
+  const list = (d || []).map((x) => (x === 'shipped' ? '邮寄' : x === 'in-person' ? '线下领取' : x));
+  return list.length ? list.join(' / ') : '以营养师配置为准';
+};
+const openPrizeDetail = (prize: PrizePoolItem) => {
+  if (dragMoved) { dragMoved = false; return; }
+  selectedPrize.value = prize;
+  showPrizeDetail.value = true;
+};
+const goPrizeAction = () => {
+  const cat = selectedPrize.value?.category;
+  showPrizeDetail.value = false;
+  if (cat === 'mall') store.setCurrentView('points-mall');
+  else if (cat === 'streak') store.setCurrentView('my-rewards');
+  else store.setCurrentView('camp-activities');
+};
+
 // ─── 奖品池滚动（纯 rAF，自动 + 手动统一控制） ────────────
 const scrollTrack = ref<HTMLElement | null>(null);
 let offset = 0;          // 当前 translateX 偏移（px）
@@ -94,6 +135,7 @@ let halfWidth = 0;       // 内容一半宽度（无缝循环用）
 let rafId: number | null = null;
 let autoScroll = true;   // 是否自动滚动
 let isDragging = false;
+let dragMoved = false;
 let lastTouchX = 0;
 let velocity = 0;        // 手松开时的惯性速度
 let frictionRaf: number | null = null;
@@ -116,6 +158,7 @@ function applyTransform() {
 
 function onTouchStart(e: TouchEvent | MouseEvent) {
   isDragging = true;
+  dragMoved = false;
   autoScroll = false;
   velocity = 0;
   if (frictionRaf) { cancelAnimationFrame(frictionRaf); frictionRaf = null; }
@@ -131,6 +174,7 @@ function onTouchMove(e: TouchEvent) {
   const delta = x - lastTouchX;
   lastTouchX = x;
   velocity = delta;           // 记录最后一步速度供惯性用
+  if (Math.abs(delta) > 4) dragMoved = true;
   offset += delta;
   // 无缝循环
   if (halfWidth > 0) {
@@ -286,7 +330,8 @@ const unreadCount = computed(() =>
               <div
                 v-for="(prize, idx) in [...prizePool, ...prizePool]"
                 :key="prize.id + '-' + idx"
-                class="shrink-0 w-[96px] mr-2.5"
+                class="shrink-0 w-[96px] mr-2.5 cursor-pointer active:scale-95 transition-transform"
+                @click="openPrizeDetail(prize)"
               >
                 <!-- 图片：干净无遮挡 -->
                 <div class="w-[96px] h-[96px] rounded-xl overflow-hidden bg-gray-50 shadow-sm border border-gray-100">
@@ -417,6 +462,57 @@ const unreadCount = computed(() =>
         </p>
       </div>
     </div>
+
+
+    <!-- 奖品详情 -->
+    <VanPopup v-model:show="showPrizeDetail" position="bottom" round>
+      <div v-if="selectedPrize" class="p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" :style="{ background: selectedPrize.tagColor }">{{ selectedPrize.tag }}</span>
+            <span class="text-[10px] text-gray-400">奖品详情</span>
+          </div>
+          <button class="p-1 text-gray-400" @click="showPrizeDetail = false"><X class="w-5 h-5" /></button>
+        </div>
+
+        <div class="w-28 h-28 mx-auto rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
+          <img :src="selectedPrize.imageUrl" class="w-full h-full object-cover" />
+        </div>
+        <h3 class="text-base font-black text-gray-900 text-center mt-3">{{ selectedPrize.name }}</h3>
+        <p class="text-xs text-gray-500 leading-relaxed text-center mt-1">{{ selectedPrize.description }}</p>
+
+        <div class="mt-4 rounded-xl bg-gray-50 p-3 space-y-2 text-xs">
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 w-16 shrink-0">获取途径</span>
+            <span class="text-gray-800 font-medium flex-1">{{ selectedPrize.howTo }}</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 w-16 shrink-0">所需条件</span>
+            <span class="text-gray-800 flex-1">{{ selectedPrize.require }}</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 w-16 shrink-0">剩余库存</span>
+            <span class="text-gray-800 flex-1">{{ selectedPrize.stock }} 件</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 w-16 shrink-0">领取方式</span>
+            <span class="text-gray-800 flex-1">{{ deliveryText(selectedPrize.delivery) }}</span>
+          </div>
+          <div v-if="selectedPrize.limit" class="flex items-start gap-2">
+            <span class="text-gray-400 w-16 shrink-0">兑换限制</span>
+            <span class="text-gray-800 flex-1">{{ selectedPrize.limit }}</span>
+          </div>
+        </div>
+
+        <button
+          class="w-full mt-4 py-3 rounded-xl text-white text-sm font-bold active:scale-[0.98] transition-transform"
+          :style="{ background: selectedPrize.tagColor }"
+          @click="goPrizeAction"
+        >
+          {{ selectedPrize.category === 'mall' ? '去积分商城兑换' : '去完成活动' }}
+        </button>
+      </div>
+    </VanPopup>
 
     <!-- Bottom Nav -->
     <StudentTabbar anchor="activity-hub" :badge="unreadCount > 0 ? unreadCount : undefined" />
