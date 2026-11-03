@@ -1,3 +1,5 @@
+import { storage } from './storage';
+
 /**
  * 学员端消息中心「已读追踪」持久化。
  *
@@ -24,7 +26,7 @@ export interface MsgSeenState {
 export function loadMsgSeenState(userId: string): MsgSeenState {
   if (!userId) return { ranks: {}, lastSystemSeenAt: 0, readNotif: [] };
   try {
-    const raw = localStorage.getItem(MSG_SEEN_KEY);
+    const raw = storage.getItem(MSG_SEEN_KEY);
     if (!raw) return { ranks: {}, lastSystemSeenAt: 0, readNotif: [] };
     const all = JSON.parse(raw);
     const s = all[userId] || {};
@@ -41,7 +43,7 @@ export function loadMsgSeenState(userId: string): MsgSeenState {
 export function saveMsgSeenState(userId: string, next: Partial<MsgSeenState>) {
   if (!userId) return;
   try {
-    const raw = localStorage.getItem(MSG_SEEN_KEY);
+    const raw = storage.getItem(MSG_SEEN_KEY);
     const all = raw ? JSON.parse(raw) : {};
     const prev = all[userId] || { ranks: {}, lastSystemSeenAt: 0, readNotif: [] };
     all[userId] = {
@@ -49,7 +51,7 @@ export function saveMsgSeenState(userId: string, next: Partial<MsgSeenState>) {
       lastSystemSeenAt: next.lastSystemSeenAt ?? prev.lastSystemSeenAt,
       readNotif: next.readNotif ?? (prev.readNotif || []),
     };
-    localStorage.setItem(MSG_SEEN_KEY, JSON.stringify(all));
+    storage.setItem(MSG_SEEN_KEY, JSON.stringify(all));
   } catch {
     /* ignore */
   }

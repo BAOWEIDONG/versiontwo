@@ -23,6 +23,7 @@ import { calculateTotalScore } from '../lib/scoring';
 import { calculateStreak, calculateLongestStreakInRange } from '../lib/streak';
 import { latestOrFirstId } from '../lib/camps';
 import { loadMsgSeenState, saveMsgSeenState, systemMsgUnread } from '../lib/messageSeen';
+import { storage } from '../lib/storage';
 
 /** 生成 yyyy-MM-dd HH:mm:ss 格式的当前时间字符串（全站统一格式） */
 function formatDateTimeStr(): string {
@@ -94,6 +95,38 @@ export interface ActivityConfig {
   weeklyChallengeStartDate?: string;
   /** 每周挑战独立配置：总周数（默认4周） */
   weeklyChallengeWeeks?: number;
+}
+
+const ACCOUNTS_STORAGE_KEY = 'camp_accounts_v2';
+const ACCOUNTS_DELETED_KEY = 'camp_accounts_deleted_v1';
+
+/** 读取本地持久化账户（与 versionone 一致，刷新后保留增删改） */
+function loadPersistedAccounts(): Account[] | null {
+  try {
+    const raw = storage.getItem(ACCOUNTS_STORAGE_KEY);
+    if (!raw) return null;
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const merged = list as Account[];
+    const deleted = loadDeletedAccountIds();
+    for (const seed of MOCK_ACCOUNTS) {
+      if (!deleted.has(seed.id) && !merged.some((a) => a.id === seed.id)) merged.push(seed);
+    }
+    return merged;
+  } catch { return null; }
+}
+function persistAccounts(list: Account[]) {
+  try { storage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+}
+function loadDeletedAccountIds(): Set<string> {
+  try {
+    const raw = storage.getItem(ACCOUNTS_DELETED_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list : []);
+  } catch { return new Set(); }
+}
+function persistDeletedAccountIds(ids: Set<string>) {
+  try { storage.setItem(ACCOUNTS_DELETED_KEY, JSON.stringify([...ids])); } catch { /* ignore */ }
 }
 
 export const useAppStore = defineStore('app', () => {
@@ -276,7 +309,8 @@ export const useAppStore = defineStore('app', () => {
   /** 营期列表 */
   const camps = ref<Camp[]>([...MOCK_CAMPS]);
   /** 账户列表（手机号=登录凭证） */
-  const accounts = ref<Account[]>([...MOCK_ACCOUNTS]);
+  const accounts = ref<Account[]>(loadPersistedAccounts() || [...MOCK_ACCOUNTS]);
+  persistAccounts(accounts.value);
 
   const selectedStudentId = ref<string | null>(null);
   const selectedDateStr = ref<string | null>(null);
@@ -332,7 +366,9 @@ export const useAppStore = defineStore('app', () => {
       rewardClaims.value = claims;
       metricConfigs.value = metricCfgs;
       camps.value = campList;
-      accounts.value = accountList;
+      // 账户以本地持久化为准，避免刷新被种子数据覆盖
+      accounts.value = loadPersistedAccounts() || accountList;
+      persistAccounts(accounts.value);
       pointProducts.value = products;
       pointExchanges.value = exchanges;
 
@@ -386,9 +422,9 @@ export const useAppStore = defineStore('app', () => {
         user: u,
         timestamp: Date.now(),
       };
-      localStorage.setItem('camp_auth', JSON.stringify(authData));
+      storage.setItem('camp_auth', JSON.stringify(authData));
     } else {
-      localStorage.removeItem('camp_auth');
+      storage.removeItem('camp_auth');
     }
   }
 
@@ -412,19 +448,19 @@ export const useAppStore = defineStore('app', () => {
     }
     // 重新持久化
     const authData = { user: user.value, timestamp: Date.now() };
-    localStorage.setItem('camp_auth', JSON.stringify(authData));
+    storage.setItem('camp_auth', JSON.stringify(authData));
   }
 
   /** 从 localStorage 恢复登录态（页面刷新/重新打开时自动登录） */
   function restoreAuth(): boolean {
     try {
-      const raw = localStorage.getItem('camp_auth');
+      const raw = storage.getItem('camp_auth');
       if (!raw) return false;
       const data = JSON.parse(raw);
       // 30 天过期
       const maxAge = 30 * 24 * 60 * 60 * 1000;
       if (Date.now() - data.timestamp > maxAge) {
-        localStorage.removeItem('camp_auth');
+        storage.removeItem('camp_auth');
         return false;
       }
       if (data.user && data.user.role) {
@@ -432,7 +468,7 @@ export const useAppStore = defineStore('app', () => {
         if (data.user.role === 'student') {
           const account = accounts.value.find((a) => a.id === data.user.id && a.role === 'student');
           if (account && account.active === false) {
-            localStorage.removeItem('camp_auth');
+            storage.removeItem('camp_auth');
             return false;
           }
         }
@@ -440,7 +476,7 @@ export const useAppStore = defineStore('app', () => {
         // 默认展示最新营期
         applyLatestCampDefault();
         // 恢复问卷状态（按学员隔离，防止串用他人问卷数据）
-        const qSaved = localStorage.getItem(questionnaireStorageKey('submitted', data.user.id));
+        const qSaved = storage.getItem(questionnaireStorageKey('submitted', data.user.id));
         questionnaireAnswered.value = !!qSaved;
         // 根据角色和问卷状态跳转到对应首页
         if (data.user.role === 'coach') {
@@ -455,7 +491,7 @@ export const useAppStore = defineStore('app', () => {
       }
     } catch (e) {
       // JSON 解析失败，清除无效数据
-      localStorage.removeItem('camp_auth');
+      storage.removeItem('camp_auth');
     }
     return false;
   }
@@ -470,7 +506,7 @@ export const useAppStore = defineStore('app', () => {
   function logout() {
     user.value = null;
     selectedCampId.value = null;
-    localStorage.removeItem('camp_auth');
+    storage.removeItem('camp_auth');
     viewHistory.value = ['login'];
   }
 
@@ -487,7 +523,7 @@ export const useAppStore = defineStore('app', () => {
     // 以 localStorage 的 submitted_questionnaire 为权威完成标志（提交成功后立刻写入）。
     if (view !== 'questionnaire') {
       const completed = user.value
-        ? !!localStorage.getItem(questionnaireStorageKey('submitted', user.value.id))
+        ? !!storage.getItem(questionnaireStorageKey('submitted', user.value.id))
         : true;
       if (user.value?.role === 'student' && !completed) view = 'questionnaire';
     }
@@ -601,7 +637,7 @@ export const useAppStore = defineStore('app', () => {
   const annLockKey = (type: string, recordId: string) => `${type}:${recordId}`;
   function loadAnnLocks(): Record<string, AnnotationLock> {
     try {
-      const raw = localStorage.getItem(ANNO_LOCK_KEY);
+      const raw = storage.getItem(ANNO_LOCK_KEY);
       if (!raw) return {};
       const m = JSON.parse(raw) || {};
       const now = Date.now();
@@ -614,7 +650,7 @@ export const useAppStore = defineStore('app', () => {
     const now = Date.now();
     const clean: Record<string, AnnotationLock> = {};
     for (const k in m) { const l = m[k]; if (l && l.expiresAt > now) clean[k] = l; }
-    try { clean ? localStorage.setItem(ANNO_LOCK_KEY, JSON.stringify(clean)) : localStorage.removeItem(ANNO_LOCK_KEY); } catch {}
+    try { clean ? storage.setItem(ANNO_LOCK_KEY, JSON.stringify(clean)) : storage.removeItem(ANNO_LOCK_KEY); } catch {}
   }
 
   /** 尝试对某条记录批注持锁。成功→已持锁可编辑；失败→他人正在编辑(返回 byName)。同一人重复调(=编辑中刷新)视为延长不视为冲突。 */
@@ -910,12 +946,12 @@ export const useAppStore = defineStore('app', () => {
   function persistBiz() {
     const snap: Record<string, unknown> = {};
     bizSources.forEach((src, i) => { snap[bizNames[i]] = src.value; });
-    try { localStorage.setItem(BIZ_KEY, JSON.stringify(snap)); } catch { /* 隐私模式/超限：静默降级为内存，不影响功能 */ }
+    try { storage.setItem(BIZ_KEY, JSON.stringify(snap)); } catch { /* 隐私模式/超限：静默降级为内存，不影响功能 */ }
   }
   /** 从 localStorage 回读业务数据并覆盖各 ref；无可用数据返回 false */
   function restoreBiz(): boolean {
     try {
-      const raw = localStorage.getItem(BIZ_KEY);
+      const raw = storage.getItem(BIZ_KEY);
       if (!raw) return false;
       const snap = JSON.parse(raw) as Record<string, unknown>;
       let hasData = false;
@@ -1232,14 +1268,22 @@ export const useAppStore = defineStore('app', () => {
   // ─── 账户管理 ───
   function addAccount(account: Account) {
     accounts.value.push(account);
+    persistAccounts(accounts.value);
+    const deleted = loadDeletedAccountIds();
+    if (deleted.delete(account.id)) persistDeletedAccountIds(deleted);
     api.createAccount(account).catch(() => {});
   }
   function updateAccount(id: string, updates: Partial<Account>) {
     accounts.value = accounts.value.map((a) => (a.id === id ? { ...a, ...updates } : a));
+    persistAccounts(accounts.value);
     api.updateAccount(id, updates).catch(() => {});
   }
   function deleteAccount(id: string) {
     accounts.value = accounts.value.filter((a) => a.id !== id);
+    persistAccounts(accounts.value);
+    const deleted = loadDeletedAccountIds();
+    deleted.add(id);
+    persistDeletedAccountIds(deleted);
     api.deleteAccount(id).catch(() => {});
   }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { computed, ref, onMounted, onActivated, watch } from 'vue';
 import { useDebounced } from '../composables/useDebounced';
 import { format } from 'date-fns';
@@ -256,7 +257,7 @@ const weeklyChallengePreview = computed(() => {
 const yesterdayStr = format(new Date(Date.now() - 86400000), 'yyyy-MM-dd');
 // 同步读取 localStorage，避免返回首页时弹窗闪现
 const _dailySummaryKey = `daily_summary_${store.user?.id || 'anon'}_${todayStr}`;
-const dailySummaryDismissed = ref(!!localStorage.getItem(_dailySummaryKey));
+const dailySummaryDismissed = ref(!!storage.getItem(_dailySummaryKey));
 
 const dailySummary = computed(() => {
   if (!store.user) return null;
@@ -298,7 +299,7 @@ const dailySummaryWeightColor = computed(() => {
 });
 const dismissDailySummary = () => {
   dailySummaryDismissed.value = true;
-  localStorage.setItem(_dailySummaryKey, '1');
+  storage.setItem(_dailySummaryKey, '1');
 };
 
 // ---- 今日打卡状态 ----
@@ -392,7 +393,7 @@ function unlockedUnclaimedRewards(): RewardTier[] {
 }
 
 function persistShownRewards() {
-  try { localStorage.setItem(rewardSeenKey(), JSON.stringify([...shownRewardTiers.value])); } catch { /* */ }
+  try { storage.setItem(rewardSeenKey(), JSON.stringify([...shownRewardTiers.value])); } catch { /* */ }
 }
 
 // 检测新解锁的连续打卡奖励（打卡记录增加后由 watch 触发）
@@ -439,7 +440,7 @@ const scanRewardNotify = () => {
   // 落盘已解锁未领取档位的快照（幂等），确保档位此后下架/删除，学员端仍能显示并领取
   store.recordUnlockSnapshots(store.user.id, activeCampId.value, unlockedUnclaimedRewards());
   let seenRewards: string[] = [];
-  try { seenRewards = JSON.parse(localStorage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
+  try { seenRewards = JSON.parse(storage.getItem(rewardSeenKey()) || '[]'); } catch { /* */ }
   if (seenRewards.length > 0) {
     shownRewardTiers.value = new Set(seenRewards);
     const fresh = unlockedUnclaimedRewards().filter((t) => !shownRewardTiers.value.has(t.id));

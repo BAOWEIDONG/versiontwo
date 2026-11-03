@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { showConfirmDialog, showToast, Popup as VanPopup, TimePicker as VanTimePicker } from 'vant';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
@@ -58,7 +59,7 @@ const formData = reactive({
 });
 
 onMounted(() => {
-  const saved = localStorage.getItem(qKey('draft'));
+  const saved = storage.getItem(qKey('draft'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -74,7 +75,7 @@ onMounted(() => {
 watch(
   [() => ({ ...formData }), step],
   () => {
-    localStorage.setItem(qKey('draft'), JSON.stringify({ formData, step: step.value }));
+    storage.setItem(qKey('draft'), JSON.stringify({ formData, step: step.value }));
   },
   { deep: true },
 );
@@ -184,8 +185,8 @@ const handleSubmit = () => {
     });
   }
 
-  localStorage.setItem(qKey('submitted'), JSON.stringify(formData));
-  localStorage.removeItem(qKey('draft'));
+  storage.setItem(qKey('submitted'), JSON.stringify(formData));
+  storage.removeItem(qKey('draft'));
   store.setQuestionnaireAnswered(true);
   store.setCurrentView('dashboard');
 };

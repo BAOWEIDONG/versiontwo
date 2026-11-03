@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { ref, computed } from 'vue';
 import { usePaged } from '../composables/usePaged';
 import { useDebounced } from '../composables/useDebounced';
@@ -94,7 +95,7 @@ const todayRankKey = `rank_${activeCampId.value}_${todayKey}`;
 
 const yesterdayRankMap = computed(() => {
   try {
-    const raw = localStorage.getItem(yesterdayRankKey);
+    const raw = storage.getItem(yesterdayRankKey);
     if (raw) return new Map<string, number>(JSON.parse(raw));
   } catch { /* */ }
   return new Map<string, number>();
@@ -105,13 +106,13 @@ function persistTodayRank() {
   const ranked = rankStudents(campStudents.value, campDiet.value, campEx.value, campManual.value);
   const entries = ranked.map((r) => [r.studentId, r.rank] as [string, number]);
   // 如果今天还没存过，把昨天存的数据移到 yesterday（如果已有今日数据说明今天已存过）
-  const existingToday = localStorage.getItem(todayRankKey);
+  const existingToday = storage.getItem(todayRankKey);
   if (!existingToday) {
     // 当前 localStorage 里可能存的是前一天的排名，把它移到 yesterday
     const oldKey = `rank_${activeCampId.value}_${format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')}`;
     // yesterday 已经有自己的 key，不需要移动
   }
-  localStorage.setItem(todayRankKey, JSON.stringify(entries));
+  storage.setItem(todayRankKey, JSON.stringify(entries));
 }
 
 const rankChange = (studentId: string, currentRank: number): number | null => {
@@ -128,7 +129,7 @@ const cheeredIds = ref<Set<string>>(new Set());
 const loadCheers = () => {
   const cheered = new Set<string>();
   for (const s of campStudents.value) {
-    if (localStorage.getItem(cheerKey(s.id))) cheered.add(s.id);
+    if (storage.getItem(cheerKey(s.id))) cheered.add(s.id);
   }
   cheeredIds.value = cheered;
 };
@@ -136,7 +137,7 @@ const loadCheers = () => {
 const cheerCount = (studentId: string): number => {
   // 统计所有人对该学员的加油次数（从 localStorage 扫描）
   let count = 0;
-  for (const key of Object.keys(localStorage)) {
+  for (const key of storage.keys()) {
     if (key.startsWith('cheer_') && key.includes(`_${studentId}_${todayKey}`)) count++;
   }
   return count;
@@ -147,7 +148,7 @@ const handleCheer = (studentId: string, name: string) => {
     showToast({ message: '今天已经给TA加过油了', position: 'middle', duration: 1500 });
     return;
   }
-  localStorage.setItem(cheerKey(studentId), '1');
+  storage.setItem(cheerKey(studentId), '1');
   cheeredIds.value.add(studentId);
   showToast({ message: `已给${name}加油！`, position: 'middle', duration: 1500 });
 };

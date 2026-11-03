@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { format } from 'date-fns';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
@@ -311,7 +312,7 @@ const consumePendingAnnotation = () => {
 };
 
 onMounted(() => {
-  const saved = localStorage.getItem(questionnaireStorageKey('submitted', store.selectedStudentId || 'none')) || localStorage.getItem(questionnaireStorageKey('draft', store.selectedStudentId || 'none'));
+  const saved = storage.getItem(questionnaireStorageKey('submitted', store.selectedStudentId || 'none')) || storage.getItem(questionnaireStorageKey('draft', store.selectedStudentId || 'none'));
   if (saved) {
     try {
       const parsed = JSON.parse(saved);

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { computed, ref, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { campDateRange, latestOrFirstId } from '../lib/camps';
@@ -55,11 +56,11 @@ const disabledStudentIds = computed(() => new Set(store.accounts.filter((a) => a
 // 过滤标签（localStorage 持久化：营养师从学员详情返回或系统返回重载后，筛选不丢）
 const PEND_FILTER_KEY = 'dietitian_pending_filter';
 const storedFilter = (): ItemType | 'all' => {
-  const v = localStorage.getItem(PEND_FILTER_KEY);
+  const v = storage.getItem(PEND_FILTER_KEY);
   return v === 'diet' || v === 'weight' ? v : 'all';
 };
 const activeFilter = ref<ItemType | 'all'>(storedFilter());
-watch(activeFilter, (v) => localStorage.setItem(PEND_FILTER_KEY, v));
+watch(activeFilter, (v) => storage.setItem(PEND_FILTER_KEY, v));
 
 const mealLabel = (meal: string) => MEAL_TYPES.find((m) => m.id === meal)?.label;
 

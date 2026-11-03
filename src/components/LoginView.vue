@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storage } from '../lib/storage';
 import { ref } from 'vue';
 import { showDialog, Checkbox as VanCheckbox, showToast } from 'vant';
 import { useAppStore, questionnaireStorageKey } from '../store/app';
@@ -72,7 +73,7 @@ const handlePhoneSubmit = () => {
 
   if (account.role === 'coach') store.setCurrentView('coach-dashboard');
   else if (account.role === 'dietitian') store.setCurrentView('dietitian-dashboard');
-  else store.setCurrentView(localStorage.getItem(questionnaireStorageKey('submitted', account.id)) ? 'dashboard' : 'questionnaire');
+  else store.setCurrentView(storage.getItem(questionnaireStorageKey('submitted', account.id)) ? 'dashboard' : 'questionnaire');
 };
 </script>
 
