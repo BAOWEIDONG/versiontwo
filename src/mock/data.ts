@@ -829,7 +829,7 @@ export const MOCK_ACCOUNTS: Account[] = [
   // 仅属于未开营营期（camp3）的学员，用于演示"营期未开始禁止打卡"
   { id: 's11', phone: '13800000011', name: '钱多多', role: 'student', campIds: ['camp3'], active: true, createdAt: iso(7, '08:00:00') },
   // 体验学员：同号不同角色
-  { id: 's13', phone: '13900000009', name: '体验学员', role: 'student', campIds: ['camp1', 'camp2'], active: true, createdAt: iso(-15, '08:00:00') },
+  { id: 's13', phone: '13900000009', name: '体验学员', role: 'student', campIds: ['camp1'], active: true, createdAt: iso(-15, '08:00:00') },
   // s12 演示用：仅部分打卡，展示打卡率与打卡全部完成率区别
   { id: 's12', phone: '13800000012', name: '陈曦', role: 'student', campIds: ['camp2'], active: true, createdAt: iso(-10, '08:00:00') },
 ];
@@ -860,3 +860,76 @@ export const MOCK_MANUAL_SCORES: ManualScoreRecord[] = [
   { id: 'ms2', studentId: 's2', points: 6, reason: '线下运动打卡补录', dietitianName: '营养师小王', createdAt: iso(-2, '10:05:00'), date: dateStr(-5), campId: 'camp1' },
   { id: 'ms3', studentId: 's3', points: -2, reason: '打卡作弊扣分', dietitianName: '营养师小王', createdAt: iso(-1, '15:00:00'), date: dateStr(-1), campId: 'camp1' },
 ];
+
+
+// ── 体验学员 s13（13900000009）演示数据：连续打卡 + 运动/体重 + 批注 + 体测前后值 ──
+(() => {
+  const plusHour = (d: string, h: number) => `${d.substring(0, 10)} ${String(Math.min(23, parseInt(d.substring(11, 13), 10) + h)).padStart(2, '0')}:00:00`;
+  const mealDefs: Array<[string, string, string]> = [
+    ['breakfast', '燕麦牛奶 + 水煮蛋 + 蓝莓', '07:40:00'],
+    ['lunch', '鸡胸肉糙米饭 + 时蔬', '12:10:00'],
+    ['dinner', '清蒸鱼 + 西兰花 + 少量杂粮', '18:30:00'],
+  ];
+  const exTypes = ['快走', '慢跑', '瑜伽', '游泳', '力量训练'];
+  const exNotes = ['配速稳定，状态不错', '跟着视频完成，微微出汗', '强度适中，注意拉伸', '和朋友一起，坚持完成'];
+  const seed = (campId: 'camp1' | 'camp2', offsets: number[], baseWeight: number) => {
+    offsets.forEach((off, idx) => {
+      const key = `s13_${campId}_${off >= 0 ? 'p' : 'n'}${Math.abs(off).toString().padStart(2, '0')}`;
+      const skipDinner = idx % 5 === 4; // 每 5 天缺一次晚餐，便于展示缺项
+      mealDefs.forEach(([meal, desc, time], mi) => {
+        if (skipDinner && meal === 'dinner') return;
+        const date = iso(off, time);
+        const rec: any = {
+          id: `d_${meal}_${key}`, studentId: 's13', campId, date, meal,
+          description: desc, photos: [], dietitianScore: idx % 3 === 0 ? 2 : 1,
+        };
+        if (idx % 3 === 0 && mi !== 1) {
+          rec.dietitianComment = '搭配不错，主食再控制一点，晚餐尽量在 19 点前';
+          rec.dietitianName = '王营养师';
+          rec.dietitianCommentDate = plusHour(date, 2);
+        }
+        MOCK_DIET_RECORDS.push(rec);
+      });
+
+      // 运动：每 7 天休息一次
+      if (idx % 7 !== 6) {
+        const date = iso(off, idx % 2 === 0 ? '19:30:00' : '07:10:00');
+        const rec: any = {
+          id: `e_${key}`, studentId: 's13', campId, date,
+          type: exTypes[idx % exTypes.length],
+          duration: [45, 50, 40, 60, 35][idx % 5],
+          intensity: 2 + (idx % 3),
+          notes: exNotes[idx % exNotes.length],
+          photos: [], videoUrls: [],
+          coachScore: (idx % 3 === 0 ? 2 : 1) as 0 | 1 | 2,
+        };
+        if (idx % 2 === 0) {
+          rec.coachComment = '动作标准，保持这个频率，注意运动后拉伸';
+          rec.coachName = '王教练';
+          rec.coachCommentDate = plusHour(date, 1);
+        }
+        MOCK_EXERCISE_RECORDS.push(rec);
+      }
+
+      // 体重：每日记录，稳定下降
+      const weight = parseFloat((baseWeight - idx * 0.16).toFixed(1));
+      MOCK_WEIGHT_RECORDS.push({ id: `w_${key}`, studentId: 's13', campId, date: iso(off, '07:20:00'), weight, photos: [] } as any);
+    });
+  };
+  // 第一期：-15 ~ 今天，16 天连续（默认营期即可看到丰富数据）
+  seed('camp1', Array.from({ length: 16 }, (_, i) => i - 15), 68.6);
+
+  // 体测前后值（结营报告使用）
+  MOCK_STUDENT_METRIC_VALUES['s13'] = {
+    mc_body_weight: { beforeValue: 68.6, afterValue: 66.2 },
+    mc_body_muscle: { beforeValue: 37.8, afterValue: 38.2 },
+    mc_body_skeletal: { beforeValue: 23.2, afterValue: 23.6 },
+    mc_body_fat: { beforeValue: 24.6, afterValue: 22.0 },
+    mc_body_bmr: { beforeValue: 1320, afterValue: 1345 },
+    mc_body_whr: { beforeValue: 0.88, afterValue: 0.83 },
+    mc_body_visceral: { beforeValue: 92, afterValue: 82 },
+    mc_body_obesity: { beforeValue: 108, afterValue: 104 },
+    mc_body_cell: { beforeValue: 29.6, afterValue: 30.3 },
+    mc_body_edema: { beforeValue: 0.38, afterValue: 0.37 },
+  };
+})();
