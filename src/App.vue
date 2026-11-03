@@ -10,6 +10,7 @@ import StudentDashboard from './components/StudentDashboardView.vue';
 import DietitianDashboard from './components/DietitianDashboardView.vue';
 import CoachDashboard from './components/CoachDashboardView.vue';
 import Questionnaire from './components/QuestionnaireView.vue';
+import { useEdgeSwipeBack } from './composables/useEdgeSwipeBack';
 
 // 异步视图统一包装：加载 chunk 期间立即显示共享骨架屏，避免白屏"等好久"
 function lazyView(loader: () => Promise<{ default: Component }>): Component {
@@ -116,6 +117,14 @@ watch(() => store.user?.role, (r) => syncRoleClass(r));
 
 // 视图切换时滚动到顶部
 const scrollContainer = ref<HTMLElement | null>(null);
+const pageRef = ref<HTMLElement | null>(null);
+
+// 微信内：左侧边缘右滑返回
+useEdgeSwipeBack({
+  canGoBack: () => store.canGoBack,
+  onBack: () => store.goBack(),
+  target: pageRef,
+});
 watch(() => store.currentView, () => {
   nextTick(() => {
     scrollContainer.value?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
@@ -151,7 +160,7 @@ onMounted(() => {
 <template>
   <div class="fixed inset-0 max-w-md mx-auto overflow-hidden font-sans text-gray-700 sm:shadow-2xl sm:border-x sm:border-gray-100">
     <div ref="scrollContainer" class="absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain" style="-webkit-overflow-scrolling: touch; touch-action: pan-y;">
-      <div class="relative">
+      <div ref="pageRef" class="relative">
         <!-- 视图缓存：去掉 :key 强制重建，改用 KeepAlive 缓存已访问视图。
              返回/切底部 tab 不再整个销毁重建，大幅降低导航卡顿（性能优化） -->
         <KeepAlive>
